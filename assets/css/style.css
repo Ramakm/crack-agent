@@ -168,7 +168,25 @@ body::before{
 .topbar-right {
   margin-left: auto;
   display: flex; align-items: center;
-  gap: 1.25rem;
+  gap: 0.75rem;
+}
+
+.topbar-socials {
+  display: flex; align-items: center;
+  gap: 0.15rem;
+  padding-right: 0.5rem;
+  border-right: 1px solid var(--border);
+}
+.topbar-social {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  color: var(--muted);
+  border-radius: var(--radius-sm);
+  transition: color .15s, background .15s;
+}
+.topbar-social:hover {
+  color: var(--text-heading);
+  background: var(--surface-2);
 }
 
 .topbar-badge {
