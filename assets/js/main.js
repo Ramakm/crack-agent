@@ -23,14 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  /* ── Sidebar module accordion ── */
+  /* ── Sidebar module accordion — each section toggles independently ── */
   document.querySelectorAll('.nav-module-header[data-toggle]').forEach(header => {
     header.addEventListener('click', () => {
-      const module = header.closest('.nav-module');
-      const isOpen = module.classList.contains('open');
-      // close all
-      document.querySelectorAll('.nav-module').forEach(m => m.classList.remove('open'));
-      if (!isOpen) module.classList.add('open');
+      header.closest('.nav-module').classList.toggle('open');
     });
   });
 
