@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enterprise AI Platform Architecture — Claude Architect</title>
+  <meta name="description" content="Day 3 Module 4: Cost optimization, model routing, observability, token monitoring, and internal developer platform design for Claude at scale." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+
+    .arch-diagram {
+      background: var(--code-bg); border: 1px solid var(--code-border);
+      border-radius: var(--radius); padding: 1.5rem;
+      font-family: var(--mono); font-size: 0.78rem; color: #c9d1d9;
+      line-height: 1.8; overflow-x: auto; margin: 1.25rem 0;
+    }
+    .arch-diagram .box   { color: #79c0ff; }
+    .arch-diagram .hi    { color: #ffa657; }
+    .arch-diagram .label { color: #a5d6ff; }
+    .arch-diagram .dim   { color: #484f58; }
+    .arch-diagram .bad   { color: #ff7b72; }
+    .arch-diagram .good  { color: #7ee787; }
+
+    /* Lever cards */
+    .lever-list {
+      display: flex; flex-direction: column; gap: 0; margin: 1.25rem 0;
+    }
+    .lever-item {
+      display: flex; gap: 1rem; align-items: flex-start;
+      padding: 0.9rem 1.1rem;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      position: relative;
+    }
+    .lever-item:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+    .lever-item:last-child  { border-radius: 0 0 var(--radius) var(--radius); border-top: none; }
+    .lever-item:not(:first-child):not(:last-child) { border-top: none; }
+    .lever-num {
+      font-family: var(--mono); font-size: 0.62rem; font-weight: 700;
+      background: var(--accent-tint); color: var(--accent);
+      border: 1px solid var(--accent-soft);
+      border-radius: 3px; padding: 0.15rem 0.48rem;
+      flex-shrink: 0; margin-top: 0.1rem;
+    }
+    .lever-body { flex: 1; font-size: 0.9rem; }
+    .lever-title { font-weight: 700; color: var(--text-heading); margin-bottom: 0.2rem; font-size: 0.9rem; }
+    .lever-desc  { color: var(--muted); font-size: 0.84rem; }
+
+    /* Metrics table */
+    .metrics-table {
+      width: 100%; border-collapse: collapse; margin: 1.2rem 0;
+      font-size: 0.86rem; border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .metrics-table th {
+      background: var(--surface); color: var(--text-heading);
+      font-weight: 600; text-align: left; padding: 0.65rem 0.9rem;
+      border-bottom: 1px solid var(--border); font-size: 0.72rem;
+      text-transform: uppercase; letter-spacing: 0.07em;
+    }
+    .metrics-table td {
+      padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--hairline);
+      vertical-align: top;
+    }
+    .metrics-table tr:last-child td { border-bottom: none; }
+    .metrics-table tr:hover td { background: var(--surface); }
+    .metrics-table code { font-size: 0.78rem; }
+
+    /* Maturity level bars */
+    .maturity-levels {
+      display: flex; flex-direction: column; gap: 0.6rem; margin: 1.25rem 0;
+    }
+    .maturity-level {
+      display: flex; gap: 0.85rem; align-items: center;
+      padding: 0.8rem 1rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .maturity-badge {
+      font-family: var(--mono); font-size: 0.65rem; font-weight: 700;
+      padding: 0.2rem 0.5rem; border-radius: 3px;
+      flex-shrink: 0; white-space: nowrap;
+    }
+    .maturity-badge.l1 { background: #2a1e1c; color: #ff7b72; border: 1px solid #ff7b7244; }
+    .maturity-badge.l2 { background: #1e2218; color: #ffa657; border: 1px solid #ffa65744; }
+    .maturity-badge.l3 { background: #1a2820; color: #7ee787; border: 1px solid #7ee78744; }
+    .maturity-badge.l4 { background: #1a2035; color: #79c0ff; border: 1px solid #79c0ff44; }
+    .maturity-text { flex: 1; font-size: 0.88rem; }
+    .maturity-name { font-weight: 700; color: var(--text-heading); margin-bottom: 0.15rem; }
+    .maturity-desc { color: var(--muted); font-size: 0.82rem; }
+
+    /* Onboarding steps */
+    .onboard-steps {
+      counter-reset: step;
+      display: flex; flex-direction: column; gap: 0.5rem; margin: 1.25rem 0;
+    }
+    .onboard-step {
+      counter-increment: step;
+      display: flex; gap: 1rem; align-items: flex-start;
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius); border: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .onboard-step-num {
+      width: 1.6rem; height: 1.6rem;
+      background: var(--accent); color: #fff;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 700; font-family: var(--mono);
+      flex-shrink: 0;
+    }
+    .onboard-step-body { flex: 1; }
+    .onboard-step-title { font-weight: 700; color: var(--text-heading); font-size: 0.88rem; margin-bottom: 0.18rem; }
+    .onboard-step-desc  { color: var(--muted); font-size: 0.82rem; }
+
+    @media(max-width:768px){
+      .maturity-level { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar"><span></span><span></span><span></span></button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle>
+      <line x1="12" y1="12" x2="19" y2="7.5"></line><line x1="12" y1="12" x2="20.5" y2="13.5"></line>
+      <line x1="12" y1="12" x2="16" y2="20"></line><line x1="12" y1="12" x2="7" y2="19.5"></line>
+      <line x1="12" y1="12" x2="3.5" y2="13"></line><line x1="12" y1="12" x2="7" y2="5"></line>
+      <circle cx="19" cy="7.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="20.5" cy="13.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="16" cy="20" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="19.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="3.5" cy="13" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="5" r="1" fill="currentColor" stroke="none"></circle>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 3 · Module 4</span>
+  <div class="topbar-right"><span class="topbar-badge">Day 3 of 4</span></div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle>
+        <span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub">
+        <a href="day3-module1-context-engineering.html">Context Engineering &amp; CLAUDE.md</a>
+        <a href="day3-module2-cicd-github.html">CI/CD &amp; GitHub Integration</a>
+        <a href="day3-module3-multi-agent.html">Multi-Agent Architecture</a>
+        <a href="day3-module4-platform.html" class="active">Enterprise AI Platform Architecture</a>
+        <a href="day3-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="content-wrap">
+
+      <nav class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span>Day 3</span>
+        <span class="sep">/</span>
+        <span>Enterprise AI Platform Architecture</span>
+      </nav>
+
+      <div class="page-header">
+        <div class="module-tag">✦ Day 3 · Module 4</div>
+        <h1 class="page-title">Enterprise AI Platform Architecture</h1>
+        <p class="page-objective">
+          <strong>Outcome:</strong> Design and operate a production-grade internal AI platform — an AI Gateway, intelligent model router, prompt registry, cost accounting layer, and full observability stack — so your organisation can scale Claude across hundreds of teams with governance, cost control, and engineering confidence.
+        </p>
+        <div class="module-meta">
+          <span class="meta-item"><span class="dot"></span> AI Gateway Pattern</span>
+          <span class="meta-item"><span class="dot"></span> Model Routing</span>
+          <span class="meta-item"><span class="dot"></span> Cost Optimisation</span>
+          <span class="meta-item"><span class="dot"></span> Observability</span>
+          <span class="meta-item"><span class="dot"></span> Developer Platform</span>
+          <span class="meta-item"><span class="dot"></span> Platform Governance</span>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — Platform Overview
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="platform-overview">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <h2 class="section-title">The Internal AI Platform Model</h2>
+        </div>
+
+        <p>
+          The instinctive response when an organisation decides to adopt Claude is to distribute API keys. Procurement buys a key, engineering puts it in a secrets manager, and teams start calling the Anthropic API directly. This is the fastest path to a demo. It is also the fastest path to a governance crisis.
+        </p>
+        <p>
+          Six months in, you have 40 teams making direct API calls, no visibility into which teams are spending what, no consistent safety layer, and a $200,000 monthly bill with no line-item breakdown. The AI Gateway pattern exists to prevent this outcome.
+        </p>
+
+        <h3>Why an Internal Platform — Not Direct API Access</h3>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-icon">🔍</div>
+            <div class="info-card-body">
+              <div class="info-card-title">Governance</div>
+              <p>Every call is attributed to a team, feature, and user. Policy violations surface immediately. There is a single enforcement point for allowlist/blocklist rules rather than hoping each team implements them correctly.</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">💰</div>
+            <div class="info-card-body">
+              <div class="info-card-title">Cost Visibility</div>
+              <p>Per-team, per-feature token accounting. Monthly budget alerts. Hard-stop at budget ceiling. Finance can pull a report at any moment — no spreadsheet archaeology required.</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">⚡</div>
+            <div class="info-card-body">
+              <div class="info-card-title">Rate Limiting</div>
+              <p>Distribute the Anthropic rate limit fairly across teams. A runaway script in team A does not eat team B's quota. Burst allowances configurable per feature tier.</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🔐</div>
+            <div class="info-card-body">
+              <div class="info-card-title">Security</div>
+              <p>A single API key in the gateway's secret manager — never distributed. All network egress to Anthropic originates from one subnet. PII scrubbing runs before any prompt leaves the building.</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">📋</div>
+            <div class="info-card-body">
+              <div class="info-card-title">Audit Trail</div>
+              <p>Immutable log of every request: caller identity, prompt hash, model selected, tokens consumed, latency, response hash. Required for regulated industries. Essential for debugging production incidents.</p>
+            </div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">📐</div>
+            <div class="info-card-body">
+              <div class="info-card-title">Standardisation</div>
+              <p>One SDK, one prompt format, one way to emit metrics. Application teams do not worry about retry logic, backoff, or model selection. The platform handles it.</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>The AI Gateway Pattern</h3>
+
+        <p>
+          The AI Gateway is a thin FastAPI service that sits between all internal services and the Anthropic API. "Thin" is deliberate — its job is routing, accounting, and enforcement, not prompt logic. Application teams inject their domain-specific prompts; the gateway handles everything infrastructure-adjacent.
+        </p>
+
+        <div class="arch-diagram">
+<span class="dim">╔══════════════════════════════════════════════════════════════════════════════╗</span>
+<span class="dim">║</span>  <span class="hi">ENTERPRISE AI PLATFORM — FULL ARCHITECTURE</span>                               <span class="dim">║</span>
+<span class="dim">╚══════════════════════════════════════════════════════════════════════════════╝</span>
+
+  <span class="label">Application Services</span>                    <span class="label">Platform Layer</span>                <span class="label">Anthropic</span>
+
+  <span class="box">┌──────────────────┐</span>                    <span class="box">┌───────────────┐</span>
+  <span class="box">│  Service A       │</span>──────────────┐     <span class="box">│  API Gateway  │</span>
+  <span class="box">│  (Search)        │</span>              │     <span class="box">│  FastAPI :8080│</span>
+  <span class="box">└──────────────────┘</span>              │     <span class="box">└──────┬────────┘</span>
+                                    │            │
+  <span class="box">┌──────────────────┐</span>              ├────────────┤  <span class="dim">auth / rate-limit / PII scrub</span>
+  <span class="box">│  Service B       │</span>──────────────┤            │
+  <span class="box">│  (Summariser)    │</span>              │     <span class="box">┌──────▼────────┐</span>         <span class="box">┌────────────────────┐</span>
+  <span class="box">└──────────────────┘</span>              │     <span class="box">│ Model Router  │</span>────────▶<span class="box">│   Anthropic API    │</span>
+                                    │     <span class="box">│               │</span>         <span class="box">│                    │</span>
+  <span class="box">┌──────────────────┐</span>              │     <span class="box">└──────┬────────┘</span>         <span class="box">│  ┌──────────────┐  │</span>
+  <span class="box">│  Service C       │</span>──────────────┘            │                  <span class="box">│  │ claude-haiku │  │</span>
+  <span class="box">│  (Code Review)   │</span>                     <span class="box">┌──────┴────────┐</span>         <span class="box">│  ├──────────────┤  │</span>
+  <span class="box">└──────────────────┘</span>                     <span class="box">│ Routing Table │</span>         <span class="box">│  │claude-sonnet │  │</span>
+                                           <span class="box">│               │</span>         <span class="box">│  ├──────────────┤  │</span>
+                                           <span class="box">│ haiku   70%   │</span>         <span class="box">│  │ claude-opus  │  │</span>
+                                           <span class="box">│ sonnet  26%   │</span>         <span class="box">└────────────────────┘</span>
+                                           <span class="box">│ opus     4%   │</span>
+                                           <span class="box">└──────┬────────┘</span>
+
+  <span class="label">Support Services</span>
+
+  <span class="box">┌──────────────┐</span>  <span class="box">┌──────────────┐</span>  <span class="box">┌──────────────┐</span>  <span class="box">┌──────────────┐</span>  <span class="box">┌──────────────┐</span>
+  <span class="box">│   Prompt     │</span>  <span class="box">│    Token     │</span>  <span class="box">│    Audit     │</span>  <span class="box">│   Secret     │</span>  <span class="box">│  Semantic    │</span>
+  <span class="box">│  Registry    │</span>  <span class="box">│  Accounting  │</span>  <span class="box">│   Logger     │</span>  <span class="box">│   Manager    │</span>  <span class="box">│    Cache     │</span>
+  <span class="box">│  (Postgres)  │</span>  <span class="box">│  (Postgres)  │</span>  <span class="box">│  (S3+ES)     │</span>  <span class="box">│  (Vault)     │</span>  <span class="box">│   (Redis)    │</span>
+  <span class="box">└──────────────┘</span>  <span class="box">└──────────────┘</span>  <span class="box">└──────────────┘</span>  <span class="box">└──────────────┘</span>  <span class="box">└──────────────┘</span>
+        </div>
+
+        <h3>Platform Components</h3>
+
+        <table class="metrics-table">
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Responsibility</th>
+              <th>Technology</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>API Gateway</strong></td>
+              <td>Ingress for all Claude requests. Authenticates callers, enforces rate limits, strips PII, routes to model router</td>
+              <td>FastAPI + uvicorn + Redis (rate limit counters)</td>
+            </tr>
+            <tr>
+              <td><strong>Prompt Registry</strong></td>
+              <td>Versioned store of approved system prompts. Teams reference prompts by ID + version; the registry resolves the text at runtime</td>
+              <td>PostgreSQL + Flyway migrations</td>
+            </tr>
+            <tr>
+              <td><strong>Token Accounting</strong></td>
+              <td>Records input/output tokens per team per feature per hour. Drives budget alerts and FinOps dashboards</td>
+              <td>PostgreSQL + TimescaleDB extension</td>
+            </tr>
+            <tr>
+              <td><strong>Audit Logger</strong></td>
+              <td>Immutable append-only log: request metadata, prompt hash, response hash, latency. Feeds SIEM and compliance reports</td>
+              <td>Amazon S3 (Parquet) + OpenSearch</td>
+            </tr>
+            <tr>
+              <td><strong>Model Router</strong></td>
+              <td>Selects the cheapest model that satisfies quality and policy constraints for each request</td>
+              <td>Python service embedded in Gateway</td>
+            </tr>
+            <tr>
+              <td><strong>Secret Manager</strong></td>
+              <td>Single Anthropic API key. Rotated monthly. Never distributed to application teams</td>
+              <td>HashiCorp Vault or AWS Secrets Manager</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <strong>Platform as a Product</strong> — The platform team maintains the gateway exactly as they would a customer-facing product. Application teams are the customers. This means SLAs, an on-call rotation, a public changelog, and a feature request backlog. The moment the platform team thinks of their work as "internal infrastructure," reliability and developer experience start to drift. Think product.
+          </div>
+        </div>
+
+        <h3>Adoption Strategy</h3>
+
+        <p>
+          Do not build the platform for the whole organisation before anyone has used it. Start with three pilot teams chosen for diversity of use case: one batch workload (classification at scale), one real-time workload (user-facing summarisation), one developer tooling workload (code review). Measure ROI — tokens saved vs. direct API, incidents caught by the governance layer, developer onboarding time. Present the numbers. Roll out org-wide with evidence.
+        </p>
+        <p>
+          Target timelines: 6 weeks to first pilot, 12 weeks to three teams in production, 6 months to org-wide availability. Do not compress the pilot phase — it is where you discover the platform requirements you did not know you had.
+        </p>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — Model Routing
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="model-routing">
+        <div class="section-label">
+          <span class="section-num">02</span>
+          <h2 class="section-title">Intelligent Model Routing</h2>
+        </div>
+
+        <p>
+          Model routing is the practice of automatically selecting the cheapest model that can handle a task correctly. The key word is "correctly" — routing exists to reduce cost without degrading quality. When done well it is invisible to application teams. When done badly it produces silent quality regressions that are hard to attribute.
+        </p>
+
+        <h3>Routing Signals</h3>
+
+        <p>Three categories of signal drive routing decisions:</p>
+        <ul>
+          <li><strong>Task complexity:</strong> A lightweight classifier (rule-based or a small embedding model) scores prompt complexity on a 0–1 scale. Simple extraction and classification → Haiku. Reasoning, code generation, nuanced synthesis → Sonnet. Multi-step planning, financial or legal analysis → Opus.</li>
+          <li><strong>Request metadata:</strong> The caller service, feature flag, and user tier are passed as headers. A feature flagged <code>model_tier=opus</code> is never downgraded regardless of complexity score. Enterprise users can receive a higher default tier than free users.</li>
+          <li><strong>Prompt length:</strong> Prompts exceeding 8,000 tokens are routed to Sonnet minimum. Long context requires a model with enough capacity to reliably attend to the full input. Haiku's effective recall over very long contexts is measurably weaker.</li>
+        </ul>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>gateway/router.py — Model router with full routing logic</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> enum <span class="kw">import</span> Enum
+<span class="kw">import</span> re
+
+
+<span class="kw">class</span> <span class="fn">ModelTier</span>(str, Enum):
+    HAIKU  = <span class="st">"claude-haiku-3-5"</span>
+    SONNET = <span class="st">"claude-sonnet-4-5"</span>
+    OPUS   = <span class="st">"claude-opus-4-5"</span>
+
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="fn">ClaudeRequest</span>:
+    prompt: str
+    system: str = <span class="st">""</span>
+    feature_id: str = <span class="st">""</span>
+    caller_service: str = <span class="st">""</span>
+    requested_tier: str | None = None   <span class="cm"># explicit override from caller</span>
+    user_tier: str = <span class="st">"standard"</span>        <span class="cm"># "standard" | "enterprise"</span>
+    max_tokens: int = 1024
+
+
+<span class="cm"># ── Hard routing rules ────────────────────────────────────────────────────────</span>
+<span class="cm"># These override any complexity signal. Order matters — first match wins.</span>
+HARD_RULES: list[tuple[str, ModelTier]] = [
+    <span class="cm"># Financial calculations always get Opus</span>
+    (<span class="st">"finance."</span>, ModelTier.OPUS),
+    (<span class="st">"billing."</span>, ModelTier.OPUS),
+    (<span class="st">"payment."</span>, ModelTier.OPUS),
+    <span class="cm"># Security-sensitive features get Sonnet minimum</span>
+    (<span class="st">"auth."</span>,     ModelTier.SONNET),
+    (<span class="st">"security."</span>, ModelTier.SONNET),
+    (<span class="st">"pii."</span>,      ModelTier.SONNET),
+    <span class="cm"># Legal review always gets Opus</span>
+    (<span class="st">"legal."</span>,   ModelTier.OPUS),
+    (<span class="st">"contract."</span>, ModelTier.OPUS),
+]
+
+<span class="cm"># Complexity keywords that push the estimate up</span>
+HIGH_COMPLEXITY_PATTERNS = re.compile(
+    <span class="st">r"(step[- ]by[- ]step|reason|analyse|compare|evaluate|"</span>
+    <span class="st">r"pros.and.cons|trade.?off|architecture|design|strategy)"</span>,
+    re.IGNORECASE,
+)
+
+
+<span class="kw">def</span> <span class="fn">_complexity_score</span>(request: ClaudeRequest) -> float:
+    <span class="st">"""Return 0.0 (trivial) → 1.0 (very complex). Rule-based; swap for an
+    embedding classifier once you have labelled data from production routing."""</span>
+    score = 0.0
+    prompt = request.prompt + <span class="st">" "</span> + request.system
+    token_estimate = len(prompt.split())
+
+    <span class="cm"># Length signal</span>
+    <span class="kw">if</span> token_estimate > 6_000:
+        score += 0.5
+    <span class="kw">elif</span> token_estimate > 2_000:
+        score += 0.3
+    <span class="kw">elif</span> token_estimate > 500:
+        score += 0.1
+
+    <span class="cm"># Pattern signal</span>
+    matches = HIGH_COMPLEXITY_PATTERNS.findall(prompt)
+    score += min(len(matches) * 0.1, 0.4)
+
+    <span class="cm"># Code generation detection</span>
+    <span class="kw">if</span> <span class="st">"```"</span> <span class="kw">in</span> prompt <span class="kw">or</span> <span class="st">"def "</span> <span class="kw">in</span> prompt <span class="kw">or</span> <span class="st">"class "</span> <span class="kw">in</span> prompt:
+        score += 0.2
+
+    <span class="kw">return</span> min(score, 1.0)
+
+
+<span class="kw">def</span> <span class="fn">_apply_hard_rules</span>(feature_id: str) -> ModelTier | None:
+    <span class="st">"""Return a forced model tier if the feature matches a hard rule."""</span>
+    <span class="kw">for</span> prefix, tier <span class="kw">in</span> HARD_RULES:
+        <span class="kw">if</span> feature_id.startswith(prefix):
+            <span class="kw">return</span> tier
+    <span class="kw">return</span> None
+
+
+<span class="kw">def</span> <span class="fn">route_model</span>(request: ClaudeRequest) -> str:
+    <span class="st">"""
+    Select the most cost-effective model for the request.
+
+    Priority order:
+      1. Explicit caller override (caller is accountable for the cost)
+      2. Hard routing rules (feature_id prefix match)
+      3. Enterprise user floor (enterprise users get Sonnet minimum)
+      4. Complexity-based selection
+    """</span>
+    <span class="cm"># 1. Caller override — they explicitly requested a tier</span>
+    <span class="kw">if</span> request.requested_tier:
+        <span class="kw">try</span>:
+            <span class="kw">return</span> ModelTier(request.requested_tier).value
+        <span class="kw">except</span> ValueError:
+            <span class="kw">pass</span>  <span class="cm"># unknown tier string — fall through to rules</span>
+
+    <span class="cm"># 2. Hard routing rules (security, finance, legal)</span>
+    forced = _apply_hard_rules(request.feature_id)
+    <span class="kw">if</span> forced:
+        <span class="kw">return</span> forced.value
+
+    <span class="cm"># 3. Enterprise users get Sonnet as floor</span>
+    floor = ModelTier.HAIKU
+    <span class="kw">if</span> request.user_tier == <span class="st">"enterprise"</span>:
+        floor = ModelTier.SONNET
+
+    <span class="cm"># 4. Complexity-based selection</span>
+    score = _complexity_score(request)
+    <span class="kw">if</span> score >= 0.75:
+        selected = ModelTier.OPUS
+    <span class="kw">elif</span> score >= 0.40:
+        selected = ModelTier.SONNET
+    <span class="kw">else</span>:
+        selected = ModelTier.HAIKU
+
+    <span class="cm"># Apply floor (never downgrade below the floor)</span>
+    tier_order = [ModelTier.HAIKU, ModelTier.SONNET, ModelTier.OPUS]
+    <span class="kw">if</span> tier_order.index(selected) < tier_order.index(floor):
+        selected = floor
+
+    <span class="kw">return</span> selected.value</code></pre>
+        </div>
+
+        <h3>Tier Escalation on Low-Confidence Output</h3>
+
+        <p>
+          Even with a good complexity classifier, Haiku occasionally produces a low-confidence response on a task that was mis-classified as simple. Rather than letting a poor response reach the user, the gateway can detect these cases and transparently re-run with Sonnet.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>gateway/escalation.py — Automatic tier escalation</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">import</span> re
+
+<span class="cm"># Patterns that suggest the model was uncertain or refused</span>
+LOW_CONFIDENCE_PATTERNS = re.compile(
+    <span class="st">r"(I'?m not sure|I cannot determine|I don't have enough|"</span>
+    <span class="st">r"I'm unable to|as an AI I|I apologize, but I cannot|"</span>
+    <span class="st">r"requires more context|I would need more information)"</span>,
+    re.IGNORECASE,
+)
+
+
+<span class="kw">def</span> <span class="fn">is_low_confidence</span>(response_text: str) -> bool:
+    <span class="st">"""Return True if the response signals uncertainty or refusal."""</span>
+    <span class="kw">return</span> bool(LOW_CONFIDENCE_PATTERNS.search(response_text))
+
+
+<span class="kw">async def</span> <span class="fn">call_with_escalation</span>(
+    client,
+    request: <span class="st">"ClaudeRequest"</span>,
+    initial_model: str,
+    escalation_model: str = <span class="st">"claude-sonnet-4-5"</span>,
+) -> tuple[str, str]:
+    <span class="st">"""
+    Call Claude with initial_model. If the response is low-confidence,
+    re-run with escalation_model.
+    Returns (response_text, model_actually_used).
+    """</span>
+    response = <span class="kw">await</span> client.messages.create(
+        model=initial_model,
+        max_tokens=request.max_tokens,
+        system=request.system,
+        messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: request.prompt}],
+    )
+    text = response.content[<span class="num">0</span>].text
+
+    <span class="kw">if</span> initial_model != escalation_model <span class="kw">and</span> is_low_confidence(text):
+        <span class="cm"># Log the escalation for cost attribution and ML feedback</span>
+        escalation_response = <span class="kw">await</span> client.messages.create(
+            model=escalation_model,
+            max_tokens=request.max_tokens,
+            system=request.system,
+            messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: request.prompt}],
+        )
+        <span class="kw">return</span> escalation_response.content[<span class="num">0</span>].text, escalation_model
+
+    <span class="kw">return</span> text, initial_model</code></pre>
+        </div>
+
+        <div class="callout success">
+          <span class="callout-icon">✓</span>
+          <div class="callout-body">
+            <strong>Cost Savings in Practice</strong> — A classification-heavy workload (product categorisation, intent detection, sentiment tagging) is an ideal target for Haiku routing. Routing 70% of these tasks to Haiku while keeping the remaining 30% on Sonnet for complex or ambiguous cases typically reduces the AI budget for that workload by 38–42% with less than 2% quality degradation as measured by human evaluation on a 500-item sample. Build the evaluation harness before you ship the router.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — Cost Optimisation
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="cost-optimization">
+        <div class="section-label">
+          <span class="section-num">03</span>
+          <h2 class="section-title">Cost Optimisation at Scale</h2>
+        </div>
+
+        <p>
+          Model routing is the highest-leverage cost lever but not the only one. A mature platform uses all five levers simultaneously. Each has a different implementation complexity and a different return on investment. Start with routing and caching — they deliver 80% of the savings with 40% of the effort.
+        </p>
+
+        <div class="lever-list">
+          <div class="lever-item">
+            <span class="lever-num">01</span>
+            <div class="lever-body">
+              <div class="lever-title">Model Routing</div>
+              <div class="lever-desc">Route each request to the cheapest capable model. Covered in full in Section 02. Typical savings: 35–45% depending on workload mix.</div>
+            </div>
+          </div>
+          <div class="lever-item">
+            <span class="lever-num">02</span>
+            <div class="lever-body">
+              <div class="lever-title">Prompt Compression</div>
+              <div class="lever-desc">Reduce input token count without reducing output quality. Remove redundant preambles, convert prose explanations to bullet points once a pattern is established, drop few-shot examples after the first 500 production calls confirm the model has the pattern.</div>
+            </div>
+          </div>
+          <div class="lever-item">
+            <span class="lever-num">03</span>
+            <div class="lever-body">
+              <div class="lever-title">Response Caching</div>
+              <div class="lever-desc">Identical or semantically similar prompts return a cached response without a new API call. Semantic caching (embedding similarity) catches near-duplicate prompts that exact-match caching misses. Critical for any feature with repetitive or templated inputs.</div>
+            </div>
+          </div>
+          <div class="lever-item">
+            <span class="lever-num">04</span>
+            <div class="lever-body">
+              <div class="lever-title">Batching</div>
+              <div class="lever-desc">Group multiple small requests into Anthropic Batch API calls. The Batch API provides a 50% cost discount on qualifying models. Ideal for offline, non-real-time workloads: nightly classification runs, document processing pipelines, bulk content generation.</div>
+            </div>
+          </div>
+          <div class="lever-item">
+            <span class="lever-num">05</span>
+            <div class="lever-body">
+              <div class="lever-title">Output Truncation</div>
+              <div class="lever-desc">Set <code>max_tokens</code> per feature, not globally. A classification feature needs 10 tokens, not 1024. A summarisation feature needs 200 tokens, not 4096. Over-provisioned <code>max_tokens</code> rarely fires but signals careless engineering and increases tail latency.</div>
+            </div>
+          </div>
+        </div>
+
+        <h3>Semantic Caching with Redis + Embeddings</h3>
+
+        <p>
+          Exact-text caching catches identical prompts. Semantic caching catches near-identical prompts — the same question phrased differently, form fields with slight wording variations, or templated prompts where only a name changes. Embed the prompt, find the nearest cached embedding, and return the cached response if cosine similarity exceeds a threshold.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>gateway/cache.py — Redis semantic cache with Claude embeddings</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">from</span> __future__ <span class="kw">import</span> annotations
+<span class="kw">import</span> hashlib, json, time
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> redis.asyncio <span class="kw">as</span> redis
+<span class="kw">from</span> anthropic <span class="kw">import</span> AsyncAnthropic
+
+SIMILARITY_THRESHOLD = <span class="num">0.96</span>   <span class="cm"># Tune per feature; higher = stricter</span>
+CACHE_TTL_SECONDS    = <span class="num">3_600</span>   <span class="cm"># 1 hour; shorter for time-sensitive content</span>
+EMBEDDING_MODEL      = <span class="st">"voyage-3"</span>  <span class="cm"># Anthropic's recommended embedding model</span>
+
+
+<span class="kw">class</span> <span class="fn">SemanticCache</span>:
+    <span class="kw">def</span> __init__(self, redis_url: str, anthropic_client: AsyncAnthropic):
+        self._redis  = redis.from_url(redis_url, decode_responses=False)
+        self._client = anthropic_client
+
+    <span class="kw">async def</span> <span class="fn">_embed</span>(self, text: str) -> np.ndarray:
+        <span class="st">"""Get a vector embedding for a prompt string."""</span>
+        response = <span class="kw">await</span> self._client.beta.messages.batches.create()
+        <span class="cm"># NOTE: use voyage-3 via the Anthropic Embeddings API when GA</span>
+        <span class="cm"># For now, compute a deterministic hash-based mock for illustration</span>
+        seed = int(hashlib.sha256(text.encode()).hexdigest(), <span class="num">16</span>) % (<span class="num">2</span>**<span class="num">31</span>)
+        rng  = np.random.default_rng(seed)
+        <span class="kw">return</span> rng.random(<span class="num">1536</span>).astype(np.float32)
+
+    <span class="kw">async def</span> <span class="fn">get</span>(self, prompt: str, feature_id: str) -> str | None:
+        <span class="st">"""Return cached response if a sufficiently similar prompt exists."""</span>
+        query_vec = <span class="kw">await</span> self._embed(prompt)
+        pattern   = f<span class="st">"sem:{feature_id}:*"</span>
+
+        <span class="kw">async for</span> key <span class="kw">in</span> self._redis.scan_iter(pattern, count=<span class="num">200</span>):
+            entry = <span class="kw">await</span> self._redis.get(key)
+            <span class="kw">if not</span> entry:
+                <span class="kw">continue</span>
+            cached  = json.loads(entry)
+            cached_vec = np.array(cached[<span class="st">"embedding"</span>], dtype=np.float32)
+            similarity = float(
+                np.dot(query_vec, cached_vec)
+                / (np.linalg.norm(query_vec) * np.linalg.norm(cached_vec) + <span class="num">1e-9</span>)
+            )
+            <span class="kw">if</span> similarity >= SIMILARITY_THRESHOLD:
+                <span class="kw">return</span> cached[<span class="st">"response"</span>]
+        <span class="kw">return</span> None
+
+    <span class="kw">async def</span> <span class="fn">set</span>(self, prompt: str, feature_id: str, response: str) -> None:
+        <span class="st">"""Store a prompt→response pair with its embedding vector."""</span>
+        embedding = <span class="kw">await</span> self._embed(prompt)
+        key = f<span class="st">"sem:{feature_id}:{hashlib.sha256(prompt.encode()).hexdigest()[:16]}"</span>
+        payload = json.dumps({
+            <span class="st">"embedding"</span>: embedding.tolist(),
+            <span class="st">"response"</span>:  response,
+            <span class="st">"cached_at"</span>: time.time(),
+        })
+        <span class="kw">await</span> self._redis.setex(key, CACHE_TTL_SECONDS, payload)</code></pre>
+        </div>
+
+        <h3>Budget Accounting Middleware</h3>
+
+        <p>
+          Every Claude response from the Anthropic API includes usage data: <code>input_tokens</code> and <code>output_tokens</code>. The accounting middleware intercepts every response, calculates cost based on the model's per-token price, and writes it to the token accounting table. When a team crosses 80% of their monthly budget, an alert fires. At 100%, the gateway starts returning <code>429 Budget Exceeded</code>.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>gateway/accounting.py — Budget accounting middleware</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">from</span> __future__ <span class="kw">import</span> annotations
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime, timezone
+<span class="kw">import</span> asyncpg
+
+<span class="cm"># Cost per 1M tokens in USD (update when Anthropic changes pricing)</span>
+MODEL_PRICING: dict[str, dict[str, float]] = {
+    <span class="st">"claude-haiku-3-5"</span>:  {<span class="st">"input"</span>: <span class="num">0.80</span>,  <span class="st">"output"</span>: <span class="num">4.00</span>},
+    <span class="st">"claude-sonnet-4-5"</span>: {<span class="st">"input"</span>: <span class="num">3.00</span>,  <span class="st">"output"</span>: <span class="num">15.00</span>},
+    <span class="st">"claude-opus-4-5"</span>:   {<span class="st">"input"</span>: <span class="num">15.00</span>, <span class="st">"output"</span>: <span class="num">75.00</span>},
+}
+
+ALERT_THRESHOLD = <span class="num">0.80</span>   <span class="cm"># Alert at 80% of monthly budget</span>
+HARD_STOP       = <span class="num">1.00</span>   <span class="cm"># Hard-stop at 100%</span>
+
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="fn">UsageRecord</span>:
+    team_id:       str
+    feature_id:    str
+    model:         str
+    input_tokens:  int
+    output_tokens: int
+    cost_usd:      float
+    timestamp:     datetime
+
+
+<span class="kw">def</span> <span class="fn">calculate_cost</span>(model: str, input_tokens: int, output_tokens: int) -> float:
+    pricing = MODEL_PRICING.get(model, {<span class="st">"input"</span>: <span class="num">3.00</span>, <span class="st">"output"</span>: <span class="num">15.00</span>})
+    <span class="kw">return</span> (
+        (input_tokens  / <span class="num">1_000_000</span>) * pricing[<span class="st">"input"</span>] +
+        (output_tokens / <span class="num">1_000_000</span>) * pricing[<span class="st">"output"</span>]
+    )
+
+
+<span class="kw">class</span> <span class="fn">BudgetAccountant</span>:
+    <span class="kw">def</span> __init__(self, pool: asyncpg.Pool, alert_fn):
+        self._pool     = pool
+        self._alert_fn = alert_fn  <span class="cm"># async callable(team_id, pct_used, budget_usd)</span>
+
+    <span class="kw">async def</span> <span class="fn">record_and_check</span>(
+        self,
+        team_id: str,
+        feature_id: str,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+    ) -> None:
+        cost = calculate_cost(model, input_tokens, output_tokens)
+        now  = datetime.now(timezone.utc)
+
+        <span class="kw">async with</span> self._pool.acquire() <span class="kw">as</span> conn:
+            <span class="cm"># Insert usage record</span>
+            <span class="kw">await</span> conn.execute(
+                <span class="st">"""INSERT INTO token_usage
+                   (team_id, feature_id, model, input_tokens, output_tokens, cost_usd, ts)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7)"""</span>,
+                team_id, feature_id, model,
+                input_tokens, output_tokens, cost, now,
+            )
+
+            <span class="cm"># Check monthly spend vs. budget</span>
+            row = <span class="kw">await</span> conn.fetchrow(
+                <span class="st">"""SELECT
+                     COALESCE(SUM(cost_usd), 0)     AS spent,
+                     t.monthly_budget_usd            AS budget
+                   FROM token_usage u
+                   JOIN teams t ON t.id = u.team_id
+                   WHERE u.team_id = $1
+                     AND date_trunc('month', u.ts) = date_trunc('month', NOW())
+                   GROUP BY t.monthly_budget_usd"""</span>,
+                team_id,
+            )
+
+        <span class="kw">if not</span> row:
+            <span class="kw">return</span>
+
+        pct = row[<span class="st">"spent"</span>] / max(row[<span class="st">"budget"</span>], <span class="num">0.01</span>)
+
+        <span class="kw">if</span> pct >= HARD_STOP:
+            <span class="kw">raise</span> BudgetExceededError(team_id, row[<span class="st">"budget"</span>])
+
+        <span class="kw">if</span> pct >= ALERT_THRESHOLD:
+            <span class="kw">await</span> self._alert_fn(team_id, pct, row[<span class="st">"budget"</span>])
+
+
+<span class="kw">class</span> <span class="fn">BudgetExceededError</span>(Exception):
+    <span class="kw">def</span> __init__(self, team_id: str, budget: float):
+        super().__init__(f<span class="st">"Team {team_id} has exhausted its ${budget:.2f} monthly budget"</span>)
+        self.team_id = team_id
+        self.budget  = budget</code></pre>
+        </div>
+
+        <div class="callout warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <strong>Hard-Stop Sequencing</strong> — Check the budget ceiling before making the API call, not after. Checking after means you have already spent the money by the time you realise the budget is exhausted. In practice: read the current monthly spend from a fast cache (Redis counter updated on each record write) at request ingress and reject before touching the Anthropic API.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — Observability
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="observability">
+        <div class="section-label">
+          <span class="section-num">04</span>
+          <h2 class="section-title">Observability &amp; Token Monitoring</h2>
+        </div>
+
+        <p>
+          A Claude feature that you cannot observe is a liability. The four signals you need are latency, token usage, error rate, and cost. If you can see those four things — per model, per feature, per team — in real time, you can operate Claude in production with confidence.
+        </p>
+
+        <h3>Prometheus Metrics</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>gateway/metrics.py — Prometheus instrumentation for the AI Gateway</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">from</span> prometheus_client <span class="kw">import</span> (
+    Counter, Histogram, Gauge,
+    CollectorRegistry, make_asgi_app,
+)
+
+registry = CollectorRegistry()
+
+<span class="cm"># ── Latency ───────────────────────────────────────────────────────────────────</span>
+claude_request_duration_seconds = Histogram(
+    <span class="st">"claude_request_duration_seconds"</span>,
+    <span class="st">"End-to-end latency of a Claude API call in seconds"</span>,
+    labelnames=[<span class="st">"model"</span>, <span class="st">"feature_id"</span>, <span class="st">"team_id"</span>],
+    buckets=[<span class="num">0.5</span>, <span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">5</span>, <span class="num">8</span>, <span class="num">13</span>, <span class="num">21</span>, <span class="num">34</span>],
+    registry=registry,
+)
+
+<span class="cm"># ── Token usage ───────────────────────────────────────────────────────────────</span>
+claude_input_tokens_total = Counter(
+    <span class="st">"claude_input_tokens_total"</span>,
+    <span class="st">"Total input tokens sent to the Anthropic API"</span>,
+    labelnames=[<span class="st">"model"</span>, <span class="st">"feature_id"</span>, <span class="st">"team_id"</span>],
+    registry=registry,
+)
+claude_output_tokens_total = Counter(
+    <span class="st">"claude_output_tokens_total"</span>,
+    <span class="st">"Total output tokens received from the Anthropic API"</span>,
+    labelnames=[<span class="st">"model"</span>, <span class="st">"feature_id"</span>, <span class="st">"team_id"</span>],
+    registry=registry,
+)
+
+<span class="cm"># ── Cost ──────────────────────────────────────────────────────────────────────</span>
+claude_cost_usd_total = Counter(
+    <span class="st">"claude_cost_usd_total"</span>,
+    <span class="st">"Cumulative USD cost of Anthropic API calls"</span>,
+    labelnames=[<span class="st">"model"</span>, <span class="st">"feature_id"</span>, <span class="st">"team_id"</span>],
+    registry=registry,
+)
+
+<span class="cm"># ── Errors ────────────────────────────────────────────────────────────────────</span>
+claude_error_total = Counter(
+    <span class="st">"claude_error_total"</span>,
+    <span class="st">"Count of errors from the Anthropic API or Gateway"</span>,
+    labelnames=[<span class="st">"model"</span>, <span class="st">"feature_id"</span>, <span class="st">"error_type"</span>],
+    registry=registry,
+)
+
+<span class="cm"># ── Cache ─────────────────────────────────────────────────────────────────────</span>
+claude_cache_hits_total = Counter(
+    <span class="st">"claude_cache_hits_total"</span>,
+    <span class="st">"Requests served from semantic cache (no API call made)"</span>,
+    labelnames=[<span class="st">"feature_id"</span>, <span class="st">"team_id"</span>],
+    registry=registry,
+)
+
+<span class="cm"># ── Budget ────────────────────────────────────────────────────────────────────</span>
+claude_budget_utilisation = Gauge(
+    <span class="st">"claude_budget_utilisation_ratio"</span>,
+    <span class="st">"Current month spend as a fraction of monthly budget (0.0–1.0)"</span>,
+    labelnames=[<span class="st">"team_id"</span>],
+    registry=registry,
+)
+
+<span class="cm"># Mount this at /metrics on the Gateway's internal port</span>
+metrics_app = make_asgi_app(registry=registry)</code></pre>
+        </div>
+
+        <h3>Grafana Dashboard — What to Include</h3>
+
+        <table class="metrics-table">
+          <thead>
+            <tr>
+              <th>Panel</th>
+              <th>Query (PromQL)</th>
+              <th>Alert</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Latency P50 / P95 / P99</strong></td>
+              <td><code>histogram_quantile(0.95, rate(claude_request_duration_seconds_bucket[5m]))</code></td>
+              <td>P95 &gt; 5 s</td>
+            </tr>
+            <tr>
+              <td><strong>Cost by feature (hourly)</strong></td>
+              <td><code>sum by (feature_id) (rate(claude_cost_usd_total[1h]) * 3600)</code></td>
+              <td>Day-over-day spike &gt; 200%</td>
+            </tr>
+            <tr>
+              <td><strong>Error rate by model</strong></td>
+              <td><code>sum by (model) (rate(claude_error_total[5m]))</code></td>
+              <td>Error rate &gt; 1% over 10 min</td>
+            </tr>
+            <tr>
+              <td><strong>Token efficiency ratio</strong></td>
+              <td><code>rate(claude_output_tokens_total[5m]) / rate(claude_input_tokens_total[5m])</code></td>
+              <td>Ratio &lt; 0.05 (tiny output relative to large input = wasted tokens)</td>
+            </tr>
+            <tr>
+              <td><strong>Cache hit rate</strong></td>
+              <td><code>rate(claude_cache_hits_total[5m]) / rate(claude_request_duration_seconds_count[5m])</code></td>
+              <td>Alert if drops below 15% on high-cardinality features</td>
+            </tr>
+            <tr>
+              <td><strong>Budget utilisation per team</strong></td>
+              <td><code>claude_budget_utilisation_ratio</code></td>
+              <td>Any team &gt; 0.80</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Structured Log Format</h3>
+
+        <p>
+          Every Claude API call emits one structured log line at completion. Logs are shipped to S3 (Parquet, partitioned by <code>year/month/day/team_id</code>) for compliance archiving, and to OpenSearch for live querying. The <code>trace_id</code> propagates through the entire request chain so you can reconstruct a full user journey.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-json"></span>Structured log line — one per Claude API call</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>{
+  <span class="st">"timestamp"</span>:        <span class="st">"2025-05-21T09:14:22.341Z"</span>,
+  <span class="st">"trace_id"</span>:         <span class="st">"a3f9b2c1-0d44-4e82-bc17-9f1e33a8d50c"</span>,
+  <span class="st">"span_id"</span>:          <span class="st">"8b2d1a"</span>,
+  <span class="st">"team_id"</span>:          <span class="st">"team-search-platform"</span>,
+  <span class="st">"feature_id"</span>:       <span class="st">"search.query-expansion"</span>,
+  <span class="st">"caller_service"</span>:   <span class="st">"search-api"</span>,
+  <span class="st">"model_requested"</span>:  <span class="st">"claude-haiku-3-5"</span>,
+  <span class="st">"model_used"</span>:       <span class="st">"claude-haiku-3-5"</span>,
+  <span class="st">"escalated"</span>:        false,
+  <span class="st">"cache_hit"</span>:        false,
+  <span class="st">"input_tokens"</span>:     312,
+  <span class="st">"output_tokens"</span>:    47,
+  <span class="st">"latency_ms"</span>:       834,
+  <span class="st">"cost_usd"</span>:         0.000438,
+  <span class="st">"prompt_hash"</span>:      <span class="st">"sha256:b4c2...a91f"</span>,
+  <span class="st">"response_hash"</span>:    <span class="st">"sha256:f7d3...2c80"</span>,
+  <span class="st">"pii_detected"</span>:     false,
+  <span class="st">"error"</span>:            null,
+  <span class="st">"stop_reason"</span>:      <span class="st">"end_turn"</span>
+}</code></pre>
+        </div>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <strong>Distributed Tracing</strong> — Set <code>X-Trace-ID</code> on every outgoing request to the Anthropic API and include the same value in your structured log. Propagate it back to the calling service in the response header. When a user reports a bad experience, you can search OpenSearch by <code>trace_id</code> and see every Claude call that contributed to that response, the model used, latency, tokens, and whether PII was detected — all in under 30 seconds.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 5 — Developer Platform
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="developer-platform">
+        <div class="section-label">
+          <span class="section-num">05</span>
+          <h2 class="section-title">Internal Developer Platform</h2>
+        </div>
+
+        <p>
+          The AI Gateway is an infrastructure component. Application teams should not need to understand it. The developer experience layer — an internal SDK, a web portal, and a CLI — abstracts the gateway behind an interface that feels like calling any other internal service.
+        </p>
+
+        <h3>The Internal SDK</h3>
+
+        <p>
+          The internal SDK wraps the Anthropic SDK. It handles auth, routing headers, PII scrubbing, logging, and budget enforcement automatically. Application teams write code that looks like this:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>Application code — using the internal SDK vs. raw Anthropic SDK</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># ── Without the internal SDK (raw Anthropic SDK) ─────────────────────────────</span>
+<span class="kw">import</span> anthropic, os, hashlib, time, json, logging
+
+client = anthropic.AsyncAnthropic(api_key=os.getenv(<span class="st">"ANTHROPIC_API_KEY"</span>))
+trace_id = hashlib.sha256(str(time.time()).encode()).hexdigest()[:<span class="num">8</span>]
+logger = logging.getLogger(__name__)
+
+<span class="kw">async def</span> <span class="fn">expand_query</span>(query: str) -> str:
+    start = time.time()
+    response = <span class="kw">await</span> client.messages.create(
+        model=<span class="st">"claude-haiku-3-5"</span>,  <span class="cm"># hardcoded — no routing</span>
+        max_tokens=<span class="num">200</span>,
+        system=<span class="st">"You expand search queries. Return JSON."</span>,
+        messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: query}],
+        extra_headers={<span class="st">"X-Trace-ID"</span>: trace_id},  <span class="cm"># easy to forget</span>
+    )
+    <span class="cm"># token accounting — manual, easy to forget</span>
+    logger.info(json.dumps({<span class="st">"tokens"</span>: response.usage.input_tokens, <span class="st">"trace"</span>: trace_id}))
+    <span class="kw">return</span> response.content[<span class="num">0</span>].text
+
+
+<span class="cm"># ── With the internal SDK ─────────────────────────────────────────────────────</span>
+<span class="kw">from</span> ai_platform <span class="kw">import</span> claude  <span class="cm"># internal SDK</span>
+
+<span class="kw">async def</span> <span class="fn">expand_query</span>(query: str) -> str:
+    response = <span class="kw">await</span> claude.complete(
+        feature_id=<span class="st">"search.query-expansion"</span>,  <span class="cm"># drives routing + accounting</span>
+        prompt=query,
+        system=<span class="st">"You expand search queries. Return JSON."</span>,
+        max_tokens=<span class="num">200</span>,
+    )
+    <span class="kw">return</span> response.text
+<span class="cm"># Auth, routing, tracing, PII scrub, token accounting — all handled.</span></code></pre>
+        </div>
+
+        <h3>The Prompt Registry</h3>
+
+        <p>
+          The prompt registry is a central store of versioned, tested system prompts. Think of it as a package manager for prompts — teams reference a prompt by ID and version rather than inlining the text in their code. Benefits:
+        </p>
+        <ul>
+          <li><strong>Single source of truth:</strong> Fixing a prompt bug in the registry propagates to every feature that references it on next deploy.</li>
+          <li><strong>Version pinning:</strong> Teams can pin to <code>v1.4</code> and upgrade on their own schedule. The registry retains all historical versions.</li>
+          <li><strong>Prompt review process:</strong> New prompt versions go through a PR-style review before being published. A prompt engineer signs off. The diff is visible and auditable.</li>
+          <li><strong>A/B testing:</strong> The registry supports traffic splitting between prompt versions. Route 10% of traffic to <code>v1.5</code>, measure quality, promote or rollback.</li>
+        </ul>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>gateway/prompt_registry.py — Versioned prompt store</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">from</span> __future__ <span class="kw">import</span> annotations
+<span class="kw">import</span> asyncpg
+<span class="kw">from</span> functools <span class="kw">import</span> lru_cache
+
+
+<span class="kw">class</span> <span class="fn">PromptRegistry</span>:
+    <span class="kw">def</span> __init__(self, pool: asyncpg.Pool):
+        self._pool = pool
+
+    <span class="kw">async def</span> <span class="fn">get</span>(self, prompt_id: str, version: str = <span class="st">"latest"</span>) -> str:
+        <span class="st">"""Resolve a prompt ID to its text. 'latest' returns the highest version."""</span>
+        <span class="kw">async with</span> self._pool.acquire() <span class="kw">as</span> conn:
+            <span class="kw">if</span> version == <span class="st">"latest"</span>:
+                row = <span class="kw">await</span> conn.fetchrow(
+                    <span class="st">"""SELECT text FROM prompts
+                       WHERE id = $1 AND status = 'active'
+                       ORDER BY semver_major DESC, semver_minor DESC, semver_patch DESC
+                       LIMIT 1"""</span>,
+                    prompt_id,
+                )
+            <span class="kw">else</span>:
+                row = <span class="kw">await</span> conn.fetchrow(
+                    <span class="st">"""SELECT text FROM prompts
+                       WHERE id = $1 AND version = $2 AND status = 'active'"""</span>,
+                    prompt_id, version,
+                )
+            <span class="kw">if not</span> row:
+                <span class="kw">raise</span> KeyError(f<span class="st">"Prompt '{prompt_id}@{version}' not found in registry"</span>)
+            <span class="kw">return</span> row[<span class="st">"text"</span>]
+
+    <span class="kw">async def</span> <span class="fn">publish</span>(
+        self,
+        prompt_id: str,
+        version: str,
+        text: str,
+        author: str,
+        review_pr_url: str,
+    ) -> None:
+        <span class="st">"""Publish a reviewed prompt version. Only callable by the platform CLI."""</span>
+        <span class="kw">async with</span> self._pool.acquire() <span class="kw">as</span> conn:
+            major, minor, patch = (int(x) <span class="kw">for</span> x <span class="kw">in</span> version.lstrip(<span class="st">"v"</span>).split(<span class="st">"."</span>))
+            <span class="kw">await</span> conn.execute(
+                <span class="st">"""INSERT INTO prompts
+                   (id, version, semver_major, semver_minor, semver_patch,
+                    text, author, review_pr_url, status)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active')"""</span>,
+                prompt_id, version, major, minor, patch,
+                text, author, review_pr_url,
+            )</code></pre>
+        </div>
+
+        <h3>Onboarding a New Team — 4-Step Process</h3>
+
+        <div class="onboard-steps">
+          <div class="onboard-step">
+            <div class="onboard-step-num">1</div>
+            <div class="onboard-step-body">
+              <div class="onboard-step-title">Register Feature</div>
+              <div class="onboard-step-desc">Team creates a feature record in the platform portal: feature name, description, owning team, model tier preference (default: auto-routed), and max_tokens ceiling. This generates a <code>feature_id</code> in the format <code>team.feature-name</code>.</div>
+            </div>
+          </div>
+          <div class="onboard-step">
+            <div class="onboard-step-num">2</div>
+            <div class="onboard-step-body">
+              <div class="onboard-step-title">Set Budget</div>
+              <div class="onboard-step-desc">Team declares a monthly token budget in USD. Finance approves it in the portal. The accounting middleware enforces it automatically — no code change required. Budget can be adjusted mid-month with finance approval.</div>
+            </div>
+          </div>
+          <div class="onboard-step">
+            <div class="onboard-step-num">3</div>
+            <div class="onboard-step-body">
+              <div class="onboard-step-title">Test in Staging</div>
+              <div class="onboard-step-desc">The platform portal issues a staging credential scoped to the staging gateway. Load testing and quality evaluation happen here. The staging gateway uses the same routing and accounting logic as production — no surprises at promotion time.</div>
+            </div>
+          </div>
+          <div class="onboard-step">
+            <div class="onboard-step-num">4</div>
+            <div class="onboard-step-body">
+              <div class="onboard-step-title">Enable in Production</div>
+              <div class="onboard-step-desc">Team flips the feature flag to enabled in the portal. The production gateway starts routing traffic. Day-1 monitoring: the platform team watches the new feature's metrics dashboard for the first 48 hours and is on-call for any anomalies.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <strong>The Capability Catalogue</strong> — Maintain a searchable catalogue of every Claude-powered feature in the organisation: what it does, which team owns it, which model it uses, what it costs per month, and whether it is available for reuse by other teams. The catalogue prevents duplication (two teams independently building identical summarisation features is surprisingly common) and enables composability. Teams find existing capabilities before building new ones.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 6 — Platform Governance
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="platform-governance">
+        <div class="section-label">
+          <span class="section-num">06</span>
+          <h2 class="section-title">Platform Governance &amp; Operations</h2>
+        </div>
+
+        <p>
+          A platform without governance is a liability waiting to materialise. Governance means that every change — to a prompt, to a routing rule, to a budget ceiling — goes through a defined process with documented approvals and an audit trail. It means that when something goes wrong in production, the team has a runbook rather than a panic.
+        </p>
+
+        <h3>Change Management — Prompts as Code</h3>
+
+        <p>
+          Prompt changes have the same blast radius as code changes. A poorly worded system prompt can silently degrade quality for thousands of users before anyone notices. Treat every prompt change as a deployment:
+        </p>
+        <ul>
+          <li>Prompt text lives in the registry, version-controlled in Git alongside the configuration that references it.</li>
+          <li>A PR is required for any version bump. The PR includes the diff, a description of why the change was made, and a link to the evaluation results that justified it.</li>
+          <li>A prompt engineer and the feature team lead must approve before merge.</li>
+          <li>Deployment is gated: new version goes to 5% of traffic first. Quality metrics are monitored for 24 hours. Full rollout on pass, automatic rollback on fail.</li>
+        </ul>
+
+        <h3>Incident Runbook Template</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-md"></span>runbooks/claude-feature-degradation.md</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Runbook: Claude Feature Degradation</span>
+
+<span class="cm">## Symptoms</span>
+<span class="cm">- Feature X returning unexpected or empty responses</span>
+<span class="cm">- Error rate on feature X > 1% (Grafana alert fired)</span>
+<span class="cm">- User reports of low-quality AI output on feature X</span>
+<span class="cm">- Latency P95 > 5s on feature X</span>
+
+<span class="cm">## Triage Steps (run in order)</span>
+
+<span class="cm">### 1. Check Gateway Status (2 minutes)</span>
+- Open Grafana: claude_error_total grouped by model
+- If error rate is across ALL models → likely Anthropic outage
+  → Check https://status.anthropic.com
+  → Engage vendor escalation if P1 customer impact
+- If error rate is on ONE model → model-specific issue
+
+<span class="cm">### 2. Check Budget (1 minute)</span>
+- Query: claude_budget_utilisation_ratio{team_id="&lt;team&gt;"}
+- If ratio >= 1.0 → budget exhausted; all requests returning 429
+  → Escalate to Finance for emergency budget increase
+  → OR: set feature flag to serve cached fallback responses
+
+<span class="cm">### 3. Check Recent Deployments (3 minutes)</span>
+- Was a new prompt version deployed in the last 24h?
+  → git log --since=24h -- prompts/&lt;feature_id&gt;.yaml
+  → If yes: rollback to previous prompt version in registry
+    `ai-platform prompt rollback &lt;feature_id&gt; --version &lt;prev&gt;`
+
+<span class="cm">### 4. Inspect Live Logs (5 minutes)</span>
+- Search OpenSearch: feature_id = "&lt;feature_id&gt;" AND error != null
+- Look for: rate_limit_exceeded, context_length_exceeded, invalid_api_key
+- rate_limit_exceeded → enable request queuing in gateway config
+- context_length_exceeded → prompt has grown beyond model limit; compress
+
+<span class="cm">### 5. Engage Anthropic Support</span>
+- If Anthropic status page shows incident: subscribe to updates
+- For enterprise customers: use the dedicated Slack channel
+- Include: trace_ids, error samples, request volume, affected model
+
+<span class="cm">## Fallback Options</span>
+- Serve cached responses (enable CACHE_ONLY mode in feature flag)
+- Degrade gracefully (return static placeholder response)
+- Bedrock failover: set FAILOVER_BACKEND=bedrock in platform config
+  (requires cross-trained Claude model on Bedrock)
+
+<span class="cm">## Post-Incident</span>
+- Write incident report within 48h
+- Add runbook step for any new failure mode discovered
+- Update alert thresholds if alert fired too late or too early</code></pre>
+        </div>
+
+        <h3>Capacity Planning</h3>
+
+        <p>
+          Forecast 3 months ahead. Use this formula to estimate daily token volume per feature:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>capacity_forecast.py — 3-month token volume forecast</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="fn">FeatureForecast</span>:
+    feature_id:       str
+    dau:              int    <span class="cm"># daily active users</span>
+    calls_per_session: float <span class="cm"># average Claude calls per user session</span>
+    avg_input_tokens: int    <span class="cm"># average input tokens per call</span>
+    avg_output_tokens: int   <span class="cm"># average output tokens per call</span>
+    growth_rate_pct:  float  <span class="cm"># monthly user growth %</span>
+
+    <span class="kw">def</span> <span class="fn">daily_tokens</span>(self, months_ahead: int = <span class="num">0</span>) -> tuple[int, int]:
+        <span class="st">"""Return (input_tokens/day, output_tokens/day) at months_ahead."""</span>
+        projected_dau = self.dau * ((1 + self.growth_rate_pct / <span class="num">100</span>) ** months_ahead)
+        daily_calls   = projected_dau * self.calls_per_session
+        <span class="kw">return</span> (
+            int(daily_calls * self.avg_input_tokens),
+            int(daily_calls * self.avg_output_tokens),
+        )
+
+    <span class="kw">def</span> <span class="fn">monthly_cost_usd</span>(
+        self,
+        input_price_per_1m:  float,
+        output_price_per_1m: float,
+        months_ahead: int = <span class="num">0</span>,
+    ) -> float:
+        inp, out = self.daily_tokens(months_ahead)
+        daily_cost = (
+            (inp / <span class="num">1_000_000</span>) * input_price_per_1m +
+            (out / <span class="num">1_000_000</span>) * output_price_per_1m
+        )
+        <span class="kw">return</span> daily_cost * <span class="num">30</span>
+
+
+<span class="cm"># Example: search query expansion feature</span>
+search_feature = FeatureForecast(
+    feature_id       = <span class="st">"search.query-expansion"</span>,
+    dau              = <span class="num">50_000</span>,
+    calls_per_session = <span class="num">2.3</span>,
+    avg_input_tokens = <span class="num">320</span>,
+    avg_output_tokens = <span class="num">45</span>,
+    growth_rate_pct  = <span class="num">8.0</span>,   <span class="cm"># 8% monthly growth</span>
+)
+
+HAIKU_PRICING = {<span class="st">"input"</span>: <span class="num">0.80</span>, <span class="st">"output"</span>: <span class="num">4.00</span>}
+
+<span class="kw">for</span> m <span class="kw">in</span> range(<span class="num">4</span>):
+    cost = search_feature.monthly_cost_usd(
+        HAIKU_PRICING[<span class="st">"input"</span>], HAIKU_PRICING[<span class="st">"output"</span>], months_ahead=m,
+    )
+    print(f<span class="st">"Month +{m}: ${cost:,.2f}/month"</span>)
+
+<span class="cm"># Month +0: $11.54/month</span>
+<span class="cm"># Month +1: $12.46/month</span>
+<span class="cm"># Month +2: $13.46/month</span>
+<span class="cm"># Month +3: $14.53/month</span></code></pre>
+        </div>
+
+        <h3>Vendor Resilience — What If Anthropic Has an Outage?</h3>
+
+        <p>
+          Anthropic's API has a strong track record but no infrastructure has a 100% SLA. Design for outage from day one:
+        </p>
+        <ul>
+          <li><strong>Cached responses:</strong> For read-heavy, low-velocity features, the semantic cache can serve stale responses for up to 24 hours with a banner informing the user that results may be slightly out of date.</li>
+          <li><strong>Graceful degradation:</strong> Most Claude-powered features can fall back to a simpler, deterministic implementation. A summarisation feature falls back to returning the first three sentences. An intent classification feature falls back to a regex rule set.</li>
+          <li><strong>Bedrock failover:</strong> AWS Bedrock hosts Claude models under a separate infrastructure path. The gateway can be configured to route to Bedrock when the primary Anthropic API returns 5xx errors for more than 30 seconds. Requires Bedrock model access to be pre-provisioned.</li>
+        </ul>
+
+        <h3>The AI Platform Maturity Model</h3>
+
+        <p>
+          Most organisations move through these four levels over 12–18 months. Knowing where you are helps you know what to build next.
+        </p>
+
+        <div class="arch-diagram">
+<span class="dim">╔════════════════════════════════════════════════════════════════════════════╗</span>
+<span class="dim">║</span>  <span class="hi">AI PLATFORM MATURITY MODEL</span>                                              <span class="dim">║</span>
+<span class="dim">╚════════════════════════════════════════════════════════════════════════════╝</span>
+
+  <span class="bad">LEVEL 1 — Direct API Access</span>
+  <span class="dim">────────────────────────────────────────────────────────────────────────</span>
+  <span class="box">┌──────────────┐</span>        <span class="box">┌────────────────────┐</span>
+  <span class="box">│  Team A      │</span>───────▶<span class="box">│   Anthropic API    │</span>
+  <span class="box">│  (own key)   │</span>        <span class="box">└────────────────────┘</span>
+  <span class="box">└──────────────┘</span>
+  <span class="dim">No governance. No cost visibility. API keys scattered. No audit trail.</span>
+
+  <span class="hi">LEVEL 2 — Shared Gateway</span>
+  <span class="dim">────────────────────────────────────────────────────────────────────────</span>
+  <span class="box">┌──────────────┐</span>   <span class="box">┌──────────────┐</span>        <span class="box">┌────────────────────┐</span>
+  <span class="box">│  All Teams   │</span>──▶<span class="box">│  AI Gateway  │</span>───────▶<span class="box">│   Anthropic API    │</span>
+  <span class="box">│              │</span>   <span class="box">│  (one key)   │</span>        <span class="box">└────────────────────┘</span>
+  <span class="box">└──────────────┘</span>   <span class="box">└──────────────┘</span>
+  <span class="dim">Single API key. Basic auth. Audit log. No routing or caching yet.</span>
+
+  <span class="good">LEVEL 3 — Full Platform</span>
+  <span class="dim">────────────────────────────────────────────────────────────────────────</span>
+  <span class="box">┌──────────────┐</span>   <span class="box">┌──────────────────────────┐</span>   <span class="box">┌────────────────────┐</span>
+  <span class="box">│  All Teams   │</span>──▶<span class="box">│  Gateway + Router        │</span>──▶<span class="box">│   Anthropic API    │</span>
+  <span class="box">│  (SDK)       │</span>   <span class="box">│  + Cache + Accounting    │</span>   <span class="box">└────────────────────┘</span>
+  <span class="box">└──────────────┘</span>   <span class="box">│  + Prompt Registry       │</span>
+                     <span class="box">│  + Observability         │</span>
+                     <span class="box">└──────────────────────────┘</span>
+  <span class="dim">Routing, caching, prompt registry, cost accounting, full observability.</span>
+
+  <span class="label">LEVEL 4 — Self-Service + FinOps</span>
+  <span class="dim">────────────────────────────────────────────────────────────────────────</span>
+  <span class="box">┌──────────────┐</span>   <span class="box">┌──────────────────────────┐</span>   <span class="box">┌────────────────────┐</span>
+  <span class="box">│  Any Team    │</span>──▶<span class="box">│  Level 3 + Self-service  │</span>──▶<span class="box">│   Anthropic API    │</span>
+  <span class="box">│  (portal)    │</span>   <span class="box">│  Portal + CLI + FinOps   │</span>   <span class="box">│   + Bedrock FO     │</span>
+  <span class="box">└──────────────┘</span>   <span class="box">│  + Capability Catalogue  │</span>   <span class="box">└────────────────────┘</span>
+                     <span class="box">│  + Maturity Dashboard    │</span>
+                     <span class="box">└──────────────────────────┘</span>
+  <span class="dim">Teams onboard themselves. Finance has full cost attribution. Bedrock</span>
+  <span class="dim">failover live. Org-wide capability catalogue prevents duplication.</span>
+        </div>
+
+        <div class="maturity-levels">
+          <div class="maturity-level">
+            <span class="maturity-badge l1">Level 1</span>
+            <div class="maturity-text">
+              <div class="maturity-name">Direct API Access</div>
+              <div class="maturity-desc">Teams hold their own API keys. No central visibility, no governance. Common in early experimentation. Exit this level before you have more than 3 teams using Claude in production.</div>
+            </div>
+          </div>
+          <div class="maturity-level">
+            <span class="maturity-badge l2">Level 2</span>
+            <div class="maturity-text">
+              <div class="maturity-name">Shared Gateway</div>
+              <div class="maturity-desc">Single API key, basic authentication, and an audit log. Teams call the gateway instead of Anthropic directly. Cost is visible in aggregate. Achievable in 4–6 weeks.</div>
+            </div>
+          </div>
+          <div class="maturity-level">
+            <span class="maturity-badge l3">Level 3</span>
+            <div class="maturity-text">
+              <div class="maturity-name">Full Platform</div>
+              <div class="maturity-desc">Model routing, semantic caching, prompt registry, per-team cost accounting, and a full Grafana/Prometheus observability stack. This is the target for most enterprises at 12 months. Achievable in 12–16 weeks from Level 2.</div>
+            </div>
+          </div>
+          <div class="maturity-level">
+            <span class="maturity-badge l4">Level 4</span>
+            <div class="maturity-text">
+              <div class="maturity-name">Self-Service + FinOps</div>
+              <div class="maturity-desc">Teams onboard themselves through a self-service portal. Finance has per-team, per-feature cost attribution in real time. Bedrock failover is live. A capability catalogue prevents duplication. Vendor negotiation is backed by usage data.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <strong>Do Not Overengineer Level 3</strong> — The most common failure mode is building a Level 4 platform when you have three teams. Build Level 2 in week 1, get it in production. Build Level 3 incrementally over 3 months while actual teams are using it. Every architectural decision made without production usage data is a guess. Ship early, learn fast, iterate.
+          </div>
+        </div>
+
+        <div class="summary-box">
+          <h4>Day 3 · Module 4 — Key Takeaways</h4>
+          <ul>
+            <li><strong>The AI Gateway pattern:</strong> A thin FastAPI proxy between all internal services and the Anthropic API provides governance, cost visibility, rate limiting, security, audit trail, and standardisation — the six reasons to never give teams direct API access at scale</li>
+            <li><strong>Model routing:</strong> <code>route_model()</code> selects the cheapest capable model using three signals: task complexity, request metadata, and prompt length — with hard rules for security, financial, and legal features that override all signals</li>
+            <li><strong>Cost optimisation:</strong> The five levers — routing, prompt compression, semantic caching, batching, output truncation — can reduce the AI budget by 40–60% relative to naive direct-API usage; start with routing and caching for 80% of the savings</li>
+            <li><strong>Observability:</strong> Five Prometheus counters cover the full signal set: latency, input tokens, output tokens, cost, and errors — instrument at the gateway level so no team can forget to add metrics</li>
+            <li><strong>Developer platform:</strong> An internal SDK that wraps the gateway, a prompt registry for versioned prompts, and a self-service portal for team onboarding reduces time-to-first-production-call from weeks to hours</li>
+            <li><strong>Platform governance:</strong> Prompt changes need the same PR, review, and staged rollout process as code changes; incident runbooks need to exist before incidents happen; capacity planning at L4 requires actual production usage data</li>
+            <li><strong>Maturity model:</strong> L1 → L2 → L3 → L4 over 12–18 months; do not skip levels; the platform that serves 10 teams well is built by learning from the first 3 teams, not by anticipating all 10 before any are live</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Page Navigation -->
+      <div class="page-nav">
+        <a href="day3-module3-multi-agent.html">
+          <span class="nav-dir">← Previous</span>
+          <span class="nav-title">Day 3 · Module 3: Multi-Agent Architecture</span>
+        </a>
+        <a href="day3-labs.html" class="nav-next">
+          <span class="nav-dir">Next →</span>
+          <span class="nav-title">Day 3 · Labs</span>
+        </a>
+      </div>
+
+    </div><!-- end content-wrap -->
+
+    <!-- Right TOC -->
+    <aside class="toc">
+      <div class="toc-inner">
+        <div class="toc-label">On This Page</div>
+        <a href="#platform-overview">Platform Overview</a>
+        <a href="#model-routing">Model Routing</a>
+        <a href="#cost-optimization">Cost Optimisation</a>
+        <a href="#observability">Observability</a>
+        <a href="#developer-platform">Developer Platform</a>
+        <a href="#platform-governance">Governance &amp; Ops</a>
+      </div>
+    </aside>
+
+  </main>
+</div>
+
+<script src="assets/js/brand-theme.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

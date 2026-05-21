@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Agent Architecture — Claude Architect</title>
+  <meta name="description" content="Day 3 Module 3: Orchestrator-worker patterns, specialist agents, parallel execution, human approval workflows, and multi-agent system design." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+
+    .arch-diagram {
+      background: var(--code-bg); border: 1px solid var(--code-border);
+      border-radius: var(--radius); padding: 1.5rem;
+      font-family: var(--mono); font-size: 0.78rem; color: #c9d1d9;
+      line-height: 1.8; overflow-x: auto; margin: 1.25rem 0;
+    }
+    .arch-diagram .box   { color: #79c0ff; }
+    .arch-diagram .hi    { color: #ffa657; }
+    .arch-diagram .label { color: #a5d6ff; }
+    .arch-diagram .dim   { color: #484f58; }
+    .arch-diagram .bad   { color: #ff7b72; }
+    .arch-diagram .good  { color: #7ee787; }
+
+    /* Agent tier badges */
+    .agent-tier {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-family: var(--mono); font-size: 0.7rem; font-weight: 700;
+      padding: 0.18rem 0.55rem; border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+    .tier-opus    { background: #1e1a2e; color: #c084fc; border: 1px solid #7c3aed; }
+    .tier-sonnet  { background: #1a1e2e; color: #60a5fa; border: 1px solid #2563eb; }
+    .tier-haiku   { background: #1a2e1e; color: #4ade80; border: 1px solid #16a34a; }
+
+    /* Specialist card grid */
+    .specialist-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.25rem 0;
+    }
+    .specialist-card {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); overflow: hidden;
+    }
+    .specialist-card-header {
+      padding: 0.65rem 1rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .specialist-card-icon {
+      font-size: 1.05rem; line-height: 1;
+    }
+    .specialist-card-title {
+      font-weight: 700; font-size: 0.85rem; color: var(--text-heading); flex: 1;
+    }
+    .specialist-card-body {
+      padding: 0.75rem 1rem; font-size: 0.82rem; color: var(--muted); line-height: 1.6;
+    }
+
+    /* Approval flow steps */
+    .approval-steps {
+      display: flex; flex-direction: column; gap: 0; margin: 1.25rem 0;
+    }
+    .approval-step {
+      display: flex; gap: 1rem; align-items: flex-start;
+      padding: 0.85rem 1.1rem;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      position: relative;
+    }
+    .approval-step:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+    .approval-step:last-child  { border-radius: 0 0 var(--radius) var(--radius); border-top: none; }
+    .approval-step:not(:first-child):not(:last-child) { border-top: none; }
+    .approval-step-num {
+      font-family: var(--mono); font-size: 0.62rem; font-weight: 700;
+      background: var(--accent-tint); color: var(--accent);
+      border: 1px solid var(--accent-soft);
+      border-radius: 3px; padding: 0.15rem 0.48rem;
+      flex-shrink: 0; margin-top: 0.1rem;
+    }
+    .approval-step-body { flex: 1; font-size: 0.9rem; }
+    .approval-step-title { font-weight: 700; color: var(--text-heading); margin-bottom: 0.15rem; font-size: 0.88rem; }
+    .approval-step-desc  { color: var(--muted); font-size: 0.83rem; }
+
+    /* Failure taxonomy table */
+    .failure-table { width: 100%; border-collapse: collapse; margin: 1.2rem 0;
+      font-size: 0.86rem; border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden; }
+    .failure-table th { background: var(--surface); color: var(--text-heading);
+      font-weight: 600; text-align: left; padding: 0.65rem 0.9rem;
+      border-bottom: 1px solid var(--border); font-size: 0.72rem;
+      text-transform: uppercase; letter-spacing: 0.07em; }
+    .failure-table td { padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--hairline);
+      vertical-align: top; }
+    .failure-table tr:last-child td { border-bottom: none; }
+    .failure-table tr:hover td { background: var(--surface); }
+    .failure-table code { font-size: 0.78rem; }
+    .sev-high { color: #ff7b72; font-weight: 700; font-size: 0.72rem; font-family: var(--mono); }
+    .sev-med  { color: #ffa657; font-weight: 700; font-size: 0.72rem; font-family: var(--mono); }
+    .sev-low  { color: #7ee787; font-weight: 700; font-size: 0.72rem; font-family: var(--mono); }
+
+    /* Info grid */
+    .info-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1rem; margin: 1.25rem 0;
+    }
+    .info-card {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--surface); padding: 1rem 1.1rem;
+    }
+    .info-card-label {
+      font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; color: var(--accent); margin-bottom: 0.3rem;
+      font-family: var(--mono);
+    }
+    .info-card-value {
+      font-size: 1.35rem; font-weight: 800; color: var(--text-heading);
+      margin-bottom: 0.2rem;
+    }
+    .info-card-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+
+    @media(max-width:768px){
+      .specialist-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle>
+      <line x1="12" y1="12" x2="19" y2="7.5"></line>
+      <line x1="12" y1="12" x2="20.5" y2="13.5"></line>
+      <line x1="12" y1="12" x2="16" y2="20"></line>
+      <line x1="12" y1="12" x2="7" y2="19.5"></line>
+      <line x1="12" y1="12" x2="3.5" y2="13"></line>
+      <line x1="12" y1="12" x2="7" y2="5"></line>
+      <circle cx="19" cy="7.5"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="20.5" cy="13.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="16" cy="20"   r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7"  cy="19.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="3.5" cy="13"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7"   cy="5"   r="1" fill="currentColor" stroke="none"></circle>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 3 · Module 3</span>
+  <div class="topbar-right">
+    <span class="topbar-badge">Day 3 of 4</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle>
+        <span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub">
+        <a href="day3-module1-context-engineering.html">Context Engineering &amp; CLAUDE.md</a>
+        <a href="day3-module2-cicd-github.html">CI/CD &amp; GitHub Integration</a>
+        <a href="day3-module3-multi-agent.html" class="active">Multi-Agent Architecture</a>
+        <a href="day3-module4-platform.html">Enterprise AI Platform Architecture</a>
+        <a href="day3-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="content-wrap">
+
+      <nav class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span>Day 3</span>
+        <span class="sep">/</span>
+        <span>Multi-Agent Architecture</span>
+      </nav>
+
+      <div class="page-header">
+        <div class="module-tag">✦ Day 3 · Module 3</div>
+        <h1 class="page-title">Multi-Agent Architecture</h1>
+        <p class="page-objective">
+          <strong>Outcome:</strong> Design and operate production multi-agent systems — orchestrator-worker topologies, parallel execution with asyncio, specialist agent catalogues, human-in-the-loop approval gates, and resilience patterns that survive real-world failure modes.
+        </p>
+        <div class="module-meta">
+          <span class="meta-item"><span class="dot"></span> Orchestrator-Worker</span>
+          <span class="meta-item"><span class="dot"></span> Parallel asyncio</span>
+          <span class="meta-item"><span class="dot"></span> Specialist Agents</span>
+          <span class="meta-item"><span class="dot"></span> Human Approval Gates</span>
+          <span class="meta-item"><span class="dot"></span> Circuit Breakers</span>
+          <span class="meta-item"><span class="dot"></span> Observability</span>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — Why Multi-Agent
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="why-multi-agent">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <h2 class="section-title">Why Multi-Agent Systems</h2>
+        </div>
+
+        <p>
+          Single-agent architectures hit three hard walls as enterprise tasks grow in scope.
+          Recognising exactly which wall you've hit — and only then reaching for multi-agent —
+          is the difference between a system that scales and one that's just expensive and
+          complex for no gain.
+        </p>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-label">Wall 1 — Context Ceiling</div>
+            <div class="info-card-value">200 K</div>
+            <div class="info-card-desc">Even a 200 K-token context window cannot hold a 50-file codebase, its test suite, its docs, and a long conversation simultaneously. Tasks that exceed the window require decomposition, not heroism.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-label">Wall 2 — Sequential Bottleneck</div>
+            <div class="info-card-value">1×</div>
+            <div class="info-card-desc">A single agent processes subtasks in series. If your report has three independent sections — market analysis, technical review, risk assessment — they queue behind each other at 1× speed. That's wasteful.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-label">Wall 3 — No Specialisation</div>
+            <div class="info-card-value">Generalist</div>
+            <div class="info-card-desc">A generalist system prompt is a compromise. An agent told to do everything well does nothing great. Specialist agents with narrow, deep expertise consistently outperform the generalist on domain tasks.</div>
+          </div>
+        </div>
+
+        <h3>The Three Drivers — When to Go Multi-Agent</h3>
+
+        <p>Use multi-agent architectures when one or more of these is true:</p>
+        <ul>
+          <li><strong>Scale:</strong> The task's total token footprint exceeds a single context. Example: analysing 200 contracts — each agent handles a batch.</li>
+          <li><strong>Parallelism:</strong> Subtasks are independent and can run simultaneously. Example: researching three market segments in parallel rather than in series.</li>
+          <li><strong>Specialisation:</strong> Different subtasks genuinely benefit from different model tiers, temperatures, or system prompts. Security auditing needs a different mindset than documentation writing.</li>
+        </ul>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <div class="callout-title">When NOT to Use Multi-Agent</div>
+            Multi-agent is not the default upgrade for all tasks. Avoid it when: (1) the task is simple and linear — coordination overhead will dwarf the benefit; (2) strict ordering is required — if step B always depends on step A's exact output, parallelism cannot help; (3) you need deterministic, reproducible ordering — network timing makes parallel agents non-deterministic. Start with a single agent. Reach for multi-agent only when you've hit a concrete wall.
+          </div>
+        </div>
+
+        <h3>ASCII Architecture — Single vs Multi-Agent</h3>
+        <p>
+          A concrete example: generating a market research report with three sections.
+        </p>
+
+        <div class="arch-diagram">
+<span class="dim">SINGLE-AGENT APPROACH — Sequential (4 min total)</span>
+
+<span class="box">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="box">│                     Claude Sonnet (single)                      │</span>
+<span class="box">│                                                                  │</span>
+<span class="box">│  Task: "Generate a report on EV market"                          │</span>
+<span class="box">│                                                                  │</span>
+<span class="box">│  Step 1: Market sizing analysis    ────────── ~80 s              │</span>
+<span class="box">│  Step 2: Competitive landscape     ────────── ~80 s              │</span>
+<span class="box">│  Step 3: Regulatory environment    ────────── ~80 s              │</span>
+<span class="box">│  Step 4: Synthesis & formatting    ────────── ~40 s              │</span>
+<span class="box">│                                               ───────            │</span>
+<span class="box">│                                    Total:    ~280 s              │</span>
+<span class="box">└─────────────────────────────────────────────────────────────────┘</span>
+
+<span class="dim">MULTI-AGENT APPROACH — Parallel workers (90 s total)</span>
+
+<span class="label">                    ┌──── Orchestrator (Sonnet) ────┐</span>
+<span class="label">                    │  Decomposes task, synthesises  │</span>
+<span class="label">                    └───────────┬──────────────────┘</span>
+<span class="dim">                               │  assigns 3 parallel tasks</span>
+<span class="label">          ┌────────────────────┼────────────────────┐</span>
+<span class="label">          ▼                    ▼                    ▼</span>
+<span class="good">  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐</span>
+<span class="good">  │ Worker A      │  │ Worker B      │  │ Worker C      │</span>
+<span class="good">  │ (Haiku)       │  │ (Haiku)       │  │ (Haiku)       │</span>
+<span class="good">  │ Market sizing │  │ Competitive   │  │ Regulatory    │</span>
+<span class="good">  │ ~80 s         │  │ ~80 s         │  │ ~80 s         │</span>
+<span class="good">  └───────┬───────┘  └───────┬───────┘  └───────┬───────┘</span>
+<span class="dim">          │  structured JSON result   │                   │</span>
+<span class="label">          └────────────────────┬────────────────────┘</span>
+<span class="label">                               ▼</span>
+<span class="label">              ┌─────────────────────────────┐</span>
+<span class="label">              │ Orchestrator synthesises     │  ~10 s</span>
+<span class="label">              │ Total wall-clock: ~90 s      │</span>
+<span class="label">              └─────────────────────────────┘</span>
+
+<span class="hi">  Speedup: 3.1×   Cost delta: Haiku ≈ 20× cheaper than Sonnet per token</span>
+        </div>
+
+        <div class="callout callout-success">
+          <span class="callout-icon">✓</span>
+          <div class="callout-body">
+            <div class="callout-title">The Cost Equation</div>
+            Three parallel Haiku agents can outperform one Sonnet agent at substantially lower cost for the right decomposition. Haiku runs at roughly 1/20th the per-token cost of Sonnet. If the subtask is focused and doesn't require deep reasoning, Haiku is the default choice for workers. Reserve Sonnet for orchestration and complex synthesis. Reserve Opus for tasks where quality is the only metric that matters.
+          </div>
+        </div>
+
+        <p>
+          <strong>Real-world trigger:</strong> "Our report generation pipeline was taking 4 minutes sequentially.
+          Three parallel Haiku workers got the same quality output in 90 seconds, and the API bill dropped by 60%."
+          That is the conversation that drives enterprise multi-agent adoption.
+        </p>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — Orchestrator-Worker Pattern
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="orchestrator-worker">
+        <div class="section-label">
+          <span class="section-num">02</span>
+          <h2 class="section-title">Orchestrator-Worker Pattern</h2>
+        </div>
+
+        <p>
+          The orchestrator-worker pattern is the canonical multi-agent topology. One orchestrator
+          — running a capable model like Sonnet or Opus — owns the task decomposition, work
+          assignment, result collection, and final synthesis. Workers are narrow, fast executors
+          that do exactly one thing and return structured output.
+        </p>
+
+        <h3>Responsibility Split</h3>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-label">Orchestrator</div>
+            <div class="info-card-value"><span class="agent-tier tier-sonnet">Sonnet</span></div>
+            <div class="info-card-desc">Decomposes the task into subtasks. Assigns each subtask to a worker. Validates worker output. Handles worker failures. Synthesises results into the final deliverable.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-label">Workers</div>
+            <div class="info-card-value"><span class="agent-tier tier-haiku">Haiku</span></div>
+            <div class="info-card-desc">Receive a single structured task. Execute it with full focus. Return a structured JSON result. Report any errors clearly. Never communicate with other workers directly.</div>
+          </div>
+        </div>
+
+        <h3>Communication Protocol</h3>
+        <p>
+          All orchestrator-to-worker communication is structured JSON. This is non-negotiable.
+          Unstructured natural language between agents creates ambiguity that compounds — a
+          misread instruction in worker A affects the orchestrator's synthesis and therefore
+          every other worker's context. Use strict schemas.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>orchestrator_worker.py — complete implementation</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">import</span> anthropic
+<span class="kw">import</span> asyncio
+<span class="kw">import</span> json
+<span class="kw">import</span> uuid
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass, field
+<span class="kw">from</span> typing <span class="kw">import</span> Any, Optional
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime, timezone
+
+client = anthropic.Anthropic()
+
+<span class="cm"># ─── Data models ───────────────────────────────────────────────────────────────</span>
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="fn">Task</span>:
+    task_id: str
+    worker_capability: str          <span class="cm"># must match a registered worker capability</span>
+    instruction: str                <span class="cm"># the subtask prompt for the worker</span>
+    context: dict[str, Any] = field(default_factory=dict)
+    max_retries: int = 3
+    attempt: int = 0
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="fn">TaskResult</span>:
+    task_id: str
+    success: bool
+    output: Any                     <span class="cm"># structured JSON from the worker</span>
+    error: Optional[str] = None
+    latency_ms: int = 0
+    model: str = ""
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+<span class="cm"># ─── Worker ────────────────────────────────────────────────────────────────────</span>
+
+<span class="kw">class</span> <span class="fn">Worker</span>:
+    <span class="st">"""Narrow executor: receives one task, returns structured JSON."""</span>
+
+    SYSTEM_PROMPT = <span class="st">"""You are a specialist worker in a multi-agent pipeline.
+You will receive a single, focused task. Your job:
+1. Execute the task precisely.
+2. Return ONLY valid JSON — no commentary, no markdown fences.
+3. If you cannot complete the task, return:
+   {"success": false, "error": "clear description of why"}
+4. On success return:
+   {"success": true, "result": &lt;your structured output&gt;}
+
+Never ask clarifying questions. Never explain your reasoning outside the JSON.
+Your output will be parsed programmatically."""</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, model: str = <span class="st">"claude-haiku-4-5"</span>):
+        self.model = model
+
+    <span class="kw">async def</span> <span class="fn">execute</span>(self, task: Task) -&gt; TaskResult:
+        start = datetime.now(timezone.utc)
+        prompt = json.dumps({
+            <span class="st">"task_id"</span>: task.task_id,
+            <span class="st">"instruction"</span>: task.instruction,
+            <span class="st">"context"</span>: task.context
+        }, indent=2)
+
+        <span class="kw">try</span>:
+            response = <span class="kw">await</span> asyncio.to_thread(
+                client.messages.create,
+                model=self.model,
+                max_tokens=2048,
+                system=self.SYSTEM_PROMPT,
+                messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: prompt}]
+            )
+            latency = int((datetime.now(timezone.utc) - start).total_seconds() * 1000)
+            raw = response.content[0].text.strip()
+            output = json.loads(raw)
+            <span class="kw">return</span> TaskResult(
+                task_id=task.task_id,
+                success=output.get(<span class="st">"success"</span>, <span class="kw">False</span>),
+                output=output.get(<span class="st">"result"</span>),
+                error=output.get(<span class="st">"error"</span>),
+                latency_ms=latency,
+                model=self.model,
+                input_tokens=response.usage.input_tokens,
+                output_tokens=response.usage.output_tokens,
+            )
+        <span class="kw">except</span> json.JSONDecodeError <span class="kw">as</span> e:
+            <span class="kw">return</span> TaskResult(task.task_id, success=<span class="kw">False</span>, output=<span class="kw">None</span>,
+                               error=f<span class="st">"Worker returned invalid JSON: {e}"</span>)
+        <span class="kw">except</span> Exception <span class="kw">as</span> e:
+            <span class="kw">return</span> TaskResult(task.task_id, success=<span class="kw">False</span>, output=<span class="kw">None</span>,
+                               error=str(e))
+
+<span class="cm"># ─── Orchestrator ──────────────────────────────────────────────────────────────</span>
+
+<span class="kw">class</span> <span class="fn">Orchestrator</span>:
+    <span class="st">"""Decomposes tasks, dispatches workers, synthesises results."""</span>
+
+    SYSTEM_PROMPT = <span class="st">"""You are an orchestrator in a multi-agent system.
+Your worker fleet has these capabilities (from AGENTS.md):
+- market_analyst:    Analyses market data, sizing, trends.
+- competitor_mapper: Maps competitive landscape and differentiators.
+- risk_assessor:     Identifies regulatory and operational risks.
+
+When asked to produce a research report you MUST:
+1. Decompose the request into exactly those subtasks that map to worker capabilities.
+2. Return a JSON task list — no other output:
+   {"tasks": [{"task_id": "...", "worker_capability": "...", "instruction": "..."}]}
+3. After receiving worker results, synthesise them into a coherent markdown report.
+Return ONLY the markdown — no JSON wrapper."""</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, worker: Worker, model: str = <span class="st">"claude-sonnet-4-5"</span>):
+        self.worker = worker
+        self.model = model
+
+    <span class="kw">async def</span> <span class="fn">decompose</span>(self, user_request: str) -&gt; list[Task]:
+        response = <span class="kw">await</span> asyncio.to_thread(
+            client.messages.create,
+            model=self.model,
+            max_tokens=1024,
+            system=self.SYSTEM_PROMPT,
+            messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: user_request}]
+        )
+        data = json.loads(response.content[0].text)
+        <span class="kw">return</span> [Task(**t) for t in data[<span class="st">"tasks"</span>]]
+
+    <span class="kw">async def</span> <span class="fn">run_with_retry</span>(self, task: Task) -&gt; TaskResult:
+        <span class="kw">for</span> attempt <span class="kw">in</span> range(task.max_retries):
+            task.attempt = attempt + 1
+            result = <span class="kw">await</span> self.worker.execute(task)
+            <span class="kw">if</span> result.success:
+                <span class="kw">return</span> result
+            <span class="kw">if</span> attempt &lt; task.max_retries - 1:
+                <span class="cm"># Exponential backoff before retry</span>
+                <span class="kw">await</span> asyncio.sleep(2 ** attempt)
+        <span class="cm"># All retries exhausted — escalate to human</span>
+        result.error = f<span class="st">"[ESCALATE] Task {task.task_id} failed after {task.max_retries} attempts: {result.error}"</span>
+        <span class="kw">return</span> result
+
+    <span class="kw">async def</span> <span class="fn">synthesise</span>(self, request: str, results: list[TaskResult]) -&gt; str:
+        payload = {r.task_id: r.output <span class="kw">for</span> r <span class="kw">in</span> results <span class="kw">if</span> r.success}
+        response = <span class="kw">await</span> asyncio.to_thread(
+            client.messages.create,
+            model=self.model,
+            max_tokens=4096,
+            system=self.SYSTEM_PROMPT,
+            messages=[
+                {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: request},
+                {<span class="st">"role"</span>: <span class="st">"assistant"</span>, <span class="st">"content"</span>: <span class="st">'{"tasks": []}'</span>},
+                {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: f<span class="st">"Worker results:\n{json.dumps(payload, indent=2)}\n\nNow write the final report."</span>}
+            ]
+        )
+        <span class="kw">return</span> response.content[0].text
+
+    <span class="kw">async def</span> <span class="fn">run</span>(self, user_request: str) -&gt; str:
+        print(<span class="st">"[orchestrator] decomposing task..."</span>)
+        tasks = <span class="kw">await</span> self.decompose(user_request)
+        print(f<span class="st">"[orchestrator] {len(tasks)} subtasks created, dispatching workers..."</span>)
+
+        <span class="cm"># Parallel dispatch with retry</span>
+        results = <span class="kw">await</span> asyncio.gather(
+            *[self.run_with_retry(t) <span class="kw">for</span> t <span class="kw">in</span> tasks],
+            return_exceptions=<span class="kw">False</span>
+        )
+
+        failed = [r <span class="kw">for</span> r <span class="kw">in</span> results <span class="kw">if</span> <span class="kw">not</span> r.success]
+        <span class="kw">if</span> failed:
+            print(f<span class="st">"[orchestrator] {len(failed)} worker(s) failed — escalating"</span>)
+            <span class="kw">for</span> f <span class="kw">in</span> failed:
+                print(f<span class="st">"  FAIL {f.task_id}: {f.error}"</span>)
+
+        <span class="kw">return await</span> self.synthesise(user_request, results)
+
+<span class="cm"># ─── Entry point ───────────────────────────────────────────────────────────────</span>
+
+<span class="kw">async def</span> <span class="fn">main</span>():
+    worker = Worker(model=<span class="st">"claude-haiku-4-5"</span>)
+    orch   = Orchestrator(worker=worker, model=<span class="st">"claude-sonnet-4-5"</span>)
+    report = <span class="kw">await</span> orch.run(
+        <span class="st">"Produce a market research report on the global EV battery market in 2025."</span>
+    )
+    print(report)
+
+<span class="kw">if</span> __name__ == <span class="st">"__main__"</span>:
+    asyncio.run(main())</code></pre>
+        </div>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <div class="callout-title">The Orchestrator Prompt Must Name the Worker Fleet</div>
+            The orchestrator can only decompose tasks into subtasks that match real worker capabilities. Reference your <code>AGENTS.md</code> directly in the orchestrator system prompt so the model knows what it can delegate. If an orchestrator tries to assign a task to a capability that doesn't exist, the whole pipeline stalls. Keep <code>AGENTS.md</code> as the single source of truth for worker capability names.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — Parallel Execution
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="parallel-execution">
+        <div class="section-label">
+          <span class="section-num">03</span>
+          <h2 class="section-title">Parallel Execution Patterns</h2>
+        </div>
+
+        <p>
+          True parallelism in Python multi-agent systems is achieved with <code>asyncio.gather()</code>.
+          Each agent call is dispatched to <code>asyncio.to_thread()</code> (since the Anthropic SDK is
+          synchronous), allowing multiple Claude API calls to be in-flight simultaneously.
+        </p>
+
+        <h3>Complete Async Parallel Research Agent</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>parallel_research.py — 3 agents in parallel</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">import</span> anthropic
+<span class="kw">import</span> asyncio
+<span class="kw">import</span> time
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> typing <span class="kw">import</span> Optional
+
+client = anthropic.Anthropic()
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="fn">ResearchTask</span>:
+    agent_id: str
+    topic: str
+    focus: str           <span class="cm"># the specific angle this agent covers</span>
+    word_limit: int = 300
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="fn">ResearchResult</span>:
+    agent_id: str
+    topic: str
+    focus: str
+    content: str
+    latency_ms: int
+    input_tokens: int
+    output_tokens: int
+    error: Optional[str] = None
+
+RESEARCH_SYSTEM = <span class="st">"""You are a specialist research agent.
+You will receive a research topic and a specific focus area.
+Write a concise, factual, well-structured analysis.
+Stick to the word limit. Output plain text only — no headers, no markdown."""</span>
+
+<span class="kw">async def</span> <span class="fn">run_research_agent</span>(
+    task: ResearchTask,
+    progress_event: asyncio.Event,
+    results_store: dict,
+) -&gt; ResearchResult:
+    <span class="st">"""Single agent coroutine — runs in a thread pool to avoid blocking the event loop."""</span>
+    start = time.monotonic()
+
+    <span class="kw">try</span>:
+        response = <span class="kw">await</span> asyncio.to_thread(
+            client.messages.create,
+            model=<span class="st">"claude-haiku-4-5"</span>,
+            max_tokens=1024,
+            system=RESEARCH_SYSTEM,
+            messages=[{
+                <span class="st">"role"</span>: <span class="st">"user"</span>,
+                <span class="st">"content"</span>: (
+                    f<span class="st">"Topic: {task.topic}\n"</span>
+                    f<span class="st">"Your focus: {task.focus}\n"</span>
+                    f<span class="st">"Word limit: {task.word_limit} words"</span>
+                )
+            }]
+        )
+        latency_ms = int((time.monotonic() - start) * 1000)
+        result = ResearchResult(
+            agent_id=task.agent_id,
+            topic=task.topic,
+            focus=task.focus,
+            content=response.content[0].text,
+            latency_ms=latency_ms,
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
+        )
+    <span class="kw">except</span> Exception <span class="kw">as</span> e:
+        result = ResearchResult(
+            agent_id=task.agent_id, topic=task.topic, focus=task.focus,
+            content=<span class="st">""</span>, latency_ms=0, input_tokens=0, output_tokens=0,
+            error=str(e)
+        )
+
+    <span class="cm"># Store result and signal progress</span>
+    results_store[task.agent_id] = result
+    progress_event.set()
+    <span class="kw">return</span> result
+
+<span class="kw">async def</span> <span class="fn">progress_monitor</span>(
+    total: int,
+    results_store: dict,
+    progress_event: asyncio.Event
+):
+    <span class="st">"""Emit progress updates as agents complete."""</span>
+    completed = 0
+    <span class="kw">while</span> completed &lt; total:
+        <span class="kw">await</span> progress_event.wait()
+        progress_event.clear()
+        completed = len(results_store)
+        print(f<span class="st">"[progress] {completed}/{total} agents done"</span>)
+
+<span class="kw">async def</span> <span class="fn">aggregate_results</span>(results: list[ResearchResult], topic: str) -&gt; str:
+    <span class="st">"""Orchestrator synthesises 3 parallel outputs into one coherent answer."""</span>
+    sections = <span class="st">"\n\n"</span>.join(
+        f<span class="st">"=== {r.focus} ===\n{r.content}"</span>
+        <span class="kw">for</span> r <span class="kw">in</span> results <span class="kw">if</span> <span class="kw">not</span> r.error
+    )
+    response = <span class="kw">await</span> asyncio.to_thread(
+        client.messages.create,
+        model=<span class="st">"claude-sonnet-4-5"</span>,
+        max_tokens=4096,
+        messages=[{
+            <span class="st">"role"</span>: <span class="st">"user"</span>,
+            <span class="st">"content"</span>: (
+                f<span class="st">"You are synthesising three research sections on: {topic}\n\n"</span>
+                f<span class="st">"{sections}\n\n"</span>
+                <span class="st">"Write a unified, well-structured research report in markdown. "</span>
+                <span class="st">"Eliminate redundancy. Ensure logical flow between sections."</span>
+            )
+        }]
+    )
+    <span class="kw">return</span> response.content[0].text
+
+<span class="kw">async def</span> <span class="fn">parallel_research_pipeline</span>(topic: str) -&gt; str:
+    tasks = [
+        ResearchTask(<span class="st">"agent-market"</span>,     topic, <span class="st">"Market size, growth rate, and key players"</span>),
+        ResearchTask(<span class="st">"agent-tech"</span>,       topic, <span class="st">"Technology landscape and innovation trends"</span>),
+        ResearchTask(<span class="st">"agent-regulatory"</span>, topic, <span class="st">"Regulatory environment and compliance risks"</span>),
+    ]
+
+    results_store: dict = {}
+    progress_event = asyncio.Event()
+
+    <span class="cm"># Launch all agents + progress monitor concurrently</span>
+    agent_coros = [
+        run_research_agent(t, progress_event, results_store) <span class="kw">for</span> t <span class="kw">in</span> tasks
+    ]
+    monitor_coro = progress_monitor(len(tasks), results_store, progress_event)
+
+    results, _ = <span class="kw">await</span> asyncio.gather(
+        asyncio.gather(*agent_coros),
+        monitor_coro,
+        return_exceptions=<span class="kw">False</span>
+    )
+
+    <span class="cm"># Log token budget</span>
+    total_in  = sum(r.input_tokens  <span class="kw">for</span> r <span class="kw">in</span> results)
+    total_out = sum(r.output_tokens <span class="kw">for</span> r <span class="kw">in</span> results)
+    max_lat   = max(r.latency_ms   <span class="kw">for</span> r <span class="kw">in</span> results)
+    print(f<span class="st">"[budget] input={total_in} output={total_out} wall_clock={max_lat}ms"</span>)
+
+    <span class="kw">return await</span> aggregate_results(results, topic)
+
+<span class="kw">if</span> __name__ == <span class="st">"__main__"</span>:
+    report = asyncio.run(parallel_research_pipeline(
+        <span class="st">"Global solid-state battery market 2025"</span>
+    ))
+    print(report)</code></pre>
+        </div>
+
+        <h3>Rate Limit Awareness</h3>
+        <p>
+          Parallel calls hit the API concurrently. If you launch 10 agents simultaneously and each
+          sends a large input, you can breach your requests-per-minute or tokens-per-minute limit
+          in a single burst. Build in exponential backoff with jitter:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>backoff_wrapper.py — rate-limit-safe API call</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">import</span> asyncio
+<span class="kw">import</span> random
+<span class="kw">import</span> anthropic
+<span class="kw">from</span> anthropic <span class="kw">import</span> RateLimitError
+
+<span class="kw">async def</span> <span class="fn">call_with_backoff</span>(fn, *args, max_retries=5, base_delay=1.0, **kwargs):
+    <span class="st">"""Wrap any synchronous Anthropic call with async exponential backoff + jitter."""</span>
+    <span class="kw">for</span> attempt <span class="kw">in</span> range(max_retries):
+        <span class="kw">try</span>:
+            <span class="kw">return await</span> asyncio.to_thread(fn, *args, **kwargs)
+        <span class="kw">except</span> RateLimitError:
+            <span class="kw">if</span> attempt == max_retries - 1:
+                <span class="kw">raise</span>
+            delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
+            print(f<span class="st">"[rate_limit] attempt {attempt+1} — sleeping {delay:.1f}s"</span>)
+            <span class="kw">await</span> asyncio.sleep(delay)
+
+<span class="cm"># Usage:</span>
+<span class="cm"># response = await call_with_backoff(</span>
+<span class="cm">#     client.messages.create,</span>
+<span class="cm">#     model="claude-haiku-4-5", max_tokens=512,</span>
+<span class="cm">#     messages=[{"role": "user", "content": task.instruction}]</span>
+<span class="cm"># )</span></code></pre>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <div class="callout-title">Model the Token Budget Before Deploying</div>
+            Parallel execution multiplies token usage. If 5 workers each use 10 K input tokens, one pipeline run consumes 50 K tokens — plus the orchestrator's synthesis pass. For a system that runs 100 times a day, that's 5 M tokens per day from workers alone. Run the arithmetic against your tier limits and cost targets before going to production. The practical sweet spot for parallel workers is 5–10. Beyond that, coordination overhead (orchestrator context, synthesis latency) begins to dominate.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — Specialist Agent Design
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="specialist-agents">
+        <div class="section-label">
+          <span class="section-num">04</span>
+          <h2 class="section-title">Specialist Agent Design</h2>
+        </div>
+
+        <p>
+          The most common mistake in multi-agent design is building generalist workers. A worker
+          told to "help with backend tasks" will produce mediocre output on everything. A worker
+          told to "find SQL injection vulnerabilities in Django ORM queries and explain each one
+          with its CVE class and remediation" will be exceptionally good at that one thing.
+        </p>
+
+        <p>
+          <strong>Design principle: one specialist = one capability.</strong> The specialist's
+          system prompt is its entire definition. Keep it narrow, keep it deep.
+        </p>
+
+        <h3>Four Production Specialist System Prompts</h3>
+
+        <div class="specialist-grid">
+          <div class="specialist-card">
+            <div class="specialist-card-header">
+              <span class="specialist-card-icon">🔒</span>
+              <span class="specialist-card-title">Security Auditor</span>
+              <span class="agent-tier tier-sonnet">Sonnet</span>
+            </div>
+            <div class="specialist-card-body">
+              Requires Sonnet — attack reasoning is complex. See prompt below.
+            </div>
+          </div>
+          <div class="specialist-card">
+            <div class="specialist-card-header">
+              <span class="specialist-card-icon">🗄</span>
+              <span class="specialist-card-title">SQL Optimizer</span>
+              <span class="agent-tier tier-haiku">Haiku</span>
+            </div>
+            <div class="specialist-card-body">
+              Haiku is sufficient — SQL optimisation is pattern-matching, not deep reasoning.
+            </div>
+          </div>
+          <div class="specialist-card">
+            <div class="specialist-card-header">
+              <span class="specialist-card-icon">🔌</span>
+              <span class="specialist-card-title">API Designer</span>
+              <span class="agent-tier tier-haiku">Haiku</span>
+            </div>
+            <div class="specialist-card-body">
+              REST/OpenAPI schema generation is formulaic once the domain model is provided.
+            </div>
+          </div>
+          <div class="specialist-card">
+            <div class="specialist-card-header">
+              <span class="specialist-card-icon">📝</span>
+              <span class="specialist-card-title">Documentation Writer</span>
+              <span class="agent-tier tier-haiku">Haiku</span>
+            </div>
+            <div class="specialist-card-body">
+              Fast, cheap, excellent at structured prose — ideal fit for Haiku.
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>specialist_prompts.py — 4 production system prompts</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># ── 1. Security Auditor ──────────────────────────────────────────────────────</span>
+SECURITY_AUDITOR = <span class="st">"""You are an application security auditor.
+You review code for security vulnerabilities with the precision of a penetration tester.
+
+Your output is ALWAYS a JSON array of findings:
+[
+  {
+    "severity": "critical|high|medium|low|info",
+    "cwe_id": "CWE-XXX",
+    "location": "file:line",
+    "title": "one-line description",
+    "detail": "what the vulnerability is and why it matters",
+    "remediation": "exact code change or configuration fix",
+    "exploitability": "how an attacker would exploit this"
+  }
+]
+
+Rules:
+- Report ONLY real, exploitable findings. No theoretical issues.
+- If no vulnerabilities found, return [].
+- Never suggest "consider using" — give the concrete fix.
+- Always include the CWE identifier."""</span>
+
+<span class="cm"># ── 2. SQL Optimizer ─────────────────────────────────────────────────────────</span>
+SQL_OPTIMIZER = <span class="st">"""You are a database performance specialist for PostgreSQL.
+You receive slow SQL queries with their EXPLAIN ANALYZE output.
+
+Your output is ALWAYS valid JSON:
+{
+  "root_cause": "single sentence: what is making this query slow",
+  "issues": [
+    {"type": "missing_index|seq_scan|n+1|cartesian|lock_contention|...", "detail": "..."}
+  ],
+  "optimized_sql": "the rewritten query",
+  "recommended_indexes": ["CREATE INDEX CONCURRENTLY ..."],
+  "expected_improvement": "e.g. 120ms → 4ms (30× faster)",
+  "notes": "any caveats or trade-offs"
+}
+
+Rules:
+- Prefer index-only scans. Avoid seq scans on tables &gt; 10 K rows.
+- Use CTEs only when they improve readability, not performance.
+- Provide CONCURRENTLY index creation for production safety.
+- Always test estimated row counts against actual from EXPLAIN."""</span>
+
+<span class="cm"># ── 3. API Designer ──────────────────────────────────────────────────────────</span>
+API_DESIGNER = <span class="st">"""You are a REST API designer specialising in OpenAPI 3.1.
+You receive a domain description (entities, relationships, operations) and produce
+a complete, production-grade OpenAPI 3.1 specification.
+
+Output ONLY valid YAML — no prose, no markdown fences.
+
+Design rules:
+- Use resource-oriented URLs: /resources/{id}/sub-resources
+- HTTP verbs: GET (read), POST (create), PUT (replace), PATCH (partial update), DELETE
+- Status codes: 200 OK, 201 Created, 204 No Content, 400 Bad Request, 401, 403, 404, 409, 422, 500
+- Pagination: cursor-based (next_cursor, limit) for all list endpoints
+- Error schema: {"error": {"code": "SNAKE_CASE", "message": "...", "details": [...]}}
+- Versioning: /v1/ prefix on all paths
+- Always define reusable schemas under components/schemas
+- Include security schemes: BearerAuth (JWT) as default"""</span>
+
+<span class="cm"># ── 4. Documentation Writer ──────────────────────────────────────────────────</span>
+DOCS_WRITER = <span class="st">"""You are a technical documentation specialist.
+You write clear, accurate, scannable documentation for engineering audiences.
+
+Input: code, API specs, architecture diagrams (as text), or feature descriptions.
+Output: structured markdown documentation.
+
+Writing rules:
+- Start with a one-sentence "what this does" summary.
+- Use second-person ("you") and active voice.
+- Code examples must be complete and runnable — no ellipsis placeholders.
+- Every parameter/field gets: name | type | required/optional | description | example.
+- Include at least one "common mistake" or "gotcha" callout per major section.
+- Maximum 120 words per paragraph. Break longer prose into bullets.
+- End every document with a "Next Steps" section with 3 relevant links or actions."""</span></code></pre>
+        </div>
+
+        <h3>The Specialist Catalogue — AGENTS.md</h3>
+        <p>
+          Maintain a machine-readable registry of all specialists in <code>AGENTS.md</code>.
+          The orchestrator's system prompt references this file by name, and CI validates
+          that every registered specialist has a corresponding test suite.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-md"></span>AGENTS.md — specialist registry (excerpt)</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Agent Registry</span>
+<span class="cm">## Specialists</span>
+
+<span class="cm">| capability         | model              | max_tokens | test_suite                   |</span>
+<span class="cm">|--------------------|---------------------|------------|------------------------------|</span>
+<span class="cm">| security_auditor   | claude-sonnet-4-5   | 4096       | tests/agents/test_security.py|</span>
+<span class="cm">| sql_optimizer      | claude-haiku-4-5    | 2048       | tests/agents/test_sql.py     |</span>
+<span class="cm">| api_designer       | claude-haiku-4-5    | 8192       | tests/agents/test_api.py     |</span>
+<span class="cm">| docs_writer        | claude-haiku-4-5    | 4096       | tests/agents/test_docs.py    |</span>
+
+<span class="cm">## Testing Policy</span>
+<span class="cm">Each specialist test suite must include:</span>
+<span class="cm">- 5+ input/expected-output pairs</span>
+<span class="cm">- Schema validation of JSON output</span>
+<span class="cm">- Regression test for each known edge case</span></code></pre>
+        </div>
+
+        <div class="callout callout-success">
+          <span class="callout-icon">✓</span>
+          <div class="callout-body">
+            <div class="callout-title">Specialists Are Deterministic Enough to Unit Test</div>
+            Unlike general-purpose agents, specialists with narrow prompts produce consistent output shapes that can be schema-validated. Write a test suite for each specialist: fixed input, expected JSON schema, and a set of "must not contain" assertions (e.g., the SQL optimizer must never output a sequential scan on the products table for the canonical test query). Run these tests in CI every time a specialist's system prompt changes.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 5 — Human-in-the-Loop
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="human-approval">
+        <div class="section-label">
+          <span class="section-num">05</span>
+          <h2 class="section-title">Human-in-the-Loop Approval Workflows</h2>
+        </div>
+
+        <p>
+          The fastest way to destroy trust in an AI system is to let it execute an irreversible
+          action without a human checkpoint. Deleting production data, sending external emails,
+          deploying to prod, making financial transactions — these require a human gate, full stop.
+          The approval gate is not a sign of distrust in the AI; it is a sign of mature system design.
+        </p>
+
+        <h3>Escalation Rules — Define Programmatically</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>approval_policy.py — action categorisation</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">from</span> enum <span class="kw">import</span> Enum
+
+<span class="kw">class</span> <span class="fn">ApprovalTier</span>(str, Enum):
+    AUTO     = <span class="st">"auto"</span>       <span class="cm"># executes immediately</span>
+    ASYNC    = <span class="st">"async"</span>     <span class="cm"># notify + wait for approval (async, non-blocking)</span>
+    SYNC     = <span class="st">"sync"</span>      <span class="cm"># block pipeline until approved</span>
+    DENY     = <span class="st">"deny"</span>      <span class="cm"># never permitted — hard-coded refusal</span>
+
+<span class="cm"># Map action category → approval tier</span>
+APPROVAL_POLICY: dict[str, ApprovalTier] = {
+    <span class="cm"># Read-only — always auto</span>
+    <span class="st">"read_database"</span>:           ApprovalTier.AUTO,
+    <span class="st">"read_file"</span>:               ApprovalTier.AUTO,
+    <span class="st">"query_api_readonly"</span>:      ApprovalTier.AUTO,
+
+    <span class="cm"># Low-risk writes — auto in dev, async in prod</span>
+    <span class="st">"write_internal_record"</span>:   ApprovalTier.AUTO,
+    <span class="st">"send_internal_slack"</span>:     ApprovalTier.AUTO,
+
+    <span class="cm"># Medium-risk — async human approval</span>
+    <span class="st">"send_external_email"</span>:     ApprovalTier.ASYNC,
+    <span class="st">"update_customer_record"</span>:  ApprovalTier.ASYNC,
+    <span class="st">"create_pr"</span>:               ApprovalTier.ASYNC,
+
+    <span class="cm"># High-risk — synchronous human approval required</span>
+    <span class="st">"deploy_to_production"</span>:    ApprovalTier.SYNC,
+    <span class="st">"delete_records"</span>:          ApprovalTier.SYNC,
+    <span class="st">"financial_transaction"</span>:   ApprovalTier.SYNC,
+    <span class="st">"send_mass_email"</span>:         ApprovalTier.SYNC,
+
+    <span class="cm"># Hard deny — never execute regardless of instruction</span>
+    <span class="st">"drop_table"</span>:              ApprovalTier.DENY,
+    <span class="st">"delete_all_records"</span>:      ApprovalTier.DENY,
+    <span class="st">"modify_audit_log"</span>:        ApprovalTier.DENY,
+}
+
+<span class="kw">def</span> <span class="fn">get_approval_tier</span>(action_category: str) -&gt; ApprovalTier:
+    <span class="kw">return</span> APPROVAL_POLICY.get(action_category, ApprovalTier.SYNC)  <span class="cm"># default: require approval</span></code></pre>
+        </div>
+
+        <h3>The Approval Gate — Complete Implementation</h3>
+
+        <div class="approval-steps">
+          <div class="approval-step">
+            <div class="approval-step-num">01</div>
+            <div class="approval-step-body">
+              <div class="approval-step-title">Agent generates action plan</div>
+              <div class="approval-step-desc">The agent proposes an action with full detail: what it will do, why, expected outcome, and rollback procedure.</div>
+            </div>
+          </div>
+          <div class="approval-step">
+            <div class="approval-step-num">02</div>
+            <div class="approval-step-body">
+              <div class="approval-step-title">Action logged to pending_actions store</div>
+              <div class="approval-step-desc">Persisted with a UUID, timestamp, expiry, and idempotency key. Status: PENDING.</div>
+            </div>
+          </div>
+          <div class="approval-step">
+            <div class="approval-step-num">03</div>
+            <div class="approval-step-body">
+              <div class="approval-step-title">Notification sent with approve / reject links</div>
+              <div class="approval-step-desc">Slack message or email containing signed URLs. The approver clicks — no separate login required.</div>
+            </div>
+          </div>
+          <div class="approval-step">
+            <div class="approval-step-num">04</div>
+            <div class="approval-step-body">
+              <div class="approval-step-title">Approval endpoint fires</div>
+              <div class="approval-step-desc">POST /approve/{action_id} or /reject/{action_id}. Updates status, triggers execution or cancellation.</div>
+            </div>
+          </div>
+          <div class="approval-step">
+            <div class="approval-step-num">05</div>
+            <div class="approval-step-body">
+              <div class="approval-step-title">Timeout escalation</div>
+              <div class="approval-step-desc">If no decision within N hours, a background job auto-cancels and pages on-call. Never auto-approves on timeout.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>approval_gateway.py — FastAPI approval endpoint pattern</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">import</span> asyncio
+<span class="kw">import</span> hmac, hashlib, os, uuid
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime, timedelta, timezone
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI, HTTPException
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel
+<span class="kw">from</span> typing <span class="kw">import</span> Callable, Optional
+
+app = FastAPI()
+SECRET = os.environ[<span class="st">"APPROVAL_HMAC_SECRET"</span>]
+TIMEOUT_HOURS = 4
+
+<span class="cm"># In production: replace with Postgres / Redis</span>
+pending_actions: dict[str, dict] = {}
+<span class="cm"># Asyncio events: keyed by action_id, set when approval decision arrives</span>
+approval_events: dict[str, asyncio.Event] = {}
+
+<span class="kw">class</span> <span class="fn">ActionProposal</span>(BaseModel):
+    action_category: str
+    description: str
+    payload: dict
+    proposed_by: str         <span class="cm"># agent_id</span>
+    rollback_plan: str
+
+<span class="kw">def</span> <span class="fn">sign_action_id</span>(action_id: str) -&gt; str:
+    <span class="st">"""HMAC-sign the action_id so approve URLs cannot be forged."""</span>
+    <span class="kw">return</span> hmac.new(SECRET.encode(), action_id.encode(), hashlib.sha256).hexdigest()
+
+<span class="kw">async def</span> <span class="fn">request_approval</span>(
+    proposal: ActionProposal,
+    execute_fn: Callable,
+    notify_fn: Callable,
+) -&gt; bool:
+    <span class="st">"""
+    Store the pending action, notify the approver, and wait for their decision.
+    Returns True if approved and executed, False if rejected or timed out.
+    """</span>
+    action_id = str(uuid.uuid4())
+    sig = sign_action_id(action_id)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=TIMEOUT_HOURS)
+
+    pending_actions[action_id] = {
+        <span class="st">"proposal"</span>: proposal.dict(),
+        <span class="st">"status"</span>: <span class="st">"PENDING"</span>,
+        <span class="st">"expires_at"</span>: expires_at.isoformat(),
+        <span class="st">"idempotency_key"</span>: f<span class="st">"{proposal.action_category}:{proposal.proposed_by}:{action_id[:8]}"</span>,
+    }
+    approval_events[action_id] = asyncio.Event()
+
+    base_url = os.environ.get(<span class="st">"APPROVAL_BASE_URL"</span>, <span class="st">"https://agents.internal"</span>)
+    approve_url = f<span class="st">"{base_url}/approve/{action_id}?sig={sig}"</span>
+    reject_url  = f<span class="st">"{base_url}/reject/{action_id}?sig={sig}"</span>
+
+    <span class="kw">await</span> notify_fn(proposal, approve_url, reject_url)
+
+    <span class="kw">try</span>:
+        <span class="kw">await</span> asyncio.wait_for(
+            approval_events[action_id].wait(),
+            timeout=TIMEOUT_HOURS * 3600
+        )
+    <span class="kw">except</span> asyncio.TimeoutError:
+        pending_actions[action_id][<span class="st">"status"</span>] = <span class="st">"TIMEOUT"</span>
+        <span class="kw">await</span> notify_fn(proposal, <span class="st">""</span>, <span class="st">""</span>, escalate=<span class="kw">True</span>)
+        <span class="kw">return False</span>
+
+    <span class="kw">if</span> pending_actions[action_id][<span class="st">"status"</span>] == <span class="st">"APPROVED"</span>:
+        <span class="kw">await</span> execute_fn(proposal.payload)
+        <span class="kw">return True</span>
+    <span class="kw">return False</span>
+
+<span class="kw">@app.post</span>(<span class="st">"/approve/{action_id}"</span>)
+<span class="kw">async def</span> <span class="fn">approve_action</span>(action_id: str, sig: str):
+    <span class="kw">if</span> <span class="kw">not</span> hmac.compare_digest(sig, sign_action_id(action_id)):
+        <span class="kw">raise</span> HTTPException(status_code=403, detail=<span class="st">"Invalid signature"</span>)
+    <span class="kw">if</span> action_id <span class="kw">not in</span> pending_actions:
+        <span class="kw">raise</span> HTTPException(status_code=404)
+    pending_actions[action_id][<span class="st">"status"</span>] = <span class="st">"APPROVED"</span>
+    approval_events[action_id].set()
+    <span class="kw">return</span> {<span class="st">"status"</span>: <span class="st">"approved"</span>}
+
+<span class="kw">@app.post</span>(<span class="st">"/reject/{action_id}"</span>)
+<span class="kw">async def</span> <span class="fn">reject_action</span>(action_id: str, sig: str, reason: Optional[str] = <span class="st">""</span>):
+    <span class="kw">if</span> <span class="kw">not</span> hmac.compare_digest(sig, sign_action_id(action_id)):
+        <span class="kw">raise</span> HTTPException(status_code=403, detail=<span class="st">"Invalid signature"</span>)
+    <span class="kw">if</span> action_id <span class="kw">not in</span> pending_actions:
+        <span class="kw">raise</span> HTTPException(status_code=404)
+    pending_actions[action_id][<span class="st">"status"</span>] = <span class="st">"REJECTED"</span>
+    pending_actions[action_id][<span class="st">"rejection_reason"</span>] = reason
+    approval_events[action_id].set()
+    <span class="kw">return</span> {<span class="st">"status"</span>: <span class="st">"rejected"</span>}</code></pre>
+        </div>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <div class="callout-title">Never Auto-Approve on Timeout</div>
+            A common mistake is to auto-approve if the approver doesn't respond — "because the work needs to keep moving." This inverts the safety guarantee: you've now built a system where inaction equals permission. Always auto-cancel or auto-escalate on timeout. The cost of one cancelled action is far lower than the cost of one unauthorised destructive action executed in production.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 6 — Failure Modes & Resilience
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="failure-resilience">
+        <div class="section-label">
+          <span class="section-num">06</span>
+          <h2 class="section-title">Failure Modes &amp; Resilience</h2>
+        </div>
+
+        <p>
+          Multi-agent systems fail in ways that single-agent systems cannot. The failure surface
+          is larger: more API calls, more network hops, more intermediate state, more opportunities
+          for one bad result to corrupt a downstream synthesis. You must design for failure from
+          the start — it is not an afterthought.
+        </p>
+
+        <h3>Multi-Agent Failure Taxonomy</h3>
+
+        <table class="failure-table">
+          <thead>
+            <tr>
+              <th>Failure Mode</th>
+              <th>Severity</th>
+              <th>Description</th>
+              <th>Mitigation</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Worker timeout</td>
+              <td><span class="sev-med">MEDIUM</span></td>
+              <td>Worker exceeds max execution time; orchestrator stalls waiting for response.</td>
+              <td><code>asyncio.wait_for()</code> with hard timeout; retry logic; fallback to partial result.</td>
+            </tr>
+            <tr>
+              <td>Invalid output format</td>
+              <td><span class="sev-high">HIGH</span></td>
+              <td>Worker returns malformed JSON or wrong schema; orchestrator fails to parse.</td>
+              <td>Schema validation on all worker outputs before orchestrator uses them; reject and retry.</td>
+            </tr>
+            <tr>
+              <td>Hallucinated data</td>
+              <td><span class="sev-high">HIGH</span></td>
+              <td>Worker fabricates facts (market size, regulatory clauses, code logic) that the orchestrator trusts and includes in final output.</td>
+              <td>Require workers to cite sources or confidence scores; cross-validate critical facts across two workers; red-team workers with known-false inputs.</td>
+            </tr>
+            <tr>
+              <td>Cascading failure</td>
+              <td><span class="sev-high">HIGH</span></td>
+              <td>One bad worker result contaminates the orchestrator's context and causes incorrect synthesis that infects the final output.</td>
+              <td>Treat each worker result as untrusted until validated; use structured schemas; circuit breaker on repeated failures.</td>
+            </tr>
+            <tr>
+              <td>Confused orchestrator</td>
+              <td><span class="sev-med">MEDIUM</span></td>
+              <td>Orchestrator receives inconsistent results from parallel workers (e.g., two market size figures that disagree by 10×) and makes an incorrect synthesis decision.</td>
+              <td>Require workers to include confidence/source; orchestrator explicitly resolves conflicts rather than silently averaging.</td>
+            </tr>
+            <tr>
+              <td>Rate limit cascade</td>
+              <td><span class="sev-low">LOW</span></td>
+              <td>Burst of parallel workers triggers rate limits; all fail simultaneously with <code>429</code>.</td>
+              <td>Exponential backoff with jitter; stagger parallel launches with small initial delays; monitor TPM usage.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Complete Resilience Pattern</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>resilience.py — retry decorator + circuit breaker + schema validation</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="kw">import</span> asyncio
+<span class="kw">import</span> functools
+<span class="kw">import</span> json
+<span class="kw">import</span> logging
+<span class="kw">import</span> random
+<span class="kw">import</span> time
+<span class="kw">from</span> collections <span class="kw">import</span> deque
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass, field
+<span class="kw">from</span> typing <span class="kw">import</span> Any, Callable, Optional, Type
+
+logger = logging.getLogger(__name__)
+
+<span class="cm"># ─── Retry decorator ─────────────────────────────────────────────────────────</span>
+
+<span class="kw">def</span> <span class="fn">async_retry</span>(
+    max_attempts: int = 3,
+    base_delay: float = 1.0,
+    retryable_exceptions: tuple = (Exception,),
+):
+    <span class="st">"""Async retry with exponential backoff and full jitter."""</span>
+    <span class="kw">def</span> decorator(fn):
+        <span class="kw">@functools.wraps</span>(fn)
+        <span class="kw">async def</span> wrapper(*args, **kwargs):
+            <span class="kw">for</span> attempt <span class="kw">in</span> range(max_attempts):
+                <span class="kw">try</span>:
+                    <span class="kw">return await</span> fn(*args, **kwargs)
+                <span class="kw">except</span> retryable_exceptions <span class="kw">as</span> e:
+                    <span class="kw">if</span> attempt == max_attempts - 1:
+                        logger.error(f<span class="st">"[retry] {fn.__name__} exhausted {max_attempts} attempts"</span>)
+                        <span class="kw">raise</span>
+                    delay = random.uniform(0, base_delay * (2 ** attempt))
+                    logger.warning(f<span class="st">"[retry] {fn.__name__} attempt {attempt+1} failed: {e}. Sleeping {delay:.2f}s"</span>)
+                    <span class="kw">await</span> asyncio.sleep(delay)
+        <span class="kw">return</span> wrapper
+    <span class="kw">return</span> decorator
+
+<span class="cm"># ─── Circuit breaker ─────────────────────────────────────────────────────────</span>
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="fn">CircuitBreaker</span>:
+    <span class="st">"""
+    Tracks failure rate for a named worker/service.
+    Opens (stops sending work) after failure_threshold failures
+    in the rolling window_size call history.
+    """</span>
+    name: str
+    failure_threshold: int = 5       <span class="cm"># open after this many failures</span>
+    window_size: int = 10            <span class="cm"># rolling window of last N calls</span>
+    reset_timeout: float = 60.0      <span class="cm"># seconds before attempting half-open</span>
+
+    _history: deque = field(default_factory=lambda: deque(maxlen=10))
+    _opened_at: Optional[float] = field(default=None)
+
+    <span class="kw">@property</span>
+    <span class="kw">def</span> <span class="fn">is_open</span>(self) -&gt; bool:
+        <span class="kw">if</span> self._opened_at <span class="kw">is None</span>:
+            <span class="kw">return False</span>
+        <span class="kw">if</span> time.monotonic() - self._opened_at &gt; self.reset_timeout:
+            logger.info(f<span class="st">"[circuit_breaker:{self.name}] half-open — allowing one probe"</span>)
+            <span class="kw">return False</span>  <span class="cm"># allow one probe through</span>
+        <span class="kw">return True</span>
+
+    <span class="kw">def</span> <span class="fn">record_success</span>(self):
+        self._history.append(<span class="kw">True</span>)
+        self._opened_at = <span class="kw">None</span>
+
+    <span class="kw">def</span> <span class="fn">record_failure</span>(self):
+        self._history.append(<span class="kw">False</span>)
+        failures = sum(1 <span class="kw">for</span> x <span class="kw">in</span> self._history <span class="kw">if not</span> x)
+        <span class="kw">if</span> failures &gt;= self.failure_threshold:
+            <span class="kw">if</span> self._opened_at <span class="kw">is None</span>:
+                logger.error(f<span class="st">"[circuit_breaker:{self.name}] OPEN — {failures} failures in last {len(self._history)} calls"</span>)
+            self._opened_at = time.monotonic()
+
+    <span class="kw">async def</span> <span class="fn">call</span>(self, fn: Callable, *args, **kwargs) -&gt; Any:
+        <span class="kw">if</span> self.is_open:
+            <span class="kw">raise</span> RuntimeError(f<span class="st">"Circuit breaker OPEN for {self.name} — not sending work"</span>)
+        <span class="kw">try</span>:
+            result = <span class="kw">await</span> fn(*args, **kwargs)
+            self.record_success()
+            <span class="kw">return</span> result
+        <span class="kw">except</span> Exception:
+            self.record_failure()
+            <span class="kw">raise</span>
+
+<span class="cm"># ─── Output schema validation ────────────────────────────────────────────────</span>
+
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel, ValidationError
+
+<span class="kw">class</span> <span class="fn">WorkerOutput</span>(BaseModel):
+    success: bool
+    result: Optional[Any] = None
+    error: Optional[str] = None
+    confidence: float = 1.0          <span class="cm"># 0.0–1.0; workers should report uncertainty</span>
+    sources: list[str] = []          <span class="cm"># citations or data sources used</span>
+
+<span class="kw">def</span> <span class="fn">validate_worker_output</span>(raw_text: str) -&gt; WorkerOutput:
+    <span class="st">"""Parse and validate a worker's raw JSON response. Raises on schema violation."""</span>
+    <span class="kw">try</span>:
+        data = json.loads(raw_text)
+        <span class="kw">return</span> WorkerOutput(**data)
+    <span class="kw">except</span> json.JSONDecodeError <span class="kw">as</span> e:
+        <span class="kw">raise</span> ValueError(f<span class="st">"Worker returned non-JSON: {e}. Raw: {raw_text[:200]}"</span>)
+    <span class="kw">except</span> ValidationError <span class="kw">as</span> e:
+        <span class="kw">raise</span> ValueError(f<span class="st">"Worker output failed schema validation: {e}"</span>)
+
+<span class="cm"># ─── Observability logger ────────────────────────────────────────────────────</span>
+
+<span class="kw">import</span> hashlib
+
+<span class="kw">def</span> <span class="fn">log_agent_call</span>(
+    agent_id: str,
+    task_id: str,
+    input_text: str,
+    output_text: str,
+    latency_ms: int,
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cost_usd: float,
+):
+    <span class="st">"""Emit a structured log entry for every agent call. Ship to your SIEM."""</span>
+    entry = {
+        <span class="st">"ts"</span>: time.time(),
+        <span class="st">"agent_id"</span>: agent_id,
+        <span class="st">"task_id"</span>: task_id,
+        <span class="st">"input_hash"</span>: hashlib.sha256(input_text.encode()).hexdigest()[:16],
+        <span class="st">"output_hash"</span>: hashlib.sha256(output_text.encode()).hexdigest()[:16],
+        <span class="st">"latency_ms"</span>: latency_ms,
+        <span class="st">"model"</span>: model,
+        <span class="st">"input_tokens"</span>: input_tokens,
+        <span class="st">"output_tokens"</span>: output_tokens,
+        <span class="st">"cost_usd"</span>: cost_usd,
+    }
+    <span class="cm"># In production: ship to Datadog / Splunk / CloudWatch</span>
+    logger.info(json.dumps(entry))</code></pre>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <div class="callout-title">Design All Agent Actions as Idempotent</div>
+            When a worker fails and is retried, the retry must be safe to execute even if the original attempt partially succeeded. Use idempotency keys — a deterministic hash of the action category, agent ID, and input hash — and check the key against a persistent store before executing. If the key exists and the previous result was successful, return the cached result without re-executing. This pattern eliminates duplicate sends, duplicate writes, and duplicate API calls caused by network retries.
+          </div>
+        </div>
+
+        <h3>Observability Checklist — What to Log per Agent Call</h3>
+        <ul>
+          <li><code>agent_id</code> — which specialist or orchestrator made the call</li>
+          <li><code>task_id</code> — links to the parent orchestrator run</li>
+          <li><code>input_hash</code> — SHA-256 prefix of input (for deduplication, not PII)</li>
+          <li><code>output_hash</code> — SHA-256 prefix of output (for change detection)</li>
+          <li><code>latency_ms</code> — wall-clock time for this agent call</li>
+          <li><code>model</code> — which model was used (Haiku / Sonnet / Opus)</li>
+          <li><code>input_tokens</code> / <code>output_tokens</code> — for cost attribution</li>
+          <li><code>cost_usd</code> — derived from token counts × model pricing</li>
+          <li><code>circuit_breaker_state</code> — CLOSED / HALF_OPEN / OPEN at call time</li>
+          <li><code>retry_attempt</code> — 0 for first attempt; signals systemic instability if &gt; 0 is frequent</li>
+        </ul>
+
+        <p>
+          Aggregate these logs into your SIEM and create alerts for: cost per pipeline run exceeding
+          budget threshold, circuit breaker opening on any worker, retry rate exceeding 5%, and
+          orchestrator synthesis latency exceeding SLO.
+        </p>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           Page Navigation
+      ════════════════════════════════════════════ -->
+      <nav class="page-nav">
+        <a href="day3-module2-cicd-github.html" class="nav-prev">
+          <span class="nav-arrow">&#8592;</span>
+          <span class="nav-label">
+            <span class="nav-dir">Previous</span>
+            <span class="nav-title">Day 3 · Module 2: CI/CD &amp; GitHub Integration</span>
+          </span>
+        </a>
+        <a href="day3-module4-platform.html" class="nav-next">
+          <span class="nav-label">
+            <span class="nav-dir">Next</span>
+            <span class="nav-title">Day 3 · Module 4: Enterprise AI Platform Architecture</span>
+          </span>
+          <span class="nav-arrow">&#8594;</span>
+        </a>
+      </nav>
+
+    </div><!-- /.content-wrap -->
+
+    <aside class="toc">
+      <div class="toc-inner">
+        <div class="toc-label">On This Page</div>
+        <ul class="toc-list">
+          <li><a href="#why-multi-agent">Why Multi-Agent Systems</a></li>
+          <li><a href="#orchestrator-worker">Orchestrator-Worker Pattern</a></li>
+          <li><a href="#parallel-execution">Parallel Execution Patterns</a></li>
+          <li><a href="#specialist-agents">Specialist Agent Design</a></li>
+          <li><a href="#human-approval">Human-in-the-Loop Approval</a></li>
+          <li><a href="#failure-resilience">Failure Modes &amp; Resilience</a></li>
+        </ul>
+      </div>
+    </aside>
+
+  </main>
+</div>
+
+<script src="assets/js/brand-theme.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Context Engineering &amp; CLAUDE.md — Claude Architect</title>
+  <meta name="description" content="Day 3 Module 1: CLAUDE.md, AGENTS.md, SKILL.md, enterprise context hierarchy, coding standards, security constraints, and reusable context design." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+
+    .arch-diagram {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: #c9d1d9;
+      line-height: 1.9;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+    }
+    .arch-diagram .box   { color: #79c0ff; }
+    .arch-diagram .hi    { color: #ffa657; }
+    .arch-diagram .label { color: #a5d6ff; }
+    .arch-diagram .dim   { color: #484f58; }
+    .arch-diagram .good  { color: #7ee787; }
+    .arch-diagram .bad   { color: #ff7b72; }
+
+    /* Context layer cards */
+    .layer-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin: 1.25rem 0;
+    }
+    .layer-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      align-items: stretch;
+    }
+    .layer-badge {
+      width: 6px;
+      flex-shrink: 0;
+    }
+    .layer-badge.persistent { background: var(--accent); }
+    .layer-badge.session    { background: #6366f1; }
+    .layer-badge.injected   { background: #0ea5e9; }
+    .layer-body {
+      padding: 0.85rem 1.1rem;
+      flex: 1;
+    }
+    .layer-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-heading);
+      margin-bottom: 0.2rem;
+    }
+    .layer-sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-bottom: 0.35rem;
+    }
+    .layer-desc {
+      font-size: 0.83rem;
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .layer-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+    .layer-tag.persistent { background: rgba(217,92,65,0.1); color: var(--accent); }
+    .layer-tag.session    { background: #ede9fe; color: #5b21b6; }
+    .layer-tag.injected   { background: #e0f2fe; color: #0369a1; }
+
+    /* Agent entry cards */
+    .agent-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1.25rem 0;
+    }
+    .agent-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .agent-card-header {
+      padding: 0.75rem 1rem;
+      font-weight: 700;
+      font-size: 0.88rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .agent-card-header.researcher { background: #f0fdf4; color: #15803d; border-bottom-color: #bbf7d0; }
+    .agent-card-header.analyst    { background: #eff6ff; color: #1d4ed8; border-bottom-color: #bfdbfe; }
+    .agent-card-header.writer     { background: #fdf4ff; color: #7e22ce; border-bottom-color: #e9d5ff; }
+    .agent-card-header.reviewer   { background: #fff7ed; color: #c2410c; border-bottom-color: #fed7aa; }
+    .agent-card-body {
+      padding: 0.85rem 1rem;
+      font-size: 0.8rem;
+      color: var(--text);
+    }
+    .agent-field {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+      line-height: 1.5;
+    }
+    .agent-field-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      min-width: 68px;
+      padding-top: 0.05rem;
+    }
+    .agent-field-value {
+      color: var(--text);
+      flex: 1;
+    }
+
+    /* Skill entries */
+    .skill-entry {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .skill-entry-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.8rem 1.1rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .skill-name {
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .skill-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+    }
+    .skill-entry-body {
+      padding: 0.85rem 1.1rem;
+      font-size: 0.83rem;
+      color: var(--text);
+    }
+    .skill-field {
+      margin-bottom: 0.5rem;
+    }
+    .skill-field-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 0.2rem;
+    }
+    .skill-field-value {
+      line-height: 1.6;
+    }
+
+    /* Budget table */
+    .budget-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin: 1rem 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .budget-table th {
+      background: var(--surface);
+      color: var(--text-heading);
+      font-weight: 700;
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      text-align: left;
+      padding: 0.65rem 0.9rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .budget-table td {
+      padding: 0.6rem 0.9rem;
+      border-bottom: 1px solid var(--hairline);
+      vertical-align: top;
+    }
+    .budget-table tr:last-child td { border-bottom: none; }
+    .budget-table tr:hover td { background: var(--surface); }
+    .budget-table .mono { font-family: var(--mono); font-size: 0.8rem; }
+
+    /* Pattern cards */
+    .pattern-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      margin: 1.25rem 0;
+    }
+    .pattern-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      background: var(--bg);
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .pattern-num {
+      min-width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .pattern-body { flex: 1; }
+    .pattern-title {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--text-heading);
+      margin-bottom: 0.3rem;
+    }
+    .pattern-desc {
+      font-size: 0.84rem;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    @media(max-width:768px){
+      .agent-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle>
+      <line x1="12" y1="12" x2="19" y2="7.5"></line>
+      <line x1="12" y1="12" x2="20.5" y2="13.5"></line>
+      <line x1="12" y1="12" x2="16" y2="20"></line>
+      <line x1="12" y1="12" x2="7" y2="19.5"></line>
+      <line x1="12" y1="12" x2="3.5" y2="13"></line>
+      <line x1="12" y1="12" x2="7" y2="5"></line>
+      <circle cx="19" cy="7.5"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="20.5" cy="13.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="16" cy="20"   r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="19.5"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="3.5" cy="13"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="5"     r="1" fill="currentColor" stroke="none"></circle>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 3 · Module 1</span>
+  <div class="topbar-right">
+    <span class="topbar-badge">Day 3 of 4</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle>
+        <span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub">
+        <a href="day3-module1-context-engineering.html" class="active">Context Engineering &amp; CLAUDE.md</a>
+        <a href="day3-module2-cicd-github.html">CI/CD &amp; GitHub Integration</a>
+        <a href="day3-module3-multi-agent.html">Multi-Agent Architecture</a>
+        <a href="day3-module4-platform.html">Enterprise AI Platform Architecture</a>
+        <a href="day3-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label" style="margin-top:1rem;">On This Page</div>
+    <div class="nav-sub" style="display:block;">
+      <a href="#context-hierarchy">Context Engineering Model</a>
+      <a href="#claude-md-design">Designing an Enterprise CLAUDE.md</a>
+      <a href="#agents-md">AGENTS.md: Multi-Agent Context</a>
+      <a href="#skill-md">SKILL.md: Reusable Behaviour Modules</a>
+      <a href="#context-optimization">Context Window Optimization</a>
+      <a href="#reusable-context">Reusable Context Design Patterns</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="content-wrap">
+
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span>Day 3</span>
+        <span class="sep">/</span>
+        <span>Context Engineering &amp; CLAUDE.md</span>
+      </nav>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="module-tag">✦ Day 3 · Module 1</div>
+        <h1 class="page-title">Context Engineering &amp; CLAUDE.md</h1>
+        <p class="page-objective">
+          <strong>Outcome:</strong> Build a complete, production-grade context layer for your team's Claude deployment — mastering CLAUDE.md, AGENTS.md, and SKILL.md design, understanding the three-layer context hierarchy, and applying optimization strategies that reduce token cost while improving output quality.
+        </p>
+        <div class="module-meta">
+          <span class="meta-item"><span class="dot"></span> Context Hierarchy</span>
+          <span class="meta-item"><span class="dot"></span> CLAUDE.md · AGENTS.md · SKILL.md</span>
+          <span class="meta-item"><span class="dot"></span> Token Optimization</span>
+          <span class="meta-item"><span class="dot"></span> Enterprise Governance</span>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — Context Hierarchy
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="context-hierarchy">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <h2 class="section-title">The Context Engineering Model</h2>
+        </div>
+
+        <p>
+          Context engineering is the discipline of deliberately shaping what Claude knows at the moment it reasons about your task. It is not prompt engineering — prompt engineering optimises a single request. Context engineering optimises the <em>environment</em> in which every request runs: the project knowledge, constraints, conventions, and tools that Claude has access to before the conversation even begins.
+        </p>
+
+        <p>
+          The distinction matters at enterprise scale. A single developer can re-explain their stack on every conversation. A team of 40 engineers cannot. Context engineering is the infrastructure answer to that problem — you encode institutional knowledge once, in the right places, and every Claude session inherits it automatically.
+        </p>
+
+        <div class="callout info">
+          <div class="callout-icon">◈</div>
+          <div class="callout-body">
+            <strong>The Context Debt Problem:</strong> Teams that skip structured context files force every developer to re-explain the same constraints, conventions, and architecture decisions on every session. This is context debt — and it compounds exactly like technical debt. The fix is the same: invest upfront, maintain it as code, pay it down before it owns you.
+          </div>
+        </div>
+
+        <h3>Three Layers of Context</h3>
+
+        <p>Every Claude Code session assembles context from three distinct layers. Understanding which layer carries which information is the foundation of effective context architecture.</p>
+
+        <div class="layer-stack">
+          <div class="layer-card">
+            <div class="layer-badge persistent"></div>
+            <div class="layer-body">
+              <div class="layer-title">Layer 1 — Persistent Context <span class="layer-tag persistent">Always Present</span></div>
+              <div class="layer-sub">~/.claude/CLAUDE.md · {project}/CLAUDE.md · {subdir}/CLAUDE.md</div>
+              <div class="layer-desc">CLAUDE.md files loaded automatically at session start. These encode durable facts: stack versions, architectural decisions, coding standards, security rules, banned patterns, and team conventions. This layer is managed like source code — versioned, reviewed, and owned.</div>
+            </div>
+          </div>
+          <div class="layer-card">
+            <div class="layer-badge session"></div>
+            <div class="layer-body">
+              <div class="layer-title">Layer 2 — Session Context <span class="layer-tag session">Conversation Lifetime</span></div>
+              <div class="layer-sub">Conversation history · /add files · Claude's own observations</div>
+              <div class="layer-desc">Everything accumulated during the current session: your messages, Claude's responses, files you've explicitly added with <code>/add</code>, and Claude's in-session observations about the codebase. This layer is ephemeral — it resets on <code>/clear</code> or session end.</div>
+            </div>
+          </div>
+          <div class="layer-card">
+            <div class="layer-badge injected"></div>
+            <div class="layer-body">
+              <div class="layer-title">Layer 3 — Injected Context <span class="layer-tag injected">Task-Specific</span></div>
+              <div class="layer-sub">RAG retrieval · Tool results · MCP server data · Search output</div>
+              <div class="layer-desc">Dynamic context injected programmatically at runtime — retrieved documentation, database query results, API responses, semantic search hits. This layer is generated fresh per task and carries the highest specificity. Requires MCP or custom tooling to populate.</div>
+            </div>
+          </div>
+        </div>
+
+        <h3>The CLAUDE.md Inheritance Hierarchy</h3>
+
+        <p>Within the persistent context layer, CLAUDE.md files form a scoped inheritance chain. Each layer narrows scope — global rules apply everywhere, project rules apply to one repo, subdirectory rules apply to one service or module. The closer the file to the current working directory, the higher its authority for scope-specific guidance.</p>
+
+        <div class="arch-diagram">
+<span class="dim">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>               <span class="label">CLAUDE.md CONTEXT HIERARCHY</span>                           <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────────────────────────┘</span>
+
+  <span class="box">~/.claude/CLAUDE.md</span>                    <span class="good">← Global layer</span>
+  <span class="dim">│  Applied to every Claude session for this user on this machine</span>
+  <span class="dim">│  Org-wide standards, personal preferences, shell conventions</span>
+  <span class="dim">│</span>
+  ├── <span class="box">{repo-root}/CLAUDE.md</span>              <span class="good">← Project layer</span>
+  <span class="dim">│      Applied whenever Claude runs inside this repository</span>
+  <span class="dim">│      Stack spec, architecture overview, test/lint/run commands</span>
+  <span class="dim">│      Security rules, PR checklist, banned patterns</span>
+  <span class="dim">│</span>
+  │   ├── <span class="box">services/payments/CLAUDE.md</span>    <span class="hi">← Subdirectory layer</span>
+  <span class="dim">│   │      Scope: payments microservice only</span>
+  <span class="dim">│   │      PCI-DSS constraints, Stripe SDK conventions,</span>
+  <span class="dim">│   │      idempotency key pattern, no logging of card data</span>
+  <span class="dim">│   │</span>
+  │   └── <span class="box">services/search/CLAUDE.md</span>     <span class="hi">← Subdirectory layer</span>
+  <span class="dim">           Scope: search microservice only</span>
+  <span class="dim">           Elasticsearch index naming, analyzer config rules,</span>
+  <span class="dim">           query DSL conventions, performance budgets</span>
+
+  <span class="dim">─────────────────────────────────────────────────────────────────</span>
+
+  <span class="label">All three layers feed into Claude's context window</span>
+  <span class="dim">before any user message is processed</span>
+
+  <span class="dim">Priority resolution: subdirectory &gt; project &gt; global</span>
+  <span class="dim">Conflict: more specific file wins for overlapping rules</span>
+        </div>
+
+        <div class="callout warning">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>Key Principle:</strong> Well-engineered persistent context eliminates the need for verbose per-request prompts. If you find developers adding the same system context to every request, that content belongs in CLAUDE.md — not in the conversation.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — Designing an Enterprise CLAUDE.md
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="claude-md-design">
+        <div class="section-label">
+          <span class="section-num">02</span>
+          <h2 class="section-title">Designing an Enterprise CLAUDE.md</h2>
+        </div>
+
+        <p>
+          The most important thing to understand about CLAUDE.md is what it is not. It is not documentation. It is not a README. It is not a style guide PDF that gets read once and forgotten. <strong>CLAUDE.md is executable context</strong> — Claude reads it before every session and acts on it. Every line you write is an instruction that will be followed. Write it like you're writing to a capable engineer joining your team on day one, not like you're writing release notes.
+        </p>
+
+        <h3>What Belongs in CLAUDE.md</h3>
+
+        <p>The test is simple: will knowing this change how Claude writes or modifies code in this project? If yes, it belongs. If no, it wastes tokens.</p>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-icon">✓</div>
+            <div class="info-card-label">Include</div>
+            <div class="info-card-value">Stack versions and dependencies. Run/test/lint/migrate commands. Directory structure and what lives where. Coding conventions. Security rules. Banned patterns and their replacements. PR checklist items.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">✗</div>
+            <div class="info-card-label">Exclude</div>
+            <div class="info-card-value">Lengthy prose Claude doesn't act on. Secrets and credentials. Content that changes daily. Business context unrelated to code generation. Explanations that only make sense to humans.</div>
+          </div>
+        </div>
+
+        <h3>Production CLAUDE.md: Python/FastAPI Microservice</h3>
+
+        <p>The following is a complete, production-quality CLAUDE.md for a Python FastAPI microservice backed by PostgreSQL. Every section earns its place.</p>
+
+        <pre class="code-block"><code># CLAUDE.md — Payments Service
+
+## Stack
+- Python 3.12 (use match/case, structural pattern matching where appropriate)
+- FastAPI 0.111 — use APIRouter, not app directly; mount routers in main.py
+- SQLAlchemy 2.0 async ORM — AsyncSession, select() DSL, NOT legacy Query API
+- PostgreSQL 16 via asyncpg driver
+- Alembic for migrations — never ALTER TABLE manually
+- Pydantic v2 for all request/response models
+- httpx for outbound HTTP (NOT requests, NOT aiohttp)
+- Redis 7 via redis-py async for caching and idempotency keys
+- pytest + pytest-asyncio for tests; coverage threshold: 85%
+
+## Commands
+```bash
+# Development
+uvicorn app.main:app --reload --port 8001
+
+# Tests
+pytest tests/ -v --cov=app --cov-report=term-missing
+
+# Lint + type check (must pass before commit)
+ruff check app/ tests/
+mypy app/ --strict
+
+# Database migrations
+alembic revision --autogenerate -m "description"
+alembic upgrade head
+
+# Rollback last migration
+alembic downgrade -1
+```
+
+## Architecture
+```
+app/
+  main.py          # FastAPI app factory, lifespan, router mounts
+  config.py        # Settings via pydantic-settings; single source of truth
+  models/          # SQLAlchemy ORM models — one file per domain entity
+  schemas/         # Pydantic request/response models — never reuse ORM models
+  routers/         # APIRouter instances — one file per resource
+  services/        # Business logic — routers call services, services call repos
+  repositories/    # DB access layer — all SQL lives here, nowhere else
+  dependencies/    # FastAPI Depends() factories (db session, auth, rate limit)
+  core/
+    security.py    # JWT encode/decode, password hashing
+    exceptions.py  # Custom HTTPException subclasses
+  tests/
+    conftest.py    # Fixtures: async_client, test_db, mock_redis
+```
+
+## Coding Conventions
+- All functions that touch I/O must be async
+- Type hints required on every function signature — no bare `Any` without comment
+- No global mutable state — use FastAPI dependency injection exclusively
+- Repository methods return domain models or None — never raise HTTP exceptions
+- Service methods raise domain exceptions — routers convert them to HTTP responses
+- Use `from __future__ import annotations` in every file
+- Dataclasses over plain dicts for internal data transfer
+- f-strings only — no % formatting, no .format()
+
+## Security Rules
+- NEVER construct SQL strings manually — use SQLAlchemy ORM or text() with bound params
+- NEVER log request bodies that may contain card data, PII, or passwords
+- NEVER hardcode secrets — all config via environment variables through config.py
+- Validate ALL external inputs with Pydantic models at the router boundary
+- Stripe webhook payloads MUST be verified with stripe.Webhook.construct_event()
+- Idempotency keys required on all POST /payments endpoints — store in Redis with 24h TTL
+- Authentication header must be validated before ANY business logic executes
+
+## Banned Patterns
+| Don't use | Use instead | Reason |
+|-----------|-------------|--------|
+| `requests.get()` | `httpx.AsyncClient` | Blocking I/O in async context |
+| `session.query(Model)` | `select(Model)` | Legacy SQLAlchemy 1.x API |
+| `os.environ["KEY"]` | `settings.key` from config.py | No central validation |
+| `print()` for logging | `structlog.get_logger()` | No structured output |
+| `time.sleep()` | `asyncio.sleep()` | Blocks event loop |
+| Bare `except:` | `except SpecificException:` | Swallows bugs |
+| `dict` for API response | Pydantic response model | No validation, no docs |
+
+## PR Checklist
+Before marking a PR ready for review, verify:
+- [ ] `ruff check` passes with zero warnings
+- [ ] `mypy --strict` passes
+- [ ] New endpoints have request + response Pydantic models
+- [ ] New DB queries are in the repository layer only
+- [ ] New migrations tested with `alembic upgrade head` + `alembic downgrade -1`
+- [ ] No secrets or PII in logs (grep for card, password, secret, token in log calls)
+- [ ] New async functions have corresponding async tests
+- [ ] Coverage remains above 85% (`pytest --cov` output attached to PR)</code></pre>
+
+        <div class="callout success">
+          <div class="callout-icon">✓</div>
+          <div class="callout-body">
+            <strong>The Banned Patterns Table is your highest-ROI section.</strong> A table of "don't use X, use Y instead" prevents entire categories of code review back-and-forth. Claude will see the table, understand the constraint, and apply the correct pattern without being asked. This is the difference between context as documentation and context as executable instruction.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — AGENTS.md
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="agents-md">
+        <div class="section-label">
+          <span class="section-num">03</span>
+          <h2 class="section-title">AGENTS.md: Multi-Agent Context</h2>
+        </div>
+
+        <p>
+          AGENTS.md is the CLAUDE.md equivalent for agentic and multi-agent workflows. Where CLAUDE.md tells Claude about your codebase, AGENTS.md tells an orchestrator agent about its worker fleet — what agents exist, what they can do, what inputs they accept, what outputs they produce, and what to do when they fail.
+        </p>
+
+        <p>
+          Without AGENTS.md, an orchestrator must either guess at worker capabilities (producing unpredictable delegation decisions) or be re-briefed on every run (wasting context). AGENTS.md makes orchestration <em>deterministic</em> — the orchestrator reads the manifest, selects the right agent for the task, and delegates with the correct input format. No guessing. No drift.
+        </p>
+
+        <h3>Agent Entry Structure</h3>
+
+        <p>Each agent entry in AGENTS.md should define the complete contract the orchestrator needs to use that agent reliably: name, purpose, input format, output format, known failure modes, and escalation path.</p>
+
+        <div class="agent-grid">
+          <div class="agent-card">
+            <div class="agent-card-header researcher">
+              <span>Researcher</span>
+            </div>
+            <div class="agent-card-body">
+              <div class="agent-field">
+                <span class="agent-field-label">Purpose</span>
+                <span class="agent-field-value">Gather information from web sources, internal docs, and databases. Does not synthesise — returns raw findings.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Input</span>
+                <span class="agent-field-value">JSON: <code>{"query": str, "sources": list[str], "depth": "shallow|deep"}</code></span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Output</span>
+                <span class="agent-field-value">Markdown list of findings, each with source URL and confidence score 0–1.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Failure</span>
+                <span class="agent-field-value">Returns <code>{"error": "NO_RESULTS"}</code> if nothing found after 3 retries.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Escalate</span>
+                <span class="agent-field-value">On NO_RESULTS, orchestrator widens query scope before retrying.</span>
+              </div>
+            </div>
+          </div>
+          <div class="agent-card">
+            <div class="agent-card-header analyst">
+              <span>Analyst</span>
+            </div>
+            <div class="agent-card-body">
+              <div class="agent-field">
+                <span class="agent-field-label">Purpose</span>
+                <span class="agent-field-value">Synthesise research findings into structured analysis. Identifies patterns, contradictions, and key insights.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Input</span>
+                <span class="agent-field-value">Researcher output (markdown findings list) + JSON analysis brief with required dimensions.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Output</span>
+                <span class="agent-field-value">Structured JSON: <code>{"insights": list, "gaps": list, "confidence": float}</code></span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Failure</span>
+                <span class="agent-field-value">Returns <code>{"error": "INSUFFICIENT_DATA", "missing": list}</code> if confidence &lt; 0.4.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Escalate</span>
+                <span class="agent-field-value">Orchestrator triggers another Researcher pass targeting the missing data points.</span>
+              </div>
+            </div>
+          </div>
+          <div class="agent-card">
+            <div class="agent-card-header writer">
+              <span>Writer</span>
+            </div>
+            <div class="agent-card-body">
+              <div class="agent-field">
+                <span class="agent-field-label">Purpose</span>
+                <span class="agent-field-value">Convert structured analysis into polished prose for the specified output format and audience.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Input</span>
+                <span class="agent-field-value">Analyst JSON output + format spec: <code>{"format": "report|brief|slide", "audience": str, "length": str}</code></span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Output</span>
+                <span class="agent-field-value">Markdown document. Always includes an executive summary section, regardless of format.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Failure</span>
+                <span class="agent-field-value">Returns partial output with <code>&lt;!-- DRAFT --&gt;</code> marker if analyst input is ambiguous.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Escalate</span>
+                <span class="agent-field-value">On DRAFT output, orchestrator sends back to Analyst with clarification request.</span>
+              </div>
+            </div>
+          </div>
+          <div class="agent-card">
+            <div class="agent-card-header reviewer">
+              <span>Reviewer</span>
+            </div>
+            <div class="agent-card-body">
+              <div class="agent-field">
+                <span class="agent-field-label">Purpose</span>
+                <span class="agent-field-value">Validate factual accuracy, flag unsupported claims, check tone and format compliance.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Input</span>
+                <span class="agent-field-value">Writer output (markdown) + original research findings for fact-checking reference.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Output</span>
+                <span class="agent-field-value">JSON: <code>{"approved": bool, "issues": list[{type, location, description}], "score": float}</code></span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Failure</span>
+                <span class="agent-field-value">Returns <code>{"approved": false, "issues": [...]}</code> — never silently passes flawed content.</span>
+              </div>
+              <div class="agent-field">
+                <span class="agent-field-label">Escalate</span>
+                <span class="agent-field-value">Score &lt; 0.6: re-route to Writer with issue list. Score &lt; 0.3: escalate to human review.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3>Complete AGENTS.md Example</h3>
+
+        <pre class="code-block"><code># AGENTS.md — Research Intelligence System
+
+## Overview
+4-agent pipeline: Researcher → Analyst → Writer → Reviewer
+Orchestrated by Claude with this file as the agent fleet manifest.
+Never delegate to an agent with input that doesn't match its expected format.
+
+## Communication Protocol
+- All inter-agent messages: JSON encoded
+- All errors: {"error": "ERROR_CODE", "detail": str, "retryable": bool}
+- Max retries per agent: 3
+- Timeout per agent call: 120 seconds
+- After 3 failures: mark pipeline as FAILED, return partial results to caller
+
+## Agents
+
+### Researcher
+Purpose: Gather raw information. Does not interpret or synthesise.
+Input:
+  query: str          # The information need
+  sources: list[str]  # Allowed: ["web", "internal_docs", "database"]
+  depth: str          # "shallow" (top 5 results) | "deep" (top 20 + follow links)
+Output: Markdown list. Each item: "- [SOURCE] Finding text (confidence: 0.0–1.0)"
+Failure codes:
+  NO_RESULTS     — nothing found; retryable with broader query
+  SOURCE_ERROR   — source unavailable; retryable with different source
+  TIMEOUT        — exceeded 120s; retryable
+Escalation: If NO_RESULTS after 3 retries, orchestrator broadens query or adds sources.
+
+### Analyst
+Purpose: Synthesise Researcher output into structured insights.
+Input: researcher_output: str + analysis_brief: {dimensions: list[str], depth: str}
+Output: {insights: list[str], contradictions: list[str], gaps: list[str], confidence: float}
+Failure codes:
+  INSUFFICIENT_DATA  — confidence < 0.4; not retryable without more research
+  AMBIGUOUS_INPUT    — researcher output malformed; escalate immediately
+Escalation: On INSUFFICIENT_DATA, return missing list to orchestrator for targeted re-research.
+
+### Writer
+Purpose: Convert structured analysis to polished prose.
+Input: analyst_output: dict + format_spec: {format: str, audience: str, length: str}
+Supported formats: "executive_report" | "technical_brief" | "slide_deck_outline"
+Output: Markdown document. Always starts with "## Executive Summary" section.
+Failure codes:
+  INSUFFICIENT_ANALYSIS  — analyst output missing required dimensions
+  FORMAT_UNKNOWN         — unrecognised format spec; escalate to orchestrator
+Escalation: On INSUFFICIENT_ANALYSIS, return to Analyst with missing_dimensions list.
+
+### Reviewer
+Purpose: Gate output quality before delivery.
+Input: writer_output: str + source_findings: str (original Researcher output for fact-check)
+Output: {approved: bool, score: float, issues: list[{type, location, severity, description}]}
+Issue types: "factual_error" | "unsupported_claim" | "tone_mismatch" | "format_violation"
+Thresholds:
+  score >= 0.8: approved: true, deliver to caller
+  score 0.6–0.8: approved: false, return to Writer with issue list
+  score < 0.6: approved: false, escalate to human review queue
+Failure codes:
+  REVIEW_TIMEOUT  — retryable once; if second timeout, approve with "REVIEW_SKIPPED" flag
+
+## Orchestration Rules
+1. Always run Researcher before Analyst — Analyst cannot operate without findings
+2. Analyst must reach confidence >= 0.4 before Writer is invoked
+3. Writer output always goes through Reviewer — no exceptions
+4. If the pipeline fails after all retries, return {"status": "FAILED", "partial": {...}}
+5. Human escalation queue: POST /api/human-review with payload and pipeline_id</code></pre>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — SKILL.md
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="skill-md">
+        <div class="section-label">
+          <span class="section-num">04</span>
+          <h2 class="section-title">SKILL.md: Reusable Behaviour Modules</h2>
+        </div>
+
+        <p>
+          SKILL.md defines reusable, composable behaviours that Claude can load on demand. Think of skills as a library of expert modes — Claude loads the relevant skill for the current task and operates with the specialised knowledge and constraints that skill defines. Without skills, developers either write verbose per-request instructions or rely on Claude's general behaviour, which is less precise.
+        </p>
+
+        <p>
+          The enterprise model is to maintain a shared <code>skills/</code> directory in your team's configuration repository, treat skills like shared libraries, and reference them from project CLAUDE.md files. A skill is loaded via <code>/load skills/sql-reviewer.md</code> in Claude Code, or referenced in your CLAUDE.md with an include directive.
+        </p>
+
+        <h3>Skill Design Principles</h3>
+
+        <p>Each skill has four mandatory components: a name (machine-readable), trigger conditions (when to activate this skill), behaviour instructions (what Claude does differently in this mode), and an output format (what the response looks like). Anything beyond these four is optional decoration.</p>
+
+        <div class="skill-entry">
+          <div class="skill-entry-header">
+            <span class="skill-name">sql-reviewer</span>
+            <span class="skill-label">Security &amp; Performance</span>
+          </div>
+          <div class="skill-entry-body">
+            <div class="skill-field">
+              <div class="skill-field-label">Trigger Conditions</div>
+              <div class="skill-field-value">Activated when reviewing SQL queries, SQLAlchemy ORM code, database migrations, or any code that constructs or executes queries. Also triggered by: "review this query", "check this migration", "is this safe?".</div>
+            </div>
+            <div class="skill-field">
+              <div class="skill-field-label">Behaviour Instructions</div>
+              <div class="skill-field-value">
+                Check for: (1) SQL injection vectors — string concatenation into queries, unparameterised user input; (2) missing index usage — queries on unindexed columns in large tables; (3) N+1 patterns — loops containing queries; (4) transaction scope — mutations outside explicit transactions; (5) lock contention — SELECT FOR UPDATE on high-traffic tables; (6) migration safety — column additions with NOT NULL but no DEFAULT on populated tables.
+              </div>
+            </div>
+            <div class="skill-field">
+              <div class="skill-field-label">Output Format</div>
+              <div class="skill-field-value">
+                Structured report: CRITICAL issues first (stop PR), then WARNINGS (should fix), then NOTES (consider). Each issue: location, description, severity, remediation code snippet. End with: "APPROVED" | "APPROVED WITH WARNINGS" | "BLOCKED: [reasons]".
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="skill-entry">
+          <div class="skill-entry-header">
+            <span class="skill-name">api-designer</span>
+            <span class="skill-label">Design &amp; Standards</span>
+          </div>
+          <div class="skill-entry-body">
+            <div class="skill-field">
+              <div class="skill-field-label">Trigger Conditions</div>
+              <div class="skill-field-value">Activated when designing new API endpoints, reviewing endpoint signatures, writing OpenAPI specs, or evaluating REST contract decisions.</div>
+            </div>
+            <div class="skill-field">
+              <div class="skill-field-label">Behaviour Instructions</div>
+              <div class="skill-field-value">
+                Apply: (1) RESTful resource naming — plural nouns, no verbs in paths; (2) HTTP verb semantics — GET idempotent/safe, POST non-idempotent, PUT/PATCH for updates; (3) status code precision — 201 for created, 202 for accepted async, 204 for no-body success, 409 for conflict; (4) versioning strategy — URL path versioning /v1/ preferred; (5) pagination — cursor-based for large collections; (6) error envelope — always <code>{"error": {"code": str, "message": str, "details": []}}</code>; (7) idempotency key header on all mutation endpoints.
+              </div>
+            </div>
+            <div class="skill-field">
+              <div class="skill-field-label">Output Format</div>
+              <div class="skill-field-value">OpenAPI 3.1 YAML snippet for the endpoint(s), followed by a "Design Decisions" section explaining any non-obvious choices and alternatives considered.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="skill-entry">
+          <div class="skill-entry-header">
+            <span class="skill-name">security-auditor</span>
+            <span class="skill-label">Security Review</span>
+          </div>
+          <div class="skill-entry-body">
+            <div class="skill-field">
+              <div class="skill-field-label">Trigger Conditions</div>
+              <div class="skill-field-value">Activated for security review requests, code handling authentication/authorisation, input validation, file upload handling, external HTTP calls, or any code touching credentials, sessions, or cryptography.</div>
+            </div>
+            <div class="skill-field">
+              <div class="skill-field-label">Behaviour Instructions</div>
+              <div class="skill-field-value">
+                Evaluate against OWASP Top 10 + these project-specific checks: (1) SSRF — validate and restrict URLs in user-controlled outbound requests; (2) Path traversal — validate file paths against allowed prefixes; (3) JWT — verify algorithm is RS256/ES256, check expiry, validate audience claim; (4) Rate limiting — confirm auth endpoints have per-IP limits; (5) Secrets — grep for hardcoded keys, tokens, passwords in diff; (6) Dependency confusion — check import paths for typosquatting risk; (7) Logging PII — confirm no sensitive fields appear in log statements.
+              </div>
+            </div>
+            <div class="skill-field">
+              <div class="skill-field-label">Output Format</div>
+              <div class="skill-field-value">CVSS-style severity rating (Critical/High/Medium/Low/Informational) per finding. Each finding: description, attack scenario, line reference, remediation. Final summary table with finding count per severity. Conclude with overall risk posture: ACCEPTABLE | NEEDS REMEDIATION | BLOCKED.</div>
+            </div>
+          </div>
+        </div>
+
+        <h3>Complete SKILL.md File</h3>
+
+        <pre class="code-block"><code># SKILL.md — Engineering Platform Team
+
+## How to Use Skills
+Load a skill with: /load skills/{skill-name}.md
+Reference in CLAUDE.md: `@include skills/sql-reviewer.md` (auto-loads for this project)
+Skills stack — loading multiple skills applies all constraints simultaneously.
+
+---
+
+## Skill: sql-reviewer
+Trigger: SQL queries, ORM code, Alembic migrations, "review this query"
+Behaviour:
+  - Check injection vectors: string concat, f-string interpolation into query text
+  - Check N+1: queries inside loops or list comprehensions
+  - Check index coverage: WHERE clauses on unindexed columns (reference schema.md)
+  - Check migration safety: NOT NULL columns added to non-empty tables need DEFAULT
+  - Check transaction scope: mutations need explicit session.commit() or async with
+Output format:
+  ## SQL Review
+  ### CRITICAL (block PR)
+  - [file:line] Description → Remediation
+  ### WARNING (should fix)
+  - [file:line] Description → Remediation
+  ### APPROVED / BLOCKED: reason
+
+---
+
+## Skill: api-designer
+Trigger: New endpoints, OpenAPI spec work, REST contract review
+Behaviour:
+  - Enforce plural noun resource paths, no verbs
+  - Validate HTTP verb semantics per RFC 9110
+  - Require idempotency-key header on POST /payments, POST /orders
+  - Cursor-based pagination for collections > 100 items
+  - Error envelope: {"error": {"code": str, "message": str, "details": []}}
+  - 202 Accepted + Location header for async operations
+Output format:
+  OpenAPI 3.1 YAML snippet + Design Decisions section
+
+---
+
+## Skill: security-auditor
+Trigger: Auth code, file handling, outbound HTTP, crypto, secrets, "security review"
+Behaviour:
+  - OWASP Top 10 checklist
+  - SSRF: validate outbound URLs against allowlist in config.py
+  - JWT: RS256/ES256 only; verify exp, aud, iss claims
+  - Secrets scan: grep diff for key/token/password/secret patterns
+  - PII logging: flag any log statement containing email, name, card, ssn
+  - Rate limiting: auth endpoints must reference RateLimiter dependency
+Output format:
+  Per finding: Severity | Description | Attack Scenario | Line | Remediation
+  Summary table: finding count per severity
+  Final verdict: ACCEPTABLE | NEEDS REMEDIATION | BLOCKED
+
+---
+
+## Skill: documentation-writer
+Trigger: "write docs", "document this", "add docstrings", "update README"
+Behaviour:
+  - Google-style Python docstrings (Args, Returns, Raises, Example)
+  - Every public function/class gets a docstring — no exceptions
+  - API docs: include request example + response example in JSON
+  - README: Problem → Installation → Quick Start → Configuration → Contributing
+  - No filler phrases ("This function...", "This method...") — start with the verb
+Output format:
+  Inline docstrings inserted into the provided code, or Markdown document.
+  Always include at least one working code example per documented unit.</code></pre>
+
+        <div class="callout info">
+          <div class="callout-icon">◈</div>
+          <div class="callout-body">
+            <strong>Enterprise Skill Governance:</strong> Treat the <code>skills/</code> directory like a shared library — it lives in a central config repo, it has owners, changes go through PR review, and breaking changes require a deprecation cycle. Individual teams <em>reference</em> org skills; they don't fork them. This keeps expert context consistent across all teams and repositories.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 5 — Context Window Optimization
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="context-optimization">
+        <div class="section-label">
+          <span class="section-num">05</span>
+          <h2 class="section-title">Context Window Optimization</h2>
+        </div>
+
+        <p>
+          Claude's 200K context window is large — but not free. Every token you consume costs money, adds latency, and potentially dilutes the signal-to-noise ratio of your session. The goal of context optimization is not to minimise tokens at all costs; it is to maximise the quality-per-token ratio. Stale, redundant, or poorly structured context is more expensive than a well-maintained 5K CLAUDE.md that covers the same ground.
+        </p>
+
+        <h3>Four Optimization Strategies</h3>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-icon">1</div>
+            <div class="info-card-label">CLAUDE.md Replaces System Prompts</div>
+            <div class="info-card-value">Every constraint in your CLAUDE.md eliminates one piece of per-request context. A well-maintained CLAUDE.md is a 0-token investment at request time — it is already in the persistent layer.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">2</div>
+            <div class="info-card-label">Surgical /add</div>
+            <div class="info-card-value">Only add files directly relevant to the current task. Adding the entire <code>services/</code> directory when you're fixing one endpoint is expensive and counterproductive — Claude will spread its attention across irrelevant files.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">3</div>
+            <div class="info-card-label">Clear on Drift</div>
+            <div class="info-card-value"><code>/clear</code> when the session has accumulated noise from debugging detours, cancelled approaches, or topic switches. Starting fresh is cheaper and more effective than trying to correct accumulated session drift.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">4</div>
+            <div class="info-card-label">Structure Over Prose</div>
+            <div class="info-card-value">Bullet lists, tables, and code blocks in CLAUDE.md convey the same information as prose in roughly 40–60% fewer tokens. Structured content is also parsed more reliably — Claude extracts constraints from lists more accurately than from paragraphs.</div>
+          </div>
+        </div>
+
+        <h3>Token Budget Estimation</h3>
+
+        <p>Before scaling a workflow to many developers or high frequency, estimate the session cost. The following snippet uses <code>tiktoken</code> to calculate token counts for your context files and a representative session.</p>
+
+        <pre class="code-block"><code>"""
+context_budget.py — Estimate Claude session token cost
+
+Usage:
+  python context_budget.py --claude-md CLAUDE.md --session-log session.txt
+"""
+import tiktoken
+import argparse
+import pathlib
+
+# Claude uses cl100k_base tokenizer (same as GPT-4 family)
+# For precise counts, use Anthropic's token counting API endpoint
+ENC = tiktoken.get_encoding("cl100k_base")
+
+# Claude 3.5 Sonnet pricing (as of 2025-Q2)
+INPUT_COST_PER_MTK  = 3.00   # USD per million input tokens
+OUTPUT_COST_PER_MTK = 15.00  # USD per million output tokens
+
+
+def count_tokens(text: str) -> int:
+    return len(ENC.encode(text))
+
+
+def estimate_session(
+    claude_md_path: pathlib.Path,
+    session_log_path: pathlib.Path | None = None,
+    avg_output_tokens: int = 800,
+    sessions_per_day: int = 50,
+) -> dict:
+    claude_md_tokens = count_tokens(claude_md_path.read_text())
+
+    session_tokens = 0
+    if session_log_path and session_log_path.exists():
+        session_tokens = count_tokens(session_log_path.read_text())
+
+    # Total input = persistent context + session accumulation
+    total_input = claude_md_tokens + session_tokens
+    total_output = avg_output_tokens
+
+    cost_per_session = (
+        (total_input  / 1_000_000) * INPUT_COST_PER_MTK +
+        (total_output / 1_000_000) * OUTPUT_COST_PER_MTK
+    )
+    daily_cost = cost_per_session * sessions_per_day
+    monthly_cost = daily_cost * 22  # working days
+
+    return {
+        "claude_md_tokens":   claude_md_tokens,
+        "session_tokens":     session_tokens,
+        "total_input_tokens": total_input,
+        "output_tokens":      total_output,
+        "cost_per_session":   f"${cost_per_session:.4f}",
+        "daily_cost":         f"${daily_cost:.2f}",
+        "monthly_cost":       f"${monthly_cost:.2f}",
+        "optimization_tip": (
+            "CLAUDE.md exceeds 3K tokens — consider splitting "
+            "subsections into subdirectory CLAUDE.md files."
+        ) if claude_md_tokens > 3000 else "Token budget looks healthy.",
+    }
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--claude-md", type=pathlib.Path, default="CLAUDE.md")
+    parser.add_argument("--session-log", type=pathlib.Path, default=None)
+    parser.add_argument("--sessions-per-day", type=int, default=50)
+    args = parser.parse_args()
+
+    result = estimate_session(
+        args.claude_md,
+        args.session_log,
+        sessions_per_day=args.sessions_per_day,
+    )
+    for k, v in result.items():
+        print(f"{k:25s}: {v}")</code></pre>
+
+        <h3>Token Budget Reference</h3>
+
+        <div class="budget-table">
+          <table class="budget-table">
+            <thead>
+              <tr>
+                <th>Content Type</th>
+                <th>Typical Token Range</th>
+                <th>Optimization Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Global CLAUDE.md</td>
+                <td class="mono">500 – 1,500</td>
+                <td>Org-wide only; delegate specifics to project layer</td>
+              </tr>
+              <tr>
+                <td>Project CLAUDE.md</td>
+                <td class="mono">1,000 – 4,000</td>
+                <td>Split into subdirectory files if &gt; 4K</td>
+              </tr>
+              <tr>
+                <td>AGENTS.md</td>
+                <td class="mono">1,500 – 5,000</td>
+                <td>One file per pipeline; don't consolidate unrelated systems</td>
+              </tr>
+              <tr>
+                <td>Single SKILL.md</td>
+                <td class="mono">200 – 800</td>
+                <td>Load only skills relevant to current task</td>
+              </tr>
+              <tr>
+                <td>Source file (/add)</td>
+                <td class="mono">300 – 3,000</td>
+                <td>Add the specific file, not the entire directory</td>
+              </tr>
+              <tr>
+                <td>Conversation history</td>
+                <td class="mono">Grows unbounded</td>
+                <td>/clear when switching tasks or after failed approaches</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout warning">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>The Context Freshness Problem:</strong> Stale context is worse than no context. Claude will confidently apply outdated information — an old database schema, a deprecated API version, a convention your team abandoned three sprints ago — as if it were current. CLAUDE.md files are code: they need to be updated when the system changes, not when the next developer is confused by Claude's behaviour.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 6 — Reusable Context Design Patterns
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="reusable-context">
+        <div class="section-label">
+          <span class="section-num">06</span>
+          <h2 class="section-title">Reusable Context Design Patterns</h2>
+        </div>
+
+        <p>
+          Context files written ad-hoc for a single project are an improvement over no context. But the real productivity multiplier comes from treating context as a designed, reusable system — patterns and templates that new projects inherit, conventions that are enforced organisation-wide, and a governance model that keeps context accurate and authoritative.
+        </p>
+
+        <div class="pattern-list">
+          <div class="pattern-card">
+            <div class="pattern-num">1</div>
+            <div class="pattern-body">
+              <div class="pattern-title">The Stack Config Pattern</div>
+              <div class="pattern-desc">One CLAUDE.md per microservice (stack-specific, deployment-specific, service-specific security rules) backed by a shared root CLAUDE.md for org-wide invariants. The root file is the single source of truth for organisation standards; service files inherit it and extend without repeating. Teams pull the root file from the central config repo — they don't write org rules locally.</div>
+            </div>
+          </div>
+          <div class="pattern-card">
+            <div class="pattern-num">2</div>
+            <div class="pattern-body">
+              <div class="pattern-title">The Environment Switcher</div>
+              <div class="pattern-desc">Use conditional blocks in CLAUDE.md to differentiate behaviour by environment. For example: in dev, Claude can suggest <code>DROP TABLE</code> with a safety comment; in prod scripts, any destructive SQL is an automatic BLOCKED finding. Include environment detection instructions so Claude knows which block applies to the current context.</div>
+            </div>
+          </div>
+          <div class="pattern-card">
+            <div class="pattern-num">3</div>
+            <div class="pattern-body">
+              <div class="pattern-title">The Security Layer</div>
+              <div class="pattern-desc">Maintain security rules in a dedicated <code>.claude/security.md</code> file, included by reference in each project CLAUDE.md. This separation means the security team owns and reviews security context independently of application teams. When a security rule changes (new OWASP guidance, new compliance requirement), it changes in one place and propagates to all projects on next sync.</div>
+            </div>
+          </div>
+          <div class="pattern-card">
+            <div class="pattern-num">4</div>
+            <div class="pattern-body">
+              <div class="pattern-title">The Onboarding Template</div>
+              <div class="pattern-desc">A CLAUDE.md template that new projects clone from the organisation's scaffold repo. The template ships with the full structure pre-populated — Stack, Commands, Architecture, Conventions, Security, Banned Patterns, PR Checklist — with placeholder content teams replace on day one. This means every new service starts with correct context architecture, not a blank file.</div>
+            </div>
+          </div>
+        </div>
+
+        <h3>Enterprise Claude Context Repository Structure</h3>
+
+        <p>At scale, context files warrant their own repository — a single source of truth for all Claude configuration across the organisation.</p>
+
+        <div class="arch-diagram">
+<span class="dim">claude-context/                   </span><span class="label">← central config repo (e.g. github.com/acme/claude-context)</span>
+<span class="dim">├── </span><span class="box">CLAUDE.md</span><span class="dim">                    </span><span class="good">← org-wide root; applies globally</span>
+<span class="dim">│</span>
+<span class="dim">├── </span><span class="hi">skills/</span><span class="dim">                      </span><span class="good">← shared skill library</span>
+<span class="dim">│   ├── </span><span class="box">sql-reviewer.md</span>
+<span class="dim">│   ├── </span><span class="box">api-designer.md</span>
+<span class="dim">│   ├── </span><span class="box">security-auditor.md</span>
+<span class="dim">│   ├── </span><span class="box">documentation-writer.md</span>
+<span class="dim">│   └── </span><span class="box">migration-planner.md</span>
+<span class="dim">│</span>
+<span class="dim">├── </span><span class="hi">security/</span><span class="dim">                    </span><span class="good">← security team owns these</span>
+<span class="dim">│   ├── </span><span class="box">owasp-rules.md</span>
+<span class="dim">│   ├── </span><span class="box">pci-dss-constraints.md</span>
+<span class="dim">│   └── </span><span class="box">soc2-coding-rules.md</span>
+<span class="dim">│</span>
+<span class="dim">├── </span><span class="hi">templates/</span><span class="dim">                   </span><span class="good">← scaffold CLAUDE.md per stack</span>
+<span class="dim">│   ├── </span><span class="box">python-fastapi.md</span>
+<span class="dim">│   ├── </span><span class="box">node-express.md</span>
+<span class="dim">│   ├── </span><span class="box">go-gin.md</span>
+<span class="dim">│   └── </span><span class="box">react-nextjs.md</span>
+<span class="dim">│</span>
+<span class="dim">├── </span><span class="hi">agents/</span><span class="dim">                      </span><span class="good">← agent fleet manifests</span>
+<span class="dim">│   ├── </span><span class="box">research-pipeline.md</span>
+<span class="dim">│   ├── </span><span class="box">code-review-pipeline.md</span>
+<span class="dim">│   └── </span><span class="box">incident-response-pipeline.md</span>
+<span class="dim">│</span>
+<span class="dim">├── </span><span class="hi">environments/</span><span class="dim">                </span><span class="good">← environment-specific overrides</span>
+<span class="dim">│   ├── </span><span class="box">dev.md</span>
+<span class="dim">│   ├── </span><span class="box">staging.md</span>
+<span class="dim">│   └── </span><span class="box">prod.md</span>
+<span class="dim">│</span>
+<span class="dim">└── </span><span class="hi">scripts/</span>
+<span class="dim">    ├── </span><span class="box">sync-to-project.sh</span><span class="dim">       </span><span class="label">← copies template to a new repo</span>
+<span class="dim">    └── </span><span class="box">validate-context.py</span><span class="dim">      </span><span class="label">← lints CLAUDE.md for required sections</span>
+        </div>
+
+        <h3>Context Governance Model</h3>
+
+        <p>CLAUDE.md files are source code. They require the same governance controls as application code — and the consequences of ignoring this are equally serious.</p>
+
+        <pre class="code-block"><code># Context Governance Policy — Acme Engineering
+
+## Ownership
+- org-root CLAUDE.md: owned by Platform Engineering (platform-eng@acme.com)
+- skills/security/*.md: owned by Security Team (appsec@acme.com)
+- skills/*.md: owned by Platform Engineering with contributions from any team
+- templates/*.md: owned by Platform Engineering, reviewed quarterly
+- services/{name}/CLAUDE.md: owned by service team, reviewed on major changes
+
+## Change Process
+1. All changes to shared context (root, skills, security) require:
+   - PR with description of why the constraint/convention is changing
+   - Review from file owner (CODEOWNERS enforced)
+   - Testing: run validate-context.py on changed files
+   - Communication: changelog entry + #eng-platform Slack notification
+
+2. Service CLAUDE.md changes:
+   - PR review by at least one team member
+   - Validate: does it still include @include ../../security/owasp-rules.md ?
+   - Validate: does it still include all required sections from the template?
+
+## Validation (CI enforced)
+# .github/workflows/validate-context.yml
+# Runs on every PR that touches any *.md in claude-context/
+
+python scripts/validate-context.py --file $CHANGED_FILE --schema schemas/claude-md.json
+
+# Schema checks:
+# - Required sections present: Stack, Commands, Security Rules, Banned Patterns
+# - No hardcoded secrets (regex scan)
+# - Security include present: @include ../../security/owasp-rules.md
+# - Token count within budget: warn if > 4000 tokens
+
+## Deprecation
+When removing a constraint or convention:
+1. Add deprecation comment: "# DEPRECATED: removing in 2025-Q3, replaced by X"
+2. Keep for one quarter with the deprecation notice
+3. Remove in the following quarter, with migration guide in PR description</code></pre>
+
+        <div class="callout success">
+          <div class="callout-icon">✓</div>
+          <div class="callout-body">
+            <strong>The Central Config Repo is your force multiplier.</strong> Once you have a well-governed <code>claude-context/</code> repository, onboarding a new microservice takes minutes: clone the appropriate template, fill in the service-specific sections, and every developer working on that service immediately gets org-standard context. The ROI on this infrastructure investment compounds with every new service, every new developer, and every new Claude session.
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Page Navigation -->
+      <div class="page-nav">
+        <a href="day2-labs.html">← Day 2 · Labs</a>
+        <a href="day3-module2-cicd-github.html" class="nav-next">Day 3 · Module 2: CI/CD &amp; GitHub Integration →</a>
+      </div>
+
+    </div><!-- .content-wrap -->
+
+    <aside class="toc">
+      <div class="toc-inner">
+        <div class="toc-label">On This Page</div>
+        <a href="#context-hierarchy">Context Engineering Model</a>
+        <a href="#claude-md-design">Designing an Enterprise CLAUDE.md</a>
+        <a href="#agents-md">AGENTS.md: Multi-Agent Context</a>
+        <a href="#skill-md">SKILL.md: Reusable Behaviour Modules</a>
+        <a href="#context-optimization">Context Window Optimization</a>
+        <a href="#reusable-context">Reusable Context Design Patterns</a>
+      </div>
+    </aside>
+
+  </main>
+</div>
+
+<script src="assets/js/brand-theme.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

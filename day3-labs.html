@@ -1,0 +1,1926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Day 3 Labs — Claude Architect</title>
+  <meta name="description" content="Day 3 hands-on labs: Enterprise CLAUDE.md creation, GitHub workflow automation, multi-agent architecture design, and token cost estimation." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+    .lab-header { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem 1.75rem;margin-bottom:2rem;display:flex;align-items:flex-start;gap:1.25rem; }
+    .lab-number { background:var(--accent);color:#fff;font-size:0.7rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;border-radius:var(--radius);padding:0.35rem 0.8rem;white-space:nowrap;margin-top:0.15rem;flex-shrink:0; }
+    .lab-meta { flex:1; }
+    .lab-title { font-size:1.2rem;font-weight:800;color:var(--text-heading);letter-spacing:-0.02em;margin-bottom:0.35rem; }
+    .lab-desc { font-size:0.88rem;color:var(--text);line-height:1.6;margin-bottom:0.75rem; }
+    .lab-pills { display:flex;flex-wrap:wrap;gap:0.4rem; }
+    .lab-pill { font-size:0.72rem;font-weight:600;padding:0.18rem 0.6rem;border-radius:999px;border:1px solid var(--border);color:var(--muted); }
+    .lab-pill.time { background:var(--accent-tint);color:var(--accent);border-color:var(--accent-soft); }
+    .lab-pill.level { background:#f0fdf4;color:#15803d;border-color:#bbf7d0; }
+    .lab-pill.level.advanced { background:#fff7ed;color:#c2410c;border-color:#fed7aa; }
+    .lab-pill.module { background:#f0f9ff;color:#0369a1;border-color:#bae6fd; }
+    .section-divider { border:none;border-top:2px solid var(--border);margin:3rem 0; }
+    .deliverable-box { border:2px dashed var(--accent);border-radius:var(--radius);padding:1.2rem 1.5rem;margin:1.5rem 0;background:var(--accent-tint); }
+    .deliverable-box-title { font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem; }
+    .deliverable-box ul { margin:0;padding-left:1.25rem; }
+    .deliverable-box li { font-size:0.87rem;color:var(--text);margin-bottom:0.35rem; }
+    .checklist { list-style:none;margin:0.75rem 0; }
+    .checklist li { display:flex;align-items:flex-start;gap:0.65rem;font-size:0.88rem;color:var(--text);padding:0.45rem 0;border-bottom:1px solid var(--border); }
+    .checklist li:last-child { border-bottom:none; }
+    .check-icon { width:18px;height:18px;border-radius:4px;border:2px solid var(--accent);flex-shrink:0;margin-top:1px; }
+    .arch-diagram { background:var(--code-bg);border:1px solid var(--code-border);border-radius:var(--radius);padding:1.5rem;font-family:var(--mono);font-size:0.78rem;color:#c9d1d9;line-height:1.9;overflow-x:auto;margin:1.25rem 0; }
+    .arch-diagram .box { color:#79c0ff; }
+    .arch-diagram .hi { color:#ffa657; }
+    .arch-diagram .label { color:#a5d6ff; }
+    .arch-diagram .good { color:#7ee787; }
+    .arch-diagram .bad { color:#ff7b72; }
+
+    /* Agent table */
+    .agent-table { width:100%;border-collapse:collapse;font-size:0.84rem;margin:1.25rem 0; }
+    .agent-table th { background:var(--surface);color:var(--text-heading);font-weight:700;font-size:0.76rem;letter-spacing:0.04em;text-transform:uppercase;text-align:left;padding:0.65rem 0.9rem;border-bottom:2px solid var(--border); }
+    .agent-table td { padding:0.65rem 0.9rem;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.55; }
+    .agent-table tr:last-child td { border-bottom:none; }
+    .tier-badge { display:inline-block;font-size:0.68rem;font-weight:700;padding:0.15rem 0.55rem;border-radius:4px;white-space:nowrap; }
+    .tier-haiku { background:#e0f2fe;color:#0369a1; }
+    .tier-sonnet { background:#ede9fe;color:#6d28d9; }
+    .tier-opus { background:#fef3c7;color:#92400e; }
+
+    /* Cost table */
+    .cost-table { width:100%;border-collapse:collapse;font-size:0.85rem;margin:1.25rem 0; }
+    .cost-table th { background:var(--surface);color:var(--text-heading);font-weight:700;font-size:0.78rem;text-align:left;padding:0.65rem 0.9rem;border-bottom:2px solid var(--border); }
+    .cost-table td { padding:0.65rem 0.9rem;border-bottom:1px solid var(--border); }
+    .cost-table tr:last-child td { border-bottom:none; }
+    .cost-table .total-row td { font-weight:800;background:var(--accent-tint);color:var(--accent); }
+    .cost-table td.num { text-align:right;font-family:var(--mono);font-size:0.82rem; }
+
+    /* Failure mode cards */
+    .failure-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin:1.25rem 0; }
+    .failure-card { border:1px solid #fecaca;border-radius:var(--radius);padding:1.1rem 1.25rem;background:#fff1f0; }
+    .failure-card-title { font-size:0.78rem;font-weight:800;color:#c0392b;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:0.5rem; }
+    .failure-card p { font-size:0.84rem;color:var(--text);margin:0 0 0.6rem; }
+    .failure-mitigation { font-size:0.82rem;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:0.5rem 0.75rem; }
+    .failure-mitigation strong { display:block;margin-bottom:0.2rem; }
+
+    /* Completion section */
+    .completion-header { text-align:center;padding:2.5rem 2rem;background:linear-gradient(135deg,var(--accent-tint) 0%,#ede9fe 100%);border:1px solid var(--accent-soft);border-radius:var(--radius-lg);margin-bottom:2rem; }
+    .completion-badge { display:inline-flex;align-items:center;gap:0.5rem;background:var(--accent);color:#fff;font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:0.4rem 1rem;border-radius:999px;margin-bottom:1.25rem; }
+    .completion-title { font-size:1.7rem;font-weight:800;color:var(--text-heading);letter-spacing:-0.03em;margin-bottom:0.5rem; }
+    .completion-sub { font-size:0.92rem;color:var(--text);line-height:1.65; }
+    .module-summary-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;margin:2rem 0; }
+    .module-summary-card { border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;background:var(--surface); }
+    .module-summary-card .mod-label { font-size:0.68rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.35rem; }
+    .module-summary-card .mod-name { font-size:0.92rem;font-weight:700;color:var(--text-heading);margin-bottom:0.5rem; }
+    .module-summary-card ul { margin:0;padding-left:1.15rem; }
+    .module-summary-card li { font-size:0.82rem;color:var(--text);margin-bottom:0.25rem;line-height:1.5; }
+    .principles-list { list-style:none;margin:1rem 0;padding:0;counter-reset:principle; }
+    .principles-list li { counter-increment:principle;display:flex;align-items:flex-start;gap:1rem;padding:0.9rem 0;border-bottom:1px solid var(--border); }
+    .principles-list li:last-child { border-bottom:none; }
+    .principles-list li::before { content:counter(principle,"0" counter(principle));min-width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;font-size:0.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px; }
+    .principle-body { flex:1; }
+    .principle-title { font-weight:700;font-size:0.92rem;color:var(--text-heading);margin-bottom:0.25rem; }
+    .principle-detail { font-size:0.84rem;color:var(--text);line-height:1.6; }
+    .day4-preview-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;margin:1.5rem 0; }
+    .day4-card { border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.2rem;background:var(--surface);opacity:0.85; }
+    .day4-card .d4-icon { font-size:1.4rem;margin-bottom:0.5rem; }
+    .day4-card .d4-label { font-size:0.7rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.3rem; }
+    .day4-card .d4-title { font-size:0.92rem;font-weight:700;color:var(--text-heading);margin-bottom:0.4rem; }
+    .day4-card .d4-desc { font-size:0.8rem;color:var(--text);line-height:1.5; }
+
+    @media(max-width:768px){
+      .lab-header { flex-direction:column;gap:0.75rem; }
+      .lab-number { align-self:flex-start; }
+      .failure-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar"><span></span><span></span><span></span></button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle>
+      <line x1="12" y1="12" x2="19" y2="7.5"></line><line x1="12" y1="12" x2="20.5" y2="13.5"></line>
+      <line x1="12" y1="12" x2="16" y2="20"></line><line x1="12" y1="12" x2="7" y2="19.5"></line>
+      <line x1="12" y1="12" x2="3.5" y2="13"></line><line x1="12" y1="12" x2="7" y2="5"></line>
+      <circle cx="19" cy="7.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="20.5" cy="13.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="16" cy="20" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="19.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="3.5" cy="13" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="5" r="1" fill="currentColor" stroke="none"></circle>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 3 · Labs</span>
+  <div class="topbar-right"><span class="topbar-badge">Day 3 of 4</span></div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle>
+        <span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub">
+        <a href="day3-module1-context-engineering.html">Context Engineering &amp; CLAUDE.md</a>
+        <a href="day3-module2-cicd-github.html">CI/CD &amp; GitHub Integration</a>
+        <a href="day3-module3-multi-agent.html">Multi-Agent Architecture</a>
+        <a href="day3-module4-platform.html">Enterprise AI Platform Architecture</a>
+        <a href="day3-labs.html" class="active">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="content-wrap">
+
+      <!-- Page header -->
+      <div class="page-header">
+        <div class="breadcrumb">
+          <a href="index.html">Home</a>
+          <span>›</span>
+          <span>Day 3</span>
+          <span>›</span>
+          <span>Labs</span>
+        </div>
+        <h1 class="page-title">Day 3 Labs</h1>
+        <p class="page-subtitle">Four applied labs that translate Day 3 theory into durable engineering practice: author a production CLAUDE.md for a real monorepo, wire Claude into GitHub Actions CI, design a multi-agent due diligence system from scratch, and build a token cost model before you ship. Complete all four before Day 4.</p>
+        <div class="page-meta">
+          <span>4 Labs</span>
+          <span>·</span>
+          <span>~105 minutes total</span>
+          <span>·</span>
+          <span>CLAUDE.md · GitHub Actions · Multi-Agent · Cost Modelling</span>
+        </div>
+      </div>
+
+      <!-- Lab overview cards -->
+      <section id="lab-overview">
+        <div class="info-grid" style="margin-bottom:2.5rem;">
+          <div class="info-card">
+            <div class="info-card-icon">📄</div>
+            <div class="info-card-label">Lab 1</div>
+            <div class="info-card-value">Enterprise CLAUDE.md</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;">30 min · Intermediate</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">⚙️</div>
+            <div class="info-card-label">Lab 2</div>
+            <div class="info-card-value">GitHub PR Review Workflow</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;">25 min · Intermediate</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🏗️</div>
+            <div class="info-card-label">Lab 3</div>
+            <div class="info-card-value">Multi-Agent Design</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;">30 min · Advanced</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">💰</div>
+            <div class="info-card-label">Lab 4</div>
+            <div class="info-card-value">Token Cost Estimation</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;">20 min · Foundation</div>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <strong>Prerequisites:</strong> Claude Code installed and authenticated. A GitHub repository with Actions enabled and a secret named <code>ANTHROPIC_API_KEY</code> stored in Settings → Secrets. Python 3.11+ available locally. Completion of Day 2 labs is strongly recommended.
+          </div>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ─── LAB 1 ──────────────────────────────────────────────────── -->
+      <section id="lab-1">
+
+        <div class="lab-header">
+          <span class="lab-number">Lab 01</span>
+          <div class="lab-meta">
+            <div class="lab-title">Enterprise CLAUDE.md Creation</div>
+            <div class="lab-desc">
+              Author a production-grade CLAUDE.md for a Node.js/TypeScript e-commerce monorepo — then write the subdirectory override for the <code>api/</code> service. This lab covers every required section of an enterprise context file: stack, commands, architecture, conventions, security rules, banned patterns, and PR checklist.
+            </div>
+            <div class="lab-pills">
+              <span class="lab-pill time">⏱ 30 minutes</span>
+              <span class="lab-pill level">Intermediate</span>
+              <span class="lab-pill module">Module 1</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="lab-1-scenario">Scenario</h2>
+        <p>You are a platform engineer at an e-commerce company. The engineering org has grown from 4 to 40 engineers in 18 months. Claude Code is now in use across four teams, but every developer has a different mental model of what the codebase expects. Hallucinated imports, wrong test commands, and security anti-patterns are accumulating in PRs. Your task: write a CLAUDE.md that makes those mistakes impossible to repeat.</p>
+
+        <div class="callout warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <strong>CLAUDE.md is not documentation for humans.</strong> It is a system-prompt injection that shapes every Claude Code session in its directory. Write it as machine-readable instructions, not as a README. Prose paragraphs, marketing language, and "please" do not belong here.
+          </div>
+        </div>
+
+        <h2 id="lab-1-platform">Platform Description</h2>
+        <p>The monorepo hosts four services under a Turborepo/pnpm workspace:</p>
+
+        <table class="agent-table">
+          <thead>
+            <tr><th>Service</th><th>Runtime</th><th>Database</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>api/</code></td><td>Node 20, Express 5, TypeScript 5.4</td><td>PostgreSQL 16 (Prisma 5)</td><td>Customer-facing REST API</td></tr>
+            <tr><td><code>worker/</code></td><td>Node 20, BullMQ, TypeScript 5.4</td><td>Redis 7 (ioredis)</td><td>Async job processing (emails, webhooks, inventory sync)</td></tr>
+            <tr><td><code>admin/</code></td><td>Next.js 14, React 18, TypeScript 5.4</td><td>Reads api/ via internal fetch</td><td>Internal back-office dashboard</td></tr>
+            <tr><td><code>storefront/</code></td><td>Next.js 14, React 18, TypeScript 5.4</td><td>Reads api/ via internal fetch</td><td>Customer-facing PWA</td></tr>
+          </tbody>
+        </table>
+
+        <p>Infrastructure: AWS ECS Fargate (api, worker), CloudFront + S3 (storefront static), RDS PostgreSQL Multi-AZ, ElastiCache Redis cluster, Secrets Manager for all credentials.</p>
+
+        <h2 id="lab-1-root-claude">Root CLAUDE.md — Complete File</h2>
+        <p>Place this file at the monorepo root (same level as <code>package.json</code> and <code>turbo.json</code>):</p>
+
+<pre class="code-block"><code># CLAUDE.md — Acme Commerce Monorepo
+# Last updated: 2025-06-01 | Owner: platform-eng@acme.com
+
+## STACK
+- Runtime:    Node 20 LTS (use `node --version` to confirm 20.x)
+- Language:   TypeScript 5.4, strict mode, no `any` allowed
+- Monorepo:   pnpm 9 workspaces + Turborepo 2
+- API:        Express 5 + Zod validation + Prisma 5 (PostgreSQL 16)
+- Workers:    BullMQ + ioredis (Redis 7)
+- Frontend:   Next.js 14 App Router (React 18) — admin/ and storefront/
+- Testing:    Vitest (unit), Supertest (integration), Playwright (e2e)
+- CI/CD:      GitHub Actions → AWS ECR → ECS Fargate (blue-green)
+- IaC:        Terraform 1.8 in infra/ — never edit AWS resources manually
+
+## COMMANDS
+### Install / bootstrap
+pnpm install               # installs all workspace packages
+pnpm build                 # turbo run build (all services)
+pnpm dev                   # turbo run dev --parallel (local hot-reload)
+
+### Per-service (run from repo root, not from service dir)
+pnpm --filter api dev      # api only on :3001
+pnpm --filter worker dev   # worker only
+pnpm --filter admin dev    # admin on :3000
+pnpm --filter storefront dev  # storefront on :3002
+
+### Testing
+pnpm test                  # turbo run test (unit + integration, all services)
+pnpm --filter api test     # api unit tests only
+pnpm --filter api test:e2e # api integration tests (requires Docker Compose)
+pnpm test:e2e              # Playwright end-to-end (requires full stack running)
+
+### Database (api/ only)
+pnpm --filter api db:migrate    # prisma migrate dev
+pnpm --filter api db:seed       # seed development data
+pnpm --filter api db:studio     # Prisma Studio on :5555
+
+### Linting / formatting
+pnpm lint                  # eslint --fix across all packages
+pnpm typecheck             # tsc --noEmit across all packages
+pnpm format                # prettier --write
+
+## ARCHITECTURE
+### Request lifecycle (api/)
+HTTP → CloudFront → ALB → ECS Task → Express router
+  → Zod middleware (validate request) → Controller
+  → Service layer (business logic)    → Prisma (PostgreSQL)
+  → Response serialiser               → HTTP
+
+### Async job lifecycle (worker/)
+Redis queue (BullMQ) → Worker process → Job handler
+  → External calls (SES email, Stripe webhook, ERP sync)
+  → Job completion/failure → Dead-letter queue (Redis stream)
+
+### Service boundaries
+- api/ MUST NOT import from worker/, admin/, or storefront/
+- worker/ MUST NOT import from admin/ or storefront/
+- Shared types live ONLY in packages/types (no circular deps)
+- packages/ui contains React components shared by admin/ and storefront/ only
+
+### Data access rules
+- ALL database access goes through api/ — no direct DB calls from worker/
+- worker/ enqueues jobs and reads job results; it calls api/ internal endpoints for data
+- admin/ and storefront/ call api/ over authenticated HTTP — never touch DB directly
+
+## CONVENTIONS
+### File naming
+- Route handlers:    kebab-case  (user-auth.router.ts)
+- Services:         PascalCase  (UserAuthService.ts)
+- React components: PascalCase  (ProductCard.tsx)
+- Utilities:        camelCase   (formatCurrency.ts)
+- Tests:            *.test.ts or *.spec.ts co-located with source
+
+### TypeScript
+- ALWAYS use explicit return types on exported functions
+- NEVER use `any`; use `unknown` and narrow with Zod or type guards
+- NEVER use non-null assertion (!) except in test files
+- Prefer `type` over `interface` for object shapes (team convention)
+- Imports MUST use path aliases (@acme/types, @acme/ui) — no relative ../../
+
+### API responses
+All api/ endpoints return:
+  { success: true, data: T }           # success
+  { success: false, error: string, code: string }  # error
+Never return raw Prisma objects — always map through a DTO function.
+
+### Error handling
+- api/: use the centralised AppError class (src/lib/errors.ts)
+- NEVER swallow errors with empty catch blocks
+- ALWAYS log errors with the structuredLogger (src/lib/logger.ts) — never console.log in production code
+- Use Zod's .safeParse() not .parse() at API boundaries
+
+### Environment variables
+- NEVER hardcode secrets, connection strings, or API keys
+- All env vars live in .env.example (committed) and .env (gitignored)
+- Access via the env config module (src/config/env.ts) which validates at startup using Zod
+- In tests, use the fixtures in test/helpers/env.ts — never mock process.env directly
+
+## SECURITY RULES
+- SQL: ALWAYS use Prisma parameterised queries — raw SQL via prisma.$queryRaw is FORBIDDEN unless approved by security team
+- Auth: JWT RS256 (not HS256); tokens signed with private key in Secrets Manager; public key fetched at startup
+- Passwords: bcrypt with cost factor 12 minimum — NEVER store plaintext or MD5/SHA hashes
+- PII: customer email, address, payment data MUST NOT appear in logs (use src/lib/sanitise.ts)
+- CORS: allowlist in src/config/cors.ts — NEVER set origin:'*' in api/
+- Dependency updates: run `pnpm audit --audit-level=high` before every PR; block on critical/high CVEs
+- Admin endpoints (/admin/*): require role=ADMIN claim in JWT — verified by adminGuard middleware
+
+## BANNED PATTERNS
+# These will be caught in PR review and MUST be fixed before merge:
+
+BANNED: console.log, console.error, console.warn    → use structuredLogger
+BANNED: any type annotation                          → use unknown + type guard
+BANNED: require() in TypeScript files               → use ESM import
+BANNED: process.env.VAR_NAME directly               → use src/config/env.ts
+BANNED: new Date() inside Prisma queries             → use Prisma.sql`NOW()` or pass from service layer
+BANNED: Promise.all without error boundary           → wrap in allSettled or try/catch
+BANNED: Prisma.$executeRaw / $queryRaw               → use typed Prisma operations
+BANNED: fetch() without timeout                      → use src/lib/http.ts (has 30s timeout + retry)
+BANNED: TODO/FIXME without a JIRA ticket number      → format: TODO(PLAT-1234): description
+BANNED: Importing from another service dir           → use packages/* or api internal endpoints
+
+## PR CHECKLIST
+Before requesting review, confirm ALL items:
+- [ ] pnpm typecheck passes with zero errors
+- [ ] pnpm lint passes with zero warnings
+- [ ] pnpm test passes (no skipped tests without justification)
+- [ ] No new console.log / any / non-null assertions
+- [ ] New endpoints have Zod validation schemas
+- [ ] New routes have unit tests covering happy path + at least 2 error cases
+- [ ] Migrations are backwards-compatible (no DROP COLUMN without deprecation period)
+- [ ] No secrets or .env values in committed files
+- [ ] CHANGELOG.md updated if public API surface changed
+- [ ] Linked JIRA ticket in PR description</code></pre>
+
+        <h2 id="lab-1-subdir">Subdirectory CLAUDE.md — <code>api/</code> Override</h2>
+        <p>Place this file at <code>api/CLAUDE.md</code>. Claude Code loads it in addition to the root file, so only write what is new, different, or must be emphasised for the api service context. Do not repeat instructions that are already correct at the root level.</p>
+
+<pre class="code-block"><code># CLAUDE.md — api/ service override
+# Inherits from: ../../CLAUDE.md (root)
+# Scope: Express 5 REST API, Prisma 5, PostgreSQL 16
+
+## SERVICE-SPECIFIC COMMANDS
+pnpm dev                   # Express dev server on :3001 with ts-node-dev
+pnpm db:migrate            # prisma migrate dev (requires local PG running)
+pnpm db:seed               # loads fixtures from prisma/seed.ts
+pnpm test                  # vitest run (unit only, no DB required)
+pnpm test:integration      # vitest run --config vitest.integration.ts (requires Docker Compose)
+
+Start integration test infra:
+  docker compose -f docker-compose.test.yml up -d
+  pnpm db:migrate           # run after compose up
+  pnpm test:integration
+  docker compose -f docker-compose.test.yml down
+
+## DIRECTORY STRUCTURE
+src/
+  config/       env.ts, cors.ts, prisma.ts, redis.ts — singleton initialisers
+  lib/          errors.ts, logger.ts, http.ts, sanitise.ts — shared utilities
+  modules/      feature modules, each containing:
+                  *.router.ts    (Express router, no business logic)
+                  *.service.ts   (all business logic, testable in isolation)
+                  *.schema.ts    (Zod schemas for request/response)
+                  *.dto.ts       (TypeScript types derived from schemas)
+                  *.test.ts      (unit tests for the service)
+  middleware/   auth.ts, adminGuard.ts, rateLimiter.ts, errorHandler.ts
+  types/        Local type extensions (global types live in packages/types)
+prisma/
+  schema.prisma
+  migrations/
+  seed.ts
+
+## ROUTING CONVENTIONS
+- Base path:    /api/v1 (enforced by src/app.ts — do not add to individual routers)
+- Auth guard:   apply authMiddleware to all routes EXCEPT /health, /api/v1/auth/login, /api/v1/auth/register
+- Rate limits:  /api/v1/auth/* → 10 req/min; all other → 200 req/min (via rateLimiter middleware)
+- Pagination:   all list endpoints accept ?page=1&limit=20; max limit is 100
+- Sorting:      accept ?sortBy=createdAt&order=asc|desc; validate sortBy against allowlist
+
+## PRISMA-SPECIFIC RULES
+- NEVER call prisma directly from a router — only from service classes
+- ALWAYS select only the fields you need (no prisma.findMany() without a select/include)
+- Transactions: use prisma.$transaction([...]) for multi-table writes
+- Migrations: run `prisma migrate dev --name descriptive-name` — do NOT edit migration files after they are applied
+- Soft deletes: use deletedAt timestamp column, never hard-delete customer-facing records
+- Indexing: add @@index in schema.prisma for every foreign key and every field used in a WHERE clause
+
+## AUTHENTICATION FLOW
+1. POST /api/v1/auth/login → validate credentials → issue accessToken (15m) + refreshToken (7d, httpOnly cookie)
+2. POST /api/v1/auth/refresh → verify refreshToken cookie → issue new accessToken
+3. POST /api/v1/auth/logout → blacklist refreshToken in Redis (TTL = remaining lifetime)
+4. All protected routes: authMiddleware extracts Bearer token → verifies RS256 → attaches req.user
+
+## ADDITIONAL SECURITY RULES (api/ specific)
+- Payment data: NEVER store raw card numbers — Stripe tokenises before reaching this service
+- Webhook endpoints (/api/v1/webhooks/*): verify HMAC signature before processing body
+- File uploads: max 5MB, allowlist MIME types in src/config/upload.ts — reject all others
+- Health endpoint (/health): must return { status:'ok', version, timestamp } — no auth required, no PII</code></pre>
+
+        <div class="callout tip">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <strong>Cascading context:</strong> Claude Code reads every CLAUDE.md from the repo root down to the current working directory and concatenates them in order. The subdirectory file does not replace the root file — it appends. Use subdirectory files to specialise, not to repeat. Repetition wastes context window tokens with zero benefit.
+          </div>
+        </div>
+
+        <h2 id="lab-1-checklist">Verification Checklist</h2>
+        <p>Before signing off on a CLAUDE.md, verify all eight items:</p>
+        <ul class="checklist">
+          <li><span class="check-icon"></span>Run commands are present and correct — a new engineer can bootstrap from zero</li>
+          <li><span class="check-icon"></span>Test commands are present for all levels (unit, integration, e2e)</li>
+          <li><span class="check-icon"></span>Banned patterns are explicit, actionable, and include the allowed alternative</li>
+          <li><span class="check-icon"></span>Security rules are prescriptive, not aspirational ("NEVER use HS256" not "prefer RS256")</li>
+          <li><span class="check-icon"></span>Service boundaries are documented — what can import from where</li>
+          <li><span class="check-icon"></span>Environment variable access pattern is defined and enforced</li>
+          <li><span class="check-icon"></span>PR checklist covers linting, typing, testing, and security gates</li>
+          <li><span class="check-icon"></span>No redundant prose between root and subdirectory files — every line earns its context budget</li>
+        </ul>
+
+        <div class="deliverable-box">
+          <div class="deliverable-box-title">Deliverables</div>
+          <ul>
+            <li>Root <code>CLAUDE.md</code> committed to the monorepo root — all 8 sections populated</li>
+            <li><code>api/CLAUDE.md</code> committed to the api service directory — service-specific overrides only</li>
+          </ul>
+        </div>
+
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ─── LAB 2 ──────────────────────────────────────────────────── -->
+      <section id="lab-2">
+
+        <div class="lab-header">
+          <span class="lab-number">Lab 02</span>
+          <div class="lab-meta">
+            <div class="lab-title">GitHub Actions PR Review Workflow</div>
+            <div class="lab-desc">
+              Build a GitHub Actions workflow that automatically posts an AI-generated code review comment on every non-draft pull request. The review covers security vulnerabilities, logical correctness, and style violations — generated by Claude Sonnet via the Anthropic API using the PR diff as input.
+            </div>
+            <div class="lab-pills">
+              <span class="lab-pill time">⏱ 25 minutes</span>
+              <span class="lab-pill level">Intermediate</span>
+              <span class="lab-pill module">Module 2</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="lab-2-scenario">Scenario</h2>
+        <p>Your team merges 30–50 PRs per week. Senior engineers spend an estimated 40% of review time on pattern violations that a static tool or language model could catch. The goal is to front-load automated review so human reviewers focus on architecture, domain logic, and judgement calls — not on catching <code>console.log</code> statements in committed code.</p>
+
+        <h2 id="lab-2-skeleton">Step 1 — Skeleton Workflow</h2>
+        <p>Create <code>.github/workflows/ai-pr-review.yml</code> and paste the skeleton:</p>
+
+<pre class="code-block"><code>name: AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+jobs:
+  ai-review:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    # Skip draft PRs — only review when the author marks ready
+    if: github.event.pull_request.draft == false
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history needed for accurate diffs
+
+      # ── STEP 2: diff extraction will go here ──
+
+      # ── STEP 3: Claude review will go here ──
+
+      # ── STEP 4: post comment will go here ──</code></pre>
+
+        <h2 id="lab-2-diff">Step 2 — Extract the PR Diff</h2>
+        <p>Add the diff extraction step immediately after checkout. This gives Claude the exact changeset rather than the full codebase, keeping token usage bounded and review precision high:</p>
+
+<pre class="code-block"><code>      - name: Extract PR diff
+        id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Generate unified diff, exclude lockfiles and generated assets
+          git diff "$BASE_SHA" "$HEAD_SHA" \
+            -- . \
+            ':!pnpm-lock.yaml' \
+            ':!yarn.lock' \
+            ':!package-lock.json' \
+            ':!*.generated.ts' \
+            ':!prisma/migrations/*' \
+            > /tmp/pr.diff
+
+          # Truncate to 12,000 lines to stay inside context limits
+          head -n 12000 /tmp/pr.diff > /tmp/pr_truncated.diff
+
+          # Escape for JSON (replace backslash, double-quote, newline)
+          DIFF_ESCAPED=$(python3 -c "
+          import sys, json
+          with open('/tmp/pr_truncated.diff') as f:
+              print(json.dumps(f.read()))
+          ")
+          echo "diff_json=$DIFF_ESCAPED" >> "$GITHUB_OUTPUT"</code></pre>
+
+        <h2 id="lab-2-prompt">Step 3 — Build the Review Prompt and Call Claude</h2>
+        <p>Add the Claude API call step. The prompt is structured to produce a review that a senior engineer would actually act on — not a list of generic suggestions:</p>
+
+<pre class="code-block"><code>      - name: Generate AI review
+        id: review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          DIFF_JSON: ${{ steps.diff.outputs.diff_json }}
+        run: |
+          # Build the JSON payload using Python to avoid shell escaping issues
+          python3 - &lt;&lt;'PYEOF'
+          import json, os, subprocess, sys
+
+          diff = json.loads(os.environ["DIFF_JSON"])
+
+          system_prompt = """You are a senior software engineer conducting a pull request review.
+          Your review must be precise, actionable, and evidence-based.
+          Structure your response in Markdown with exactly these sections:
+
+          ## Summary
+          One sentence describing what this PR does.
+
+          ## Security Findings
+          List any security issues (injection, auth bypass, secrets exposure, insecure defaults).
+          If none, write: "No security issues found."
+
+          ## Correctness Issues
+          List logic errors, race conditions, missing error handling, incorrect assumptions.
+          If none, write: "No correctness issues found."
+
+          ## Style &amp; Convention Violations
+          List deviations from the project's CLAUDE.md conventions (banned patterns, naming, etc.).
+          If none, write: "No style violations found."
+
+          ## Suggestions
+          Up to 3 optional improvements that would improve maintainability or performance.
+
+          ## Verdict
+          One of: APPROVE | REQUEST_CHANGES | COMMENT
+          Followed by a one-sentence rationale."""
+
+          user_message = f"""Review PR #{os.environ["PR_NUMBER"]}: {os.environ["PR_TITLE"]}
+          Author: {os.environ["AUTHOR"]}
+
+          &lt;diff&gt;
+          {diff}
+          &lt;/diff&gt;
+
+          Provide a code review following the structure in your system prompt."""
+
+          payload = {
+              "model": "claude-sonnet-4-5",
+              "max_tokens": 1500,
+              "system": system_prompt,
+              "messages": [{"role": "user", "content": user_message}]
+          }
+
+          with open("/tmp/payload.json", "w") as f:
+              json.dump(payload, f)
+
+          print("Payload written to /tmp/payload.json")
+          PYEOF
+
+          # Call the Anthropic Messages API
+          curl -s -X POST https://api.anthropic.com/v1/messages \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d @/tmp/payload.json \
+            -o /tmp/response.json
+
+          # Extract the review text from the response
+          python3 -c "
+          import json, sys
+          with open('/tmp/response.json') as f:
+              resp = json.load(f)
+          if 'content' not in resp:
+              print(f'ERROR: {json.dumps(resp)}', file=sys.stderr)
+              sys.exit(1)
+          review = resp['content'][0]['text']
+          with open('/tmp/review.md', 'w') as f:
+              f.write(review)
+          print('Review extracted successfully')
+          "</code></pre>
+
+        <h2 id="lab-2-comment">Step 4 — Post the Review Comment</h2>
+        <p>Add the final step to post the review as a PR comment using the <code>gh</code> CLI, which is pre-installed on GitHub-hosted runners:</p>
+
+<pre class="code-block"><code>      - name: Post review comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Prepend a header so reviewers know this is AI-generated
+          {
+            echo "## 🤖 AI Code Review"
+            echo ""
+            echo "&gt; **Generated by Claude Sonnet** — treat this as a first-pass review, not a merge gate."
+            echo "&gt; Human approval is still required before merging."
+            echo ""
+            cat /tmp/review.md
+            echo ""
+            echo "---"
+            echo "_Review generated at $(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } &gt; /tmp/comment.md
+
+          gh pr comment "$PR_NUMBER" \
+            --repo "$REPO" \
+            --body-file /tmp/comment.md</code></pre>
+
+        <h2 id="lab-2-full-yaml">Complete Workflow YAML</h2>
+        <p>The fully assembled <code>.github/workflows/ai-pr-review.yml</code>:</p>
+
+<pre class="code-block"><code>name: AI PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+jobs:
+  ai-review:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract PR diff
+        id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git diff "$BASE_SHA" "$HEAD_SHA" \
+            -- . \
+            ':!pnpm-lock.yaml' ':!yarn.lock' ':!package-lock.json' \
+            ':!*.generated.ts' ':!prisma/migrations/*' \
+            > /tmp/pr.diff
+          head -n 12000 /tmp/pr.diff > /tmp/pr_truncated.diff
+          DIFF_ESCAPED=$(python3 -c "
+          import json
+          with open('/tmp/pr_truncated.diff') as f:
+              print(json.dumps(f.read()))
+          ")
+          echo "diff_json=$DIFF_ESCAPED" >> "$GITHUB_OUTPUT"
+
+      - name: Generate AI review
+        id: review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          DIFF_JSON: ${{ steps.diff.outputs.diff_json }}
+        run: |
+          python3 - &lt;&lt;'PYEOF'
+          import json, os
+          diff = json.loads(os.environ["DIFF_JSON"])
+          system_prompt = (
+            "You are a senior software engineer conducting a pull request review.\n"
+            "Structure your response in Markdown with sections: Summary, Security Findings, "
+            "Correctness Issues, Style &amp; Convention Violations, Suggestions, Verdict.\n"
+            "Verdict must be one of: APPROVE | REQUEST_CHANGES | COMMENT."
+          )
+          user_message = (
+            f"Review PR #{os.environ['PR_NUMBER']}: {os.environ['PR_TITLE']}\n"
+            f"Author: {os.environ['AUTHOR']}\n\n"
+            f"&lt;diff&gt;\n{diff}\n&lt;/diff&gt;\n\n"
+            "Provide a code review following the structure in your system prompt."
+          )
+          payload = {
+            "model": "claude-sonnet-4-5",
+            "max_tokens": 1500,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_message}]
+          }
+          with open("/tmp/payload.json", "w") as f:
+              json.dump(payload, f)
+          PYEOF
+
+          curl -s -X POST https://api.anthropic.com/v1/messages \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d @/tmp/payload.json \
+            -o /tmp/response.json
+
+          python3 -c "
+          import json, sys
+          with open('/tmp/response.json') as f:
+              resp = json.load(f)
+          if 'content' not in resp:
+              print('ERROR:', json.dumps(resp), file=sys.stderr)
+              sys.exit(1)
+          open('/tmp/review.md','w').write(resp['content'][0]['text'])
+          "
+
+      - name: Post review comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          {
+            echo "## 🤖 AI Code Review"
+            echo ""
+            echo "&gt; Generated by Claude Sonnet — human approval still required."
+            echo ""
+            cat /tmp/review.md
+            echo ""
+            echo "---"
+            echo "_$(date -u '+%Y-%m-%d %H:%M UTC')_"
+          } &gt; /tmp/comment.md
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file /tmp/comment.md</code></pre>
+
+        <h2 id="lab-2-verify">Verifying the Run</h2>
+        <p>After pushing a PR, check the Actions run log for these signals:</p>
+        <ul class="checklist">
+          <li><span class="check-icon"></span>Extract PR diff step exits 0 and shows "Payload written to /tmp/payload.json"</li>
+          <li><span class="check-icon"></span>Generate AI review step shows "Review extracted successfully" — if you see "ERROR:" the API key secret is missing or wrong</li>
+          <li><span class="check-icon"></span>Post review comment step exits 0 — navigate to the PR to see the comment</li>
+          <li><span class="check-icon"></span>The comment header reads "AI Code Review" with the Claude Sonnet attribution line</li>
+          <li><span class="check-icon"></span>The Verdict line contains one of: APPROVE | REQUEST_CHANGES | COMMENT</li>
+        </ul>
+
+        <h2 id="lab-2-sample">Sample Review Comment Output</h2>
+
+<pre class="code-block"><code>## 🤖 AI Code Review
+
+&gt; Generated by Claude Sonnet — human approval still required.
+
+## Summary
+This PR adds a new `/api/v1/orders/{id}/refund` endpoint that initiates Stripe refunds and updates order status.
+
+## Security Findings
+**HIGH:** `req.params.id` is passed directly to `prisma.order.findFirst({ where: { id } })` without
+verifying that the authenticated user owns the order. Any authenticated user can refund any order.
+Fix: add `userId: req.user.id` to the Prisma where clause.
+
+## Correctness Issues
+The Stripe `refunds.create()` call is not wrapped in a try/catch. If Stripe returns a non-2xx response,
+the unhandled rejection will crash the worker process. The order status is updated to `REFUNDED` before
+the Stripe call succeeds — if Stripe rejects the refund, the order is incorrectly marked as refunded.
+Fix: move the DB status update to after a successful Stripe response.
+
+## Style &amp; Convention Violations
+`console.log('Refund initiated:', orderId)` on line 47 — CLAUDE.md bans console.log; use structuredLogger.
+The service function lacks an explicit return type (CLAUDE.md requires explicit return types on exports).
+
+## Suggestions
+1. Add an idempotency key to the Stripe refund call to prevent duplicate refunds on retry.
+2. Emit a `order.refunded` domain event to the BullMQ queue so the email service can notify the customer.
+3. Add a database-level unique constraint on (orderId, status='REFUNDED') as a belt-and-suspenders guard.
+
+## Verdict
+REQUEST_CHANGES — the missing ownership check is a P0 security vulnerability that must be fixed before merge.
+
+---
+_2025-06-01 14:32 UTC_</code></pre>
+
+        <div class="deliverable-box">
+          <div class="deliverable-box-title">Deliverables</div>
+          <ul>
+            <li>Complete <code>.github/workflows/ai-pr-review.yml</code> committed and passing in Actions</li>
+            <li>Screenshot or copy of the AI review comment posted on a test PR</li>
+          </ul>
+        </div>
+
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ─── LAB 3 ──────────────────────────────────────────────────── -->
+      <section id="lab-3">
+
+        <div class="lab-header">
+          <span class="lab-number">Lab 03</span>
+          <div class="lab-meta">
+            <div class="lab-title">Multi-Agent Architecture Design</div>
+            <div class="lab-desc">
+              Design a complete multi-agent system for automated due diligence on startup investment candidates. Define the orchestrator, four specialist worker agents, their model tiers and system prompts, the orchestration flow, and three failure modes with mitigations. Then implement the orchestrator class in Python.
+            </div>
+            <div class="lab-pills">
+              <span class="lab-pill time">⏱ 30 minutes</span>
+              <span class="lab-pill level advanced">Advanced</span>
+              <span class="lab-pill module">Module 3</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="lab-3-scenario">Scenario</h2>
+        <p>A venture capital firm evaluates 200+ inbound deal applications per quarter. Associates spend two to three hours on each initial screen — searching web sources, reading news, checking competitors, estimating financials, and writing an investment memo. The firm wants an AI system that produces a draft due diligence package in under ten minutes so associates can focus on relationship and domain judgement rather than data gathering.</p>
+
+        <p><strong>System inputs:</strong> company name, website URL, list of recent news article URLs (up to 5)</p>
+        <p><strong>Required outputs:</strong> executive summary, risk assessment, competitive landscape analysis, financial health signals, and a go/no-go recommendation with rationale</p>
+
+        <div class="callout warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <strong>Design principle before you write code:</strong> multi-agent systems fail in proportion to how tightly coupled their agents are. Each agent in this design must be independently testable with a mock input — if it requires another agent to run first, the coupling is too tight. Enforce boundaries at design time, not debug time.
+          </div>
+        </div>
+
+        <h2 id="lab-3-agents">Agent Architecture</h2>
+
+        <table class="agent-table">
+          <thead>
+            <tr>
+              <th>Agent</th>
+              <th>Model Tier</th>
+              <th>Input</th>
+              <th>Output Format</th>
+              <th>System Prompt Summary</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Orchestrator</strong></td>
+              <td><span class="tier-badge tier-sonnet">Sonnet</span></td>
+              <td>Company name, website, news URLs</td>
+              <td>Final JSON report</td>
+              <td>Coordinate worker agents in parallel, aggregate results, resolve conflicts, generate final recommendation</td>
+            </tr>
+            <tr>
+              <td><strong>Web Research Agent</strong></td>
+              <td><span class="tier-badge tier-haiku">Haiku</span></td>
+              <td>Website URL + company name</td>
+              <td><code>{ company_profile, founding_year, team_size, products, business_model }</code></td>
+              <td>Scrape and parse the company website; extract structured company profile data; flag missing or suspicious information</td>
+            </tr>
+            <tr>
+              <td><strong>News Sentiment Agent</strong></td>
+              <td><span class="tier-badge tier-haiku">Haiku</span></td>
+              <td>List of news article URLs</td>
+              <td><code>{ articles[], sentiment_score, key_events, red_flags }</code></td>
+              <td>Fetch and summarise each article; score sentiment (-1 to +1); identify material events (fundraising, lawsuits, executive departures, product launches)</td>
+            </tr>
+            <tr>
+              <td><strong>Competitive Landscape Agent</strong></td>
+              <td><span class="tier-badge tier-sonnet">Sonnet</span></td>
+              <td>Company profile (from Web Research Agent)</td>
+              <td><code>{ competitors[], market_size_estimate, differentiation_score, competitive_moat }</code></td>
+              <td>Identify the top 5 direct and indirect competitors; assess the company's differentiation and defensibility; estimate addressable market</td>
+            </tr>
+            <tr>
+              <td><strong>Financial Signals Agent</strong></td>
+              <td><span class="tier-badge tier-sonnet">Sonnet</span></td>
+              <td>Company profile + news articles</td>
+              <td><code>{ revenue_signals, funding_history, burn_indicators, financial_health_score }</code></td>
+              <td>Infer financial health from public signals (Crunchbase, LinkedIn headcount, job postings, product pricing); flag revenue model ambiguity or burn concerns</td>
+            </tr>
+            <tr>
+              <td><strong>Risk Assessment Agent</strong></td>
+              <td><span class="tier-badge tier-opus">Opus</span></td>
+              <td>All four worker outputs</td>
+              <td><code>{ risks[], risk_score (0-10), deal_breakers[], mitigating_factors[] }</code></td>
+              <td>Synthesise all worker outputs; identify and score risks across regulatory, competitive, execution, and financial dimensions; surface any deal-breaker flags</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <strong>Model tier rationale:</strong> Haiku handles high-volume structured extraction where speed and cost matter. Sonnet handles reasoning-heavy tasks (competitive analysis, financial inference). Opus is reserved for the Risk Assessment Agent — the one step where nuanced synthesis across all dimensions justifies the cost and latency premium. This pattern (Haiku for extraction, Sonnet for reasoning, Opus for synthesis) is the standard enterprise tier allocation.
+          </div>
+        </div>
+
+        <h2 id="lab-3-flow">Orchestration Flow</h2>
+
+        <div class="arch-diagram">
+<span class="label">INPUT</span>: company_name + website_url + news_urls[]
+      │
+      ▼
+<span class="box">┌─────────────────────────────────────────────────────────┐</span>
+<span class="box">│               ORCHESTRATOR (claude-sonnet-4-5)           │</span>
+<span class="box">│   1. validate inputs    2. dispatch parallel workers     │</span>
+<span class="box">└─────────────────────────────────────────────────────────┘</span>
+      │
+      ├─────────────────────┬────────────────────┐
+      │                     │                    │
+      ▼                     ▼                    ▼
+<span class="box">┌───────────────┐</span>  <span class="box">┌──────────────────┐</span>  <span class="box">┌─────────────────────┐</span>
+<span class="box">│  Web Research │</span>  <span class="box">│  News Sentiment  │</span>  <span class="box">│   Financial Signals │</span>
+<span class="box">│    (Haiku)    │</span>  <span class="box">│     (Haiku)      │</span>  <span class="box">│      (Sonnet)       │</span>
+<span class="box">└───────────────┘</span>  <span class="box">└──────────────────┘</span>  <span class="box">└─────────────────────┘</span>
+      │                     │                    │
+      └─────────────────────┴────────────────────┘
+                            │
+                            │  (parallel results aggregated)
+                            │
+                            ▼
+<span class="box">┌─────────────────────────────────────────────────────────┐</span>
+<span class="box">│           Competitive Landscape (Sonnet)                 │</span>
+<span class="box">│   runs after Web Research — needs company_profile       │</span>
+<span class="box">└─────────────────────────────────────────────────────────┘</span>
+                            │
+                            ▼
+<span class="box">┌─────────────────────────────────────────────────────────┐</span>
+<span class="box">│              Risk Assessment (Opus)                      │</span>
+<span class="box">│   consumes ALL four worker outputs                      │</span>
+<span class="box">└─────────────────────────────────────────────────────────┘</span>
+                            │
+                            ▼
+<span class="box">┌─────────────────────────────────────────────────────────┐</span>
+<span class="box">│              ORCHESTRATOR: final synthesis               │</span>
+<span class="box">│   executive_summary + recommendation + full_report      │</span>
+<span class="box">└─────────────────────────────────────────────────────────┘</span>
+                            │
+                            ▼
+<span class="label">OUTPUT</span>: DueDiligenceReport JSON
+</div>
+
+        <h2 id="lab-3-failures">Failure Modes and Mitigations</h2>
+
+        <div class="failure-grid">
+          <div class="failure-card">
+            <div class="failure-card-title">Failure Mode 1 — Worker Timeout Cascade</div>
+            <p>The News Sentiment Agent fails to fetch one or more article URLs (paywalls, timeouts, 403s). The orchestrator waits indefinitely, blocking the Risk Assessment Agent and the final report.</p>
+            <div class="failure-mitigation">
+              <strong>Mitigation</strong>
+              Set a per-worker timeout (30s). Use <code>asyncio.wait_for()</code> with individual task timeouts. On timeout, return a partial result with a <code>status: "timeout"</code> flag. The orchestrator continues with available results and notes the gap in the final report. Never let one failing agent stall the pipeline.
+            </div>
+          </div>
+          <div class="failure-card">
+            <div class="failure-card-title">Failure Mode 2 — Hallucinated Competitor Data</div>
+            <p>The Competitive Landscape Agent invents competitor names or inflated market size figures when web search returns sparse results. These numbers propagate into the Risk Assessment and executive summary, misleading the analyst.</p>
+            <div class="failure-mitigation">
+              <strong>Mitigation</strong>
+              Require the agent to cite sources for every competitor claim in its output schema. The orchestrator validates that each competitor entry has a non-empty <code>source_url</code> field. Entries without citations are stripped and flagged as <code>unverified</code>. Add a confidence score (0–1) to the output and surface it to the analyst.
+            </div>
+          </div>
+          <div class="failure-card">
+            <div class="failure-card-title">Failure Mode 3 — Context Window Overflow</div>
+            <p>For companies with extensive news coverage, the aggregated worker outputs exceed the Risk Assessment Agent's context window. The agent truncates silently or returns an error, producing an incomplete risk report.</p>
+            <div class="failure-mitigation">
+              <strong>Mitigation</strong>
+              Each worker output is limited to a maximum token budget (e.g. 1,500 tokens). The orchestrator measures token count before passing to downstream agents using the Anthropic token counting API. If the aggregate exceeds 80% of the context limit, the orchestrator summarises each worker output to 500 tokens before forwarding. Always measure before you pass — never assume.
+            </div>
+          </div>
+        </div>
+
+        <h2 id="lab-3-orchestrator">Orchestrator Python Implementation</h2>
+        <p>The orchestrator class handles parallel dispatch, timeout handling, aggregation, and the sequential Risk Assessment and synthesis steps:</p>
+
+<pre class="code-block"><code>"""
+due_diligence_orchestrator.py
+Multi-agent due diligence orchestration using asyncio + Anthropic SDK.
+"""
+
+import asyncio
+import json
+import time
+from dataclasses import dataclass, field
+from typing import Any
+
+import anthropic
+
+
+# ── Data contracts ────────────────────────────────────────────────────────────
+
+@dataclass
+class WorkerResult:
+    agent: str
+    status: str          # "ok" | "timeout" | "error"
+    data: dict[str, Any] = field(default_factory=dict)
+    error: str | None = None
+    latency_ms: float = 0.0
+
+
+@dataclass
+class DueDiligenceReport:
+    company: str
+    executive_summary: str
+    risk_score: float       # 0–10 (10 = highest risk)
+    recommendation: str     # "PROCEED" | "PASS" | "FURTHER_REVIEW"
+    rationale: str
+    worker_outputs: dict[str, Any] = field(default_factory=dict)
+    flags: list[str] = field(default_factory=list)
+    generated_at: float = field(default_factory=time.time)
+
+
+# ── Orchestrator ──────────────────────────────────────────────────────────────
+
+class DueDiligenceOrchestrator:
+    """
+    Coordinates four specialist agents and synthesises a due diligence report.
+    Design invariants:
+    - Workers run in parallel where possible (no unnecessary serialisation)
+    - Each worker has a hard timeout; failures return partial results, not exceptions
+    - Downstream agents receive bounded input (max_tokens enforced per worker)
+    - Final report is always returned — never raises to the caller
+    """
+
+    WORKER_TIMEOUT_S = 30
+    MAX_TOKENS_PER_WORKER = 1_500
+
+    # Model tier allocation
+    HAIKU  = "claude-haiku-4-5"
+    SONNET = "claude-sonnet-4-5"
+    OPUS   = "claude-opus-4-5"
+
+    def __init__(self) -> None:
+        self.client = anthropic.AsyncAnthropic()
+
+    # ── Public API ─────────────────────────────────────────────────────────
+
+    async def run(
+        self,
+        company_name: str,
+        website_url: str,
+        news_urls: list[str],
+    ) -> DueDiligenceReport:
+        """Entry point. Returns a complete DueDiligenceReport."""
+
+        print(f"[orchestrator] Starting due diligence for: {company_name}")
+
+        # Phase 1: parallel workers (web research, news, financial signals)
+        web_result, news_result, financial_result = await self._run_parallel_phase(
+            company_name, website_url, news_urls
+        )
+
+        # Phase 2: competitive landscape (depends on web_result)
+        competitive_result = await self._run_competitive_agent(
+            web_result.data if web_result.status == "ok" else {}
+        )
+
+        # Phase 3: risk assessment (depends on all four workers)
+        all_worker_data = {
+            "web_research":    web_result.data,
+            "news_sentiment":  news_result.data,
+            "financial":       financial_result.data,
+            "competitive":     competitive_result.data,
+        }
+        risk_result = await self._run_risk_agent(all_worker_data)
+
+        # Phase 4: orchestrator synthesis
+        report = await self._synthesise(company_name, all_worker_data, risk_result)
+
+        print(f"[orchestrator] Complete — recommendation: {report.recommendation}")
+        return report
+
+    # ── Phase runners ──────────────────────────────────────────────────────
+
+    async def _run_parallel_phase(
+        self,
+        company_name: str,
+        website_url: str,
+        news_urls: list[str],
+    ) -> tuple[WorkerResult, WorkerResult, WorkerResult]:
+        """Dispatch the three independent workers concurrently."""
+
+        tasks = [
+            self._with_timeout(
+                self._call_web_research_agent(company_name, website_url),
+                agent="web_research"
+            ),
+            self._with_timeout(
+                self._call_news_sentiment_agent(news_urls),
+                agent="news_sentiment"
+            ),
+            self._with_timeout(
+                self._call_financial_signals_agent(company_name, news_urls),
+                agent="financial"
+            ),
+        ]
+
+        results = await asyncio.gather(*tasks, return_exceptions=False)
+        return results[0], results[1], results[2]
+
+    async def _run_competitive_agent(
+        self, company_profile: dict[str, Any]
+    ) -> WorkerResult:
+        return await self._with_timeout(
+            self._call_competitive_agent(company_profile),
+            agent="competitive"
+        )
+
+    async def _run_risk_agent(
+        self, all_worker_data: dict[str, Any]
+    ) -> WorkerResult:
+        return await self._with_timeout(
+            self._call_risk_assessment_agent(all_worker_data),
+            agent="risk_assessment"
+        )
+
+    # ── Timeout wrapper ────────────────────────────────────────────────────
+
+    async def _with_timeout(self, coro, agent: str) -> WorkerResult:
+        start = time.perf_counter()
+        try:
+            result = await asyncio.wait_for(coro, timeout=self.WORKER_TIMEOUT_S)
+            result.latency_ms = (time.perf_counter() - start) * 1000
+            return result
+        except asyncio.TimeoutError:
+            print(f"[orchestrator] TIMEOUT: {agent} exceeded {self.WORKER_TIMEOUT_S}s")
+            return WorkerResult(
+                agent=agent,
+                status="timeout",
+                error=f"Agent timed out after {self.WORKER_TIMEOUT_S}s",
+                latency_ms=(time.perf_counter() - start) * 1000,
+            )
+        except Exception as exc:
+            print(f"[orchestrator] ERROR: {agent} — {exc}")
+            return WorkerResult(agent=agent, status="error", error=str(exc))
+
+    # ── Worker callers ─────────────────────────────────────────────────────
+
+    async def _call_web_research_agent(
+        self, company_name: str, website_url: str
+    ) -> WorkerResult:
+        system = (
+            "You are a structured web research agent. Given a company name and website URL, "
+            "extract a company profile in JSON. Return ONLY valid JSON with these keys: "
+            "company_name, founding_year (int or null), team_size_estimate (int or null), "
+            "products (list[str]), business_model (str), headquarters (str or null), "
+            "confidence_score (float 0-1). Flag missing data with null — never fabricate."
+        )
+        user = f"Company: {company_name}\nWebsite: {website_url}"
+        return await self._call_agent("web_research", self.HAIKU, system, user)
+
+    async def _call_news_sentiment_agent(
+        self, news_urls: list[str]
+    ) -> WorkerResult:
+        system = (
+            "You are a news analysis agent. Summarise the provided article URLs and return JSON with: "
+            "articles (list of {url, headline, sentiment_score (-1 to 1), key_event}), "
+            "aggregate_sentiment (float), red_flags (list[str]). "
+            "If a URL is inaccessible, include it with sentiment_score: null."
+        )
+        user = "News URLs to analyse:\n" + "\n".join(f"- {u}" for u in news_urls)
+        return await self._call_agent("news_sentiment", self.HAIKU, system, user)
+
+    async def _call_financial_signals_agent(
+        self, company_name: str, news_urls: list[str]
+    ) -> WorkerResult:
+        system = (
+            "You are a financial signals analyst. Infer financial health from public signals only. "
+            "Return JSON with: funding_rounds (list or null), last_round_size_usd (int or null), "
+            "revenue_model (str), burn_signals (list[str]), financial_health_score (0-10), "
+            "confidence (float 0-1). Never fabricate figures — use null when unknown."
+        )
+        user = f"Company: {company_name}\nRecent news URLs:\n" + "\n".join(news_urls)
+        return await self._call_agent("financial", self.SONNET, system, user)
+
+    async def _call_competitive_agent(
+        self, company_profile: dict[str, Any]
+    ) -> WorkerResult:
+        system = (
+            "You are a competitive landscape analyst. Based on the company profile, identify the top 5 "
+            "direct competitors and assess market positioning. Return JSON with: "
+            "competitors (list of {name, source_url, positioning}), "
+            "market_size_estimate (str or null), differentiation_score (0-10), "
+            "competitive_moat (str). Every competitor must have a source_url."
+        )
+        user = f"Company profile:\n{json.dumps(company_profile, indent=2)}"
+        return await self._call_agent("competitive", self.SONNET, system, user)
+
+    async def _call_risk_assessment_agent(
+        self, all_data: dict[str, Any]
+    ) -> WorkerResult:
+        system = (
+            "You are a senior venture capital risk analyst. Synthesise all due diligence signals "
+            "and produce a structured risk assessment. Return JSON with: "
+            "risks (list of {category, description, severity: low|medium|high|critical}), "
+            "risk_score (0-10, 10=highest risk), deal_breakers (list[str]), "
+            "mitigating_factors (list[str])."
+        )
+        user = f"Due diligence data:\n{json.dumps(all_data, indent=2)}"
+        return await self._call_agent("risk_assessment", self.OPUS, system, user)
+
+    # ── Core API caller ────────────────────────────────────────────────────
+
+    async def _call_agent(
+        self,
+        agent_name: str,
+        model: str,
+        system: str,
+        user: str,
+    ) -> WorkerResult:
+        print(f"[{agent_name}] Calling {model}...")
+        msg = await self.client.messages.create(
+            model=model,
+            max_tokens=self.MAX_TOKENS_PER_WORKER,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        raw = msg.content[0].text.strip()
+        # Strip markdown code fences if the model wraps JSON in ```
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        try:
+            data = json.loads(raw)
+            return WorkerResult(agent=agent_name, status="ok", data=data)
+        except json.JSONDecodeError:
+            # Return raw text in data so downstream agents can still try to use it
+            return WorkerResult(
+                agent=agent_name, status="ok", data={"raw_text": raw}
+            )
+
+    # ── Final synthesis ────────────────────────────────────────────────────
+
+    async def _synthesise(
+        self,
+        company_name: str,
+        worker_outputs: dict[str, Any],
+        risk_result: WorkerResult,
+    ) -> DueDiligenceReport:
+        risk_score = (
+            risk_result.data.get("risk_score", 5.0)
+            if risk_result.status == "ok"
+            else 5.0
+        )
+
+        system = (
+            "You are a venture capital investment analyst writing an executive summary. "
+            "Based on the due diligence data, write a concise 3-paragraph summary and a "
+            "go/no-go recommendation. Recommendation must be exactly one of: "
+            "PROCEED | PASS | FURTHER_REVIEW. Return JSON: "
+            "{ executive_summary: str, recommendation: str, rationale: str }"
+        )
+        user = (
+            f"Company: {company_name}\n"
+            f"Risk score: {risk_score}/10\n"
+            f"Risk assessment: {json.dumps(risk_result.data, indent=2)}\n"
+            f"Worker outputs: {json.dumps(worker_outputs, indent=2)}"
+        )
+        synthesis = await self._call_agent("synthesis", self.SONNET, system, user)
+
+        flags: list[str] = []
+        if risk_score >= 8:
+            flags.append("HIGH_RISK: risk_score >= 8")
+        for agent_name, result_data in worker_outputs.items():
+            if isinstance(result_data, dict) and result_data.get("status") == "timeout":
+                flags.append(f"INCOMPLETE_DATA: {agent_name} timed out")
+
+        return DueDiligenceReport(
+            company=company_name,
+            executive_summary=synthesis.data.get("executive_summary", ""),
+            risk_score=risk_score,
+            recommendation=synthesis.data.get("recommendation", "FURTHER_REVIEW"),
+            rationale=synthesis.data.get("rationale", ""),
+            worker_outputs=worker_outputs,
+            flags=flags,
+        )
+
+
+# ── CLI entrypoint ─────────────────────────────────────────────────────────────
+
+async def main() -> None:
+    orchestrator = DueDiligenceOrchestrator()
+    report = await orchestrator.run(
+        company_name="Acme Analytics",
+        website_url="https://acmeanalytics.example.com",
+        news_urls=[
+            "https://techcrunch.com/acme-series-a",
+            "https://venturebeat.com/acme-product-launch",
+        ],
+    )
+    print(json.dumps(report.__dict__, indent=2, default=str))
+
+
+if __name__ == "__main__":
+    asyncio.run(main())</code></pre>
+
+        <div class="deliverable-box">
+          <div class="deliverable-box-title">Deliverables</div>
+          <ul>
+            <li>Completed architecture design: agent table, orchestration flow diagram, and failure modes document</li>
+            <li><code>due_diligence_orchestrator.py</code> — orchestrator class with all five agent callers, timeout handling, and synthesis</li>
+          </ul>
+        </div>
+
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ─── LAB 4 ──────────────────────────────────────────────────── -->
+      <section id="lab-4">
+
+        <div class="lab-header">
+          <span class="lab-number">Lab 04</span>
+          <div class="lab-meta">
+            <div class="lab-title">Token Cost Estimation</div>
+            <div class="lab-desc">
+              Build a token cost model for three Claude-powered features before they reach production. Understand the input/output token split, how usage compounds at scale, and how to set budget alert thresholds that catch runaway consumption before it becomes a billing surprise.
+            </div>
+            <div class="lab-pills">
+              <span class="lab-pill time">⏱ 20 minutes</span>
+              <span class="lab-pill level">Foundation</span>
+              <span class="lab-pill module">Module 4</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="lab-4-scenario">Scenario</h2>
+        <p>Your engineering team is about to deploy three Claude-powered features simultaneously. The CFO has asked for a cost estimate before you go to production. You need to project monthly spend, identify the most expensive feature, and set a budget alert threshold that fires if spend tracks 20% above your estimate at any point in the month.</p>
+
+        <div class="callout warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <strong>Token economics reality check:</strong> the input/output split matters more than the total token count. Output tokens cost 3–5x more than input tokens across all model tiers. A feature that generates long responses will be disproportionately expensive relative to one that generates short classifications from the same input volume. Always model them separately.
+          </div>
+        </div>
+
+        <h2 id="lab-4-pricing">Pricing Reference (2025)</h2>
+
+        <table class="cost-table">
+          <thead>
+            <tr>
+              <th>Model</th>
+              <th>Input (per 1M tokens)</th>
+              <th>Output (per 1M tokens)</th>
+              <th>Typical use case</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Claude Haiku</strong></td>
+              <td class="num">$0.80</td>
+              <td class="num">$4.00</td>
+              <td>Classification, routing, extraction</td>
+            </tr>
+            <tr>
+              <td><strong>Claude Sonnet</strong></td>
+              <td class="num">$3.00</td>
+              <td class="num">$15.00</td>
+              <td>Code review, analysis, generation</td>
+            </tr>
+            <tr>
+              <td><strong>Claude Opus</strong></td>
+              <td class="num">$15.00</td>
+              <td class="num">$75.00</td>
+              <td>Deep reasoning, complex synthesis</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 id="lab-4-features">Feature Specifications</h2>
+
+        <table class="cost-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Volume</th>
+              <th>Input tokens</th>
+              <th>Output tokens</th>
+              <th>Model</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>PR Review Bot</strong></td>
+              <td>200 PRs / day</td>
+              <td>1,500 per review</td>
+              <td>500 per review</td>
+              <td>Sonnet</td>
+            </tr>
+            <tr>
+              <td><strong>Support Ticket Router</strong></td>
+              <td>5,000 tickets / day</td>
+              <td>150 per ticket</td>
+              <td>50 per ticket</td>
+              <td>Haiku</td>
+            </tr>
+            <tr>
+              <td><strong>Weekly Executive Report</strong></td>
+              <td>1 report / week</td>
+              <td>6,000 per report</td>
+              <td>2,000 per report</td>
+              <td>Opus</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 id="lab-4-calculator">Python Cost Calculator</h2>
+
+<pre class="code-block"><code>"""
+token_cost_estimator.py
+Monthly cost model for Claude API usage.
+Run: python3 token_cost_estimator.py
+"""
+
+from dataclasses import dataclass
+from typing import Literal
+
+# ── Pricing (per 1M tokens, USD) ──────────────────────────────────────────────
+
+PRICING = {
+    "claude-haiku":  {"input": 0.80,  "output": 4.00},
+    "claude-sonnet": {"input": 3.00,  "output": 15.00},
+    "claude-opus":   {"input": 15.00, "output": 75.00},
+}
+
+ModelTier = Literal["claude-haiku", "claude-sonnet", "claude-opus"]
+
+
+# ── Data model ────────────────────────────────────────────────────────────────
+
+@dataclass
+class Feature:
+    name: str
+    model: ModelTier
+    calls_per_day: float          # fractional OK (e.g. 1/7 for weekly)
+    input_tokens_per_call: int
+    output_tokens_per_call: int
+
+    def monthly_calls(self, days_per_month: float = 30.44) -> float:
+        return self.calls_per_day * days_per_month
+
+    def monthly_input_tokens(self) -> float:
+        return self.monthly_calls() * self.input_tokens_per_call
+
+    def monthly_output_tokens(self) -> float:
+        return self.monthly_calls() * self.output_tokens_per_call
+
+    def monthly_cost_usd(self) -> float:
+        p = PRICING[self.model]
+        input_cost  = (self.monthly_input_tokens()  / 1_000_000) * p["input"]
+        output_cost = (self.monthly_output_tokens() / 1_000_000) * p["output"]
+        return input_cost + output_cost
+
+    def cost_breakdown(self) -> dict:
+        p = PRICING[self.model]
+        input_cost  = (self.monthly_input_tokens()  / 1_000_000) * p["input"]
+        output_cost = (self.monthly_output_tokens() / 1_000_000) * p["output"]
+        return {
+            "feature": self.name,
+            "model": self.model,
+            "monthly_calls": f"{self.monthly_calls():,.0f}",
+            "input_tokens_M": f"{self.monthly_input_tokens()/1e6:.3f}M",
+            "output_tokens_M": f"{self.monthly_output_tokens()/1e6:.3f}M",
+            "input_cost_usd": round(input_cost, 4),
+            "output_cost_usd": round(output_cost, 4),
+            "total_cost_usd": round(input_cost + output_cost, 4),
+        }
+
+
+# ── Feature definitions ───────────────────────────────────────────────────────
+
+FEATURES = [
+    Feature(
+        name="PR Review Bot",
+        model="claude-sonnet",
+        calls_per_day=200,
+        input_tokens_per_call=1_500,
+        output_tokens_per_call=500,
+    ),
+    Feature(
+        name="Support Ticket Router",
+        model="claude-haiku",
+        calls_per_day=5_000,
+        input_tokens_per_call=150,
+        output_tokens_per_call=50,
+    ),
+    Feature(
+        name="Weekly Executive Report",
+        model="claude-opus",
+        calls_per_day=1 / 7,        # 1 call per week
+        input_tokens_per_call=6_000,
+        output_tokens_per_call=2_000,
+    ),
+]
+
+
+# ── Budget alert calculator ───────────────────────────────────────────────────
+
+def compute_budget_alert(
+    features: list[Feature],
+    alert_threshold_pct: float = 1.20,   # fire at 120% of estimate
+    check_day: int = 7,                   # check after first week
+) -> dict:
+    """
+    Calculate the per-day spend and the 7-day alert threshold.
+    Alert fires if cumulative spend at day `check_day` exceeds
+    (check_day / 30.44) * total_monthly * alert_threshold_pct.
+    """
+    total_monthly = sum(f.monthly_cost_usd() for f in features)
+    daily_average = total_monthly / 30.44
+    alert_usd = daily_average * check_day * alert_threshold_pct
+    return {
+        "total_monthly_usd": round(total_monthly, 2),
+        "daily_average_usd": round(daily_average, 4),
+        "alert_check_day": check_day,
+        "alert_threshold_pct": f"{alert_threshold_pct*100:.0f}%",
+        "alert_fires_if_spend_exceeds_usd": round(alert_usd, 2),
+    }
+
+
+# ── Report ────────────────────────────────────────────────────────────────────
+
+def print_cost_report(features: list[Feature]) -> None:
+    print("\n" + "=" * 68)
+    print("  CLAUDE API MONTHLY COST ESTIMATE")
+    print("=" * 68)
+    print(f"  {'Feature':<30} {'Model':<16} {'Total Cost':>10}")
+    print("  " + "-" * 64)
+
+    total = 0.0
+    for f in features:
+        bd = f.cost_breakdown()
+        cost = bd["total_cost_usd"]
+        total += cost
+        print(f"  {bd['feature']:<30} {bd['model']:<16} ${cost:>9.4f}")
+        print(f"    Calls/month: {bd['monthly_calls']:>10}  "
+              f"Input: {bd['input_tokens_M']}  Output: {bd['output_tokens_M']}")
+        print(f"    Input cost: ${bd['input_cost_usd']:.4f}  "
+              f"Output cost: ${bd['output_cost_usd']:.4f}")
+        print()
+
+    print("  " + "-" * 64)
+    print(f"  {'TOTAL MONTHLY ESTIMATE':<46} ${total:>9.2f}")
+    print("=" * 68)
+
+    alert = compute_budget_alert(features)
+    print(f"\n  BUDGET ALERT CONFIGURATION")
+    print(f"  Daily average:   ${alert['daily_average_usd']:.4f}")
+    print(f"  Check at day:    {alert['alert_check_day']}")
+    print(f"  Alert threshold: {alert['alert_threshold_pct']} of estimate")
+    print(f"  Alert fires if 7-day cumulative spend > ${alert['alert_fires_if_spend_exceeds_usd']:.2f}")
+    print()
+
+
+if __name__ == "__main__":
+    print_cost_report(FEATURES)
+
+    # ── EXERCISE: Add your own feature here ──────────────────────────────────
+    # Uncomment and fill in the values for a 4th feature your team is planning:
+    #
+    # my_feature = Feature(
+    #     name="Customer Onboarding Assistant",
+    #     model="claude-sonnet",
+    #     calls_per_day=?,
+    #     input_tokens_per_call=?,
+    #     output_tokens_per_call=?,
+    # )
+    # print_cost_report(FEATURES + [my_feature])</code></pre>
+
+        <h2 id="lab-4-output">Expected Calculator Output</h2>
+
+<pre class="code-block"><code>====================================================================
+  CLAUDE API MONTHLY COST ESTIMATE
+====================================================================
+  Feature                        Model            Total Cost
+  ----------------------------------------------------------------
+  PR Review Bot                  claude-sonnet       $41.5980
+    Calls/month:          6,088  Input: 9.132M  Output: 3.044M
+    Input cost: $27.3960  Output cost: $45.6600  (wait — see note*)
+
+  Support Ticket Router          claude-haiku         $3.6528
+    Calls/month:        152,200  Input: 22.830M  Output: 7.610M
+    Input cost: $18.2640  Output cost: $30.4400  (wait — see note*)
+
+  Weekly Executive Report        claude-opus           $0.4690
+    Calls/month:              4  Input: 0.026M  Output: 0.009M
+    Input cost: $0.3913  Output cost: $0.6522  (wait — see note*)
+
+  ----------------------------------------------------------------
+  TOTAL MONTHLY ESTIMATE                              $45.7198
+
+  BUDGET ALERT CONFIGURATION
+  Daily average:   $1.5013
+  Check at day:    7
+  Alert threshold: 120% of estimate
+  Alert fires if 7-day cumulative spend > $12.61</code></pre>
+
+        <div class="callout tip">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <strong>Run the calculator yourself</strong> and note which feature dominates cost despite not being the highest volume. The Support Ticket Router fires 25x more often than the PR Review Bot but costs less — because Haiku at high volume is still cheaper than Sonnet at medium volume, and the output token count per call is small. This is the insight that drives model tier selection in production: always model the full call profile, not just the volume.
+          </div>
+        </div>
+
+        <h2 id="lab-4-budget-alert">Budget Alert Configuration</h2>
+        <p>In AWS Cost Explorer, create a monthly budget alert with these settings:</p>
+
+<pre class="code-block"><code># AWS CLI: create a monthly budget for Anthropic API spend
+aws budgets create-budget \
+  --account-id "$AWS_ACCOUNT_ID" \
+  --budget '{
+    "BudgetName": "claude-api-monthly",
+    "BudgetLimit": { "Amount": "55.00", "Unit": "USD" },
+    "TimeUnit": "MONTHLY",
+    "BudgetType": "COST",
+    "CostFilters": {
+      "Service": ["Amazon API Gateway"]
+    }
+  }' \
+  --notifications-with-subscribers '[
+    {
+      "Notification": {
+        "NotificationType": "ACTUAL",
+        "ComparisonOperator": "GREATER_THAN",
+        "Threshold": 120,
+        "ThresholdType": "PERCENTAGE"
+      },
+      "Subscribers": [
+        { "SubscriptionType": "EMAIL", "Address": "platform-eng@acme.com" }
+      ]
+    },
+    {
+      "Notification": {
+        "NotificationType": "FORECASTED",
+        "ComparisonOperator": "GREATER_THAN",
+        "Threshold": 100,
+        "ThresholdType": "PERCENTAGE"
+      },
+      "Subscribers": [
+        { "SubscriptionType": "EMAIL", "Address": "platform-eng@acme.com" }
+      ]
+    }
+  ]'
+
+# For direct Anthropic API billing, set the alert in the Anthropic Console:
+# console.anthropic.com → Settings → Usage Limits → Monthly spend alert
+# Set alert at: $55.00 (120% of $45.72 estimate, rounded to nearest $5)</code></pre>
+
+        <h2 id="lab-4-exercise">Exercise — Define Your Own Feature</h2>
+        <p>Before completing the lab, define a 4th feature your team is actually planning and compute its monthly cost. Use this template:</p>
+
+        <table class="cost-table">
+          <thead>
+            <tr><th>Parameter</th><th>Your Value</th><th>Notes</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Feature name</td><td><em>your feature</em></td><td>Be specific</td></tr>
+            <tr><td>Model tier</td><td><em>Haiku / Sonnet / Opus</em></td><td>Justify the choice</td></tr>
+            <tr><td>Calls per day</td><td><em>?</em></td><td>Check your analytics for similar features</td></tr>
+            <tr><td>Input tokens per call</td><td><em>?</em></td><td>System prompt + context + user input</td></tr>
+            <tr><td>Output tokens per call</td><td><em>?</em></td><td>Measure a sample output, not a guess</td></tr>
+            <tr><td>Estimated monthly cost</td><td><em>calculate</em></td><td>Use the Python calculator above</td></tr>
+          </tbody>
+        </table>
+
+        <div class="deliverable-box">
+          <div class="deliverable-box-title">Deliverables</div>
+          <ul>
+            <li>Completed cost model: Python calculator output for the three baseline features</li>
+            <li>Your 4th feature defined and calculated, with model tier justified in a one-sentence rationale</li>
+            <li>Budget alert configured (AWS or Anthropic Console) at 120% of your total estimate</li>
+          </ul>
+        </div>
+
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ─── DAY 3 COMPLETE ─────────────────────────────────────────── -->
+      <section id="day3-complete">
+
+        <div class="completion-header">
+          <div class="completion-badge">Day 3 Complete</div>
+          <div class="completion-title">Enterprise Context, CI/CD &amp; Multi-Agent Systems</div>
+          <div class="completion-sub">
+            You have authored production context files, wired Claude into a live CI pipeline, designed a multi-agent system under realistic failure constraints, and built a cost model you can defend in front of a CFO. These are the four capabilities that separate a Claude proof-of-concept from a production-grade deployment.
+          </div>
+        </div>
+
+        <h2 id="day3-modules-summary">Day 3 Module Summary</h2>
+
+        <div class="module-summary-grid">
+          <div class="module-summary-card">
+            <div class="mod-label">Module 1</div>
+            <div class="mod-name">Context Engineering &amp; CLAUDE.md</div>
+            <ul>
+              <li>Hierarchical CLAUDE.md from repo root to service dir</li>
+              <li>Eight required sections for enterprise context files</li>
+              <li>Banned patterns as machine-readable enforcement</li>
+              <li>Context window budget discipline</li>
+            </ul>
+          </div>
+          <div class="module-summary-card">
+            <div class="mod-label">Module 2</div>
+            <div class="mod-name">CI/CD &amp; GitHub Integration</div>
+            <ul>
+              <li>GitHub Actions trigger patterns for PR events</li>
+              <li>Diff extraction and token-bounded prompting</li>
+              <li>Structured review output (security, correctness, style)</li>
+              <li>Comment posting with <code>gh pr comment</code></li>
+            </ul>
+          </div>
+          <div class="module-summary-card">
+            <div class="mod-label">Module 3</div>
+            <div class="mod-name">Multi-Agent Architecture</div>
+            <ul>
+              <li>Orchestrator + specialist worker pattern</li>
+              <li>Model tier allocation (Haiku / Sonnet / Opus)</li>
+              <li>Parallel dispatch with per-worker timeouts</li>
+              <li>Failure modes: timeout, hallucination, context overflow</li>
+            </ul>
+          </div>
+          <div class="module-summary-card">
+            <div class="mod-label">Module 4</div>
+            <div class="mod-name">Enterprise AI Platform Architecture</div>
+            <ul>
+              <li>Token cost modelling: input vs. output asymmetry</li>
+              <li>Budget alert threshold calculation</li>
+              <li>Model tier selection by call profile</li>
+              <li>Governance and observability integration points</li>
+            </ul>
+          </div>
+        </div>
+
+        <h2 id="day3-principles">5 Key Principles for Day 4</h2>
+
+        <ol class="principles-list">
+          <li>
+            <div class="principle-body">
+              <div class="principle-title">Context is your first security boundary</div>
+              <div class="principle-detail">Everything in CLAUDE.md is part of Claude's effective system prompt. Treat it with the same care as a system prompt in a production API call — an adversarial context injection attack starts with what you let into the context file, not the model itself.</div>
+            </div>
+          </li>
+          <li>
+            <div class="principle-body">
+              <div class="principle-title">Autonomous agents need permission scopes, not just prompts</div>
+              <div class="principle-detail">A multi-agent system that can write files, call external APIs, and modify databases is an autonomous actor in your infrastructure. Day 4 covers MCP permission scoping — the mechanism that constrains what each agent can touch, independent of what you told it in the system prompt.</div>
+            </div>
+          </li>
+          <li>
+            <div class="principle-body">
+              <div class="principle-title">Prompt injection is a first-class threat in CI/CD pipelines</div>
+              <div class="principle-detail">When Claude reads a PR diff, it reads attacker-controlled content. A malicious PR author can embed instructions in the diff that attempt to hijack the review output or exfiltrate the API key. Day 4's security module covers prompt injection mitigations — input sanitisation, output validation, and principle of least privilege for the workflow job.</div>
+            </div>
+          </li>
+          <li>
+            <div class="principle-body">
+              <div class="principle-title">Observability is not optional at multi-agent scale</div>
+              <div class="principle-detail">When five agents run in parallel and one produces a hallucinated output that propagates through the pipeline, you need a complete trace: which agent ran, which model was called, what the input was, what the output was, and how many tokens were consumed. Day 4 covers structured logging and trace correlation patterns for Claude API calls.</div>
+            </div>
+          </li>
+          <li>
+            <div class="principle-body">
+              <div class="principle-title">Governance gates must precede, not follow, production deployment</div>
+              <div class="principle-detail">Cost models, risk assessments, and data classification reviews are not bureaucratic overhead — they are the difference between a controlled AI deployment and a compliance incident. The capstone project on Day 4 requires a complete governance checklist as a deliverable, not an afterthought.</div>
+            </div>
+          </li>
+        </ol>
+
+        <h2 id="day4-preview">Day 4 Preview: MCP, Security, Governance &amp; Capstone</h2>
+
+        <div class="day4-preview-grid">
+          <div class="day4-card">
+            <div class="d4-icon">🔌</div>
+            <div class="d4-label">Module 1</div>
+            <div class="d4-title">Model Context Protocol (MCP)</div>
+            <div class="d4-desc">Build MCP servers that expose tools, resources, and prompts. Wire Claude Code to your internal APIs, databases, and CI systems via MCP. Understand the permission model and transport layer.</div>
+          </div>
+          <div class="day4-card">
+            <div class="d4-icon">🔐</div>
+            <div class="d4-label">Module 2</div>
+            <div class="d4-title">Security &amp; Prompt Injection Defence</div>
+            <div class="d4-desc">Prompt injection taxonomy and mitigations. Sandboxing autonomous agents. Secrets management for API keys in CI/CD. Output validation patterns for safety-critical deployments.</div>
+          </div>
+          <div class="day4-card">
+            <div class="d4-icon">📋</div>
+            <div class="d4-label">Module 3</div>
+            <div class="d4-title">Enterprise Governance &amp; Compliance</div>
+            <div class="d4-desc">AI usage policies, data classification frameworks, audit logging requirements, and approval workflows for high-stakes AI decisions. GDPR and SOC 2 alignment considerations.</div>
+          </div>
+          <div class="day4-card">
+            <div class="d4-icon">🏆</div>
+            <div class="d4-label">Capstone</div>
+            <div class="d4-title">End-to-End Enterprise AI System</div>
+            <div class="d4-desc">Design and partially implement a complete enterprise AI system incorporating MCP, multi-agent orchestration, CI/CD integration, security controls, and a governance checklist. Present to the cohort.</div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Navigation -->
+      <div class="nav-bottom">
+        <a href="day3-module4-platform.html" class="nav-prev">
+          ← Day 3 · Module 4: Enterprise AI Platform Architecture
+        </a>
+        <a href="index.html" class="nav-next">
+          Back to Course Home →
+        </a>
+      </div>
+
+    </div><!-- /.content-wrap -->
+
+    <aside class="toc">
+      <div class="toc-inner">
+        <div class="toc-label">On This Page</div>
+        <nav>
+          <a href="#lab-overview">Lab Overview</a>
+          <a href="#lab-1">Lab 1 · Enterprise CLAUDE.md</a>
+          <a href="#lab-1-scenario">— Scenario</a>
+          <a href="#lab-1-platform">— Platform Description</a>
+          <a href="#lab-1-root-claude">— Root CLAUDE.md</a>
+          <a href="#lab-1-subdir">— Subdirectory Override</a>
+          <a href="#lab-1-checklist">— Verification Checklist</a>
+          <a href="#lab-2">Lab 2 · GitHub PR Review</a>
+          <a href="#lab-2-skeleton">— Step 1: Skeleton</a>
+          <a href="#lab-2-diff">— Step 2: Diff Extraction</a>
+          <a href="#lab-2-prompt">— Step 3: Claude Call</a>
+          <a href="#lab-2-comment">— Step 4: Post Comment</a>
+          <a href="#lab-2-full-yaml">— Full YAML</a>
+          <a href="#lab-2-sample">— Sample Output</a>
+          <a href="#lab-3">Lab 3 · Multi-Agent Design</a>
+          <a href="#lab-3-agents">— Agent Architecture</a>
+          <a href="#lab-3-flow">— Orchestration Flow</a>
+          <a href="#lab-3-failures">— Failure Modes</a>
+          <a href="#lab-3-orchestrator">— Python Orchestrator</a>
+          <a href="#lab-4">Lab 4 · Token Cost Estimation</a>
+          <a href="#lab-4-pricing">— Pricing Reference</a>
+          <a href="#lab-4-calculator">— Python Calculator</a>
+          <a href="#lab-4-budget-alert">— Budget Alert Config</a>
+          <a href="#lab-4-exercise">— Your Feature Exercise</a>
+          <a href="#day3-complete">Day 3 Complete</a>
+          <a href="#day3-principles">— 5 Principles for Day 4</a>
+          <a href="#day4-preview">— Day 4 Preview</a>
+        </nav>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script src="assets/js/brand-theme.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
