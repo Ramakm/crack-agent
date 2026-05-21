@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Code – Practitioner Level — Claude Architect</title>
+  <meta name="description" content="Day 2 Module 1: Claude Code architecture, installation, core commands, CLAUDE.md project memory, IDE integration, and enterprise guardrails for engineering teams." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+
+    .arch-diagram {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: #c9d1d9;
+      line-height: 1.8;
+      overflow-x: auto;
+      margin: 1.25rem 0;
+    }
+    .arch-diagram .box   { color: #79c0ff; }
+    .arch-diagram .hi    { color: #ffa657; }
+    .arch-diagram .label { color: #a5d6ff; }
+    .arch-diagram .dim   { color: #484f58; }
+    .arch-diagram .good  { color: #7ee787; }
+    .arch-diagram .bad   { color: #ff7b72; }
+
+    /* Command reference table */
+    .cmd-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.4rem 0;
+      font-size: 0.88rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .cmd-table th {
+      background: var(--surface);
+      color: var(--text-heading);
+      font-weight: 600;
+      text-align: left;
+      padding: 0.75rem 0.95rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .cmd-table td {
+      padding: 0.7rem 0.95rem;
+      border-bottom: 1px solid var(--hairline);
+      vertical-align: top;
+    }
+    .cmd-table tr:last-child td { border-bottom: none; }
+    .cmd-table tr:hover td { background: var(--surface); }
+    .cmd-table .cmd-cell {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--accent);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* Permission mode cards */
+    .perm-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.85rem;
+      margin: 1.25rem 0;
+    }
+    .perm-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .perm-card-header {
+      padding: 0.75rem 1rem;
+      font-weight: 700;
+      font-size: 0.82rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .perm-card-header.default  { background: #f0f9ff; color: #0369a1; border-bottom-color: #bae6fd; }
+    .perm-card-header.auto     { background: #fdf6e3; color: #8a6918; border-bottom-color: #ecd99b; }
+    .perm-card-header.restrict { background: #f0fdf4; color: #15803d; border-bottom-color: #bbf7d0; }
+    .perm-card-body { padding: 0.85rem 1rem; font-size: 0.82rem; color: var(--text); }
+    .perm-card-body p { margin: 0 0 0.4rem; }
+    .perm-card-body code { font-size: 0.75rem; }
+
+    /* Hierarchy visualization */
+    .hierarchy-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 0.8rem 1.25rem;
+      margin: 0.6rem 0;
+      font-size: 0.88rem;
+    }
+    .hierarchy-block .h-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 0.25rem;
+    }
+    .hierarchy-block .h-path {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--text-heading);
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+    }
+    .hierarchy-block .h-desc {
+      color: var(--muted);
+      font-size: 0.83rem;
+    }
+    .hierarchy-block.level-2 { margin-left: 1.25rem; border-left-color: #6ea54b; }
+    .hierarchy-block.level-2 .h-label { color: #466b2b; }
+    .hierarchy-block.level-3 { margin-left: 2.5rem; border-left-color: #8b8b95; }
+    .hierarchy-block.level-3 .h-label { color: var(--muted); }
+
+    /* IDE workflow cards */
+    .ide-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin: 1.25rem 0;
+    }
+    .ide-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem;
+      background: var(--bg);
+    }
+    .ide-card-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text-heading);
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+    .ide-badge {
+      font-size: 0.66rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .ide-badge.vscode  { background: #dbeafe; color: #1e40af; }
+    .ide-badge.jb      { background: #fae8ff; color: #6b21a8; }
+    .ide-card-body { font-size: 0.83rem; color: var(--text); margin-top: 0.5rem; }
+    .ide-card-body li { margin-bottom: 0.3rem; }
+
+    @media(max-width:768px){
+      .perm-grid { grid-template-columns: 1fr; }
+      .ide-grid  { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle>
+      <line x1="12" y1="12" x2="19" y2="7.5"></line>
+      <line x1="12" y1="12" x2="20.5" y2="13.5"></line>
+      <line x1="12" y1="12" x2="16" y2="20"></line>
+      <line x1="12" y1="12" x2="7" y2="19.5"></line>
+      <line x1="12" y1="12" x2="3.5" y2="13"></line>
+      <line x1="12" y1="12" x2="7" y2="5"></line>
+      <circle cx="19" cy="7.5"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="20.5" cy="13.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="16" cy="20"   r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="19.5"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="3.5" cy="13"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="5"     r="1" fill="currentColor" stroke="none"></circle>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 2 · Module 1</span>
+  <div class="topbar-right">
+    <span class="topbar-badge">Day 2 of 4</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+
+    <!-- Day 1 collapsed -->
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <!-- Day 2 open -->
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle>
+        <span class="mod-num" style="background:rgba(217,92,65,0.12);color:var(--accent);">02</span>
+        Claude Code &amp; Dev Workflows <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub">
+        <a href="day2-module1-claude-code.html" class="active">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <!-- Day 3 locked -->
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+
+    <!-- Day 4 locked -->
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+
+    <!-- On this page (sidebar version for mobile) -->
+    <div class="sidebar-section-label" style="margin-top:1rem;">On This Page</div>
+    <div class="nav-sub" style="display:block;">
+      <a href="#what-is-claude-code">What Is Claude Code</a>
+      <a href="#installation-setup">Installation &amp; Setup</a>
+      <a href="#core-commands">Core Commands</a>
+      <a href="#claude-md">CLAUDE.md: Project Memory</a>
+      <a href="#ide-integration">IDE Integration</a>
+      <a href="#enterprise-setup">Enterprise Setup &amp; Guardrails</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="content-wrap">
+
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span>Day 2</span>
+        <span class="sep">/</span>
+        <span>Claude Code – Practitioner Level</span>
+      </nav>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="module-tag">✦ Day 2 · Module 1</div>
+        <h1 class="page-title">Claude Code – Practitioner Level</h1>
+        <p class="page-objective">
+          <strong>Outcome:</strong> Move beyond "Claude as chatbot" and operate Claude Code as a true agentic coding collaborator — understanding its architecture, wiring it into team workflows via CLAUDE.md, and deploying it safely inside an enterprise engineering environment.
+        </p>
+        <div class="module-meta">
+          <span class="meta-item"><span class="dot"></span> CLI · Agentic Architecture</span>
+          <span class="meta-item"><span class="dot"></span> CLAUDE.md · Project Memory</span>
+          <span class="meta-item"><span class="dot"></span> VS Code · JetBrains</span>
+          <span class="meta-item"><span class="dot"></span> Enterprise Guardrails</span>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — What Is Claude Code
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="what-is-claude-code">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <h2 class="section-title">What Is Claude Code</h2>
+        </div>
+
+        <p>
+          Claude Code is Anthropic's CLI-based agentic coding assistant. The word "agentic" is doing real work here — this is not autocomplete, not a chatbot embedded in an IDE, and not a code search tool. Claude Code is a <strong>reasoning process that can plan multi-step tasks, traverse your entire codebase, and execute actions</strong> inside your operating system with your explicit permission at each step.
+        </p>
+
+        <p>
+          The architectural distinction matters enormously for how you use it and how you govern it. A typical autocomplete tool sees the current file, maybe a few open buffers, and predicts the next token. Claude Code sees your project root. It can read 50 files in one pass, understand how a FastAPI router connects to a database model, trace a bug across three layers of abstraction, and then write, modify, and verify the fix — all within a single conversation turn.
+        </p>
+
+        <div class="arch-diagram">
+<span class="dim">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>                     <span class="label">CLAUDE CODE ARCHITECTURE</span>                         <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────────────────────────┘</span>
+
+  <span class="box">Developer Terminal</span>
+       │  user input (natural language + slash commands)
+       ▼
+  <span class="box">Claude Code Process</span>  <span class="dim">(Node.js, runs locally in your shell)</span>
+       │
+       ├── <span class="label">Context assembly</span>  <span class="dim">← reads CLAUDE.md, git history, open files</span>
+       │
+       ├── <span class="label">Tool calls</span>
+       │    ├── <span class="good">read_file</span>     <span class="dim">→ inspects any file in the project tree</span>
+       │    ├── <span class="good">write_file</span>    <span class="dim">→ creates or edits files (with diff preview)</span>
+       │    ├── <span class="good">run_command</span>  <span class="dim">→ executes shell commands (asks permission)</span>
+       │    └── <span class="good">search</span>        <span class="dim">→ grep/find across the entire codebase</span>
+       │
+       ▼
+  <span class="box">Anthropic API</span>  <span class="dim">(claude-sonnet-4-6 or opus by default)</span>
+       │  returns planned actions + natural language reasoning
+       ▼
+  <span class="box">Codebase Files &amp; Shell</span>
+       │  changes applied, tests run, output fed back to Claude
+       ▼
+  <span class="box">Developer Terminal</span>  <span class="dim">(sees diff + explanation; approves or rejects)</span>
+        </div>
+
+        <div class="callout callout-note">
+          <span class="callout-icon">🏗️</span>
+          <div class="callout-body">
+            <div class="callout-title">The Core Distinction: Agency vs. Autocomplete</div>
+            Autocomplete tools predict your next token. Claude Code <em>plans</em>. It holds a goal, decomposes it into steps, executes each step with real tool calls, observes the output, and adjusts its plan. This makes it fundamentally different — and fundamentally more powerful, and fundamentally more important to govern correctly.
+          </div>
+        </div>
+
+        <h3 class="subsection-title">What "Full Project Context" Actually Means</h3>
+        <p>
+          When you open Claude Code in a project root, it does not wait for you to attach files. It reads the directory structure, ingests your CLAUDE.md (if present), and can read any file on demand. The practical implication: you do not need to copy-paste code into a chat window. You ask in natural language and Claude Code finds the relevant files itself.
+        </p>
+        <ul class="key-points">
+          <li><strong>Codebase traversal:</strong> Claude Code can walk the full directory tree and read any file it needs — it determines relevance autonomously, not by your file selection</li>
+          <li><strong>Git awareness:</strong> It reads git history, diffs, and branch state — so it can answer "what changed in this module in the last 3 commits?" before it writes a line</li>
+          <li><strong>Iterative execution:</strong> After running a test suite, Claude Code reads the failure output and uses that as new context — it closes the read-execute-observe loop without your intervention</li>
+          <li><strong>Model tier:</strong> By default, Claude Code uses Sonnet — the best cost-performance tier for coding tasks. Switch to Opus via <code>/model</code> for complex architectural refactors</li>
+        </ul>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <div class="callout-title">Agency Requires Governance</div>
+            Because Claude Code can write files and run shell commands, it has a blast radius. In enterprise contexts, every team using Claude Code should have a CLAUDE.md that explicitly bans destructive commands, specifies test requirements before merging, and limits which directories Claude Code is allowed to modify. This is not optional ceremony — it is your control plane. Section 4 covers CLAUDE.md in depth.
+          </div>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — Installation & Setup
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="installation-setup">
+        <div class="section-label">
+          <span class="section-num">02</span>
+          <h2 class="section-title">Installation &amp; Setup</h2>
+        </div>
+
+        <p>
+          Claude Code installs as a global npm package. The setup takes under five minutes; the misconfiguration surface is small but consequential — get the API key storage right from the beginning, not after you've accidentally committed it to a repo.
+        </p>
+
+        <h3 class="subsection-title">Prerequisites</h3>
+        <ul class="key-points">
+          <li><strong>Node.js 18+:</strong> Claude Code is a Node.js process. Check <code>node --version</code> — if you're below 18, upgrade via <a href="https://nodejs.org">nodejs.org</a> or nvm</li>
+          <li><strong>API key:</strong> Obtain from <code>console.anthropic.com</code> — requires an Anthropic account. For enterprise, your AI Platform team will provision keys; do not share or reuse personal keys</li>
+          <li><strong>Git (optional but expected):</strong> Claude Code uses git context to understand change history. Projects without git still work, but you lose branch-awareness</li>
+        </ul>
+
+        <h3 class="subsection-title">Step 1 — Install</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Install globally (requires Node.js 18+)</span>
+npm install -g @anthropic-ai/claude-code
+
+<span class="cm"># Verify installation</span>
+claude --version</code></pre>
+        </div>
+
+        <h3 class="subsection-title">Step 2 — Authenticate</h3>
+        <p>Two options: environment variable (preferred for scripts and CI) or interactive auth (preferred for developer workstations).</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>bash — Option A: Environment variable</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Add to your shell profile (~/.zshrc or ~/.bashrc)</span>
+<span class="kw">export</span> <span class="va">ANTHROPIC_API_KEY</span>=<span class="st">"sk-ant-api03-..."</span>
+
+<span class="cm"># Never hardcode in scripts. Never commit to git.</span>
+<span class="cm"># For enterprise: source from a secrets manager instead:</span>
+<span class="kw">export</span> <span class="va">ANTHROPIC_API_KEY</span>=$(<span class="fn">aws</span> secretsmanager get-secret-value \
+  --secret-id prod/anthropic/api-key \
+  --query SecretString \
+  --output text)</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>bash — Option B: Interactive auth</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Interactive login — opens browser for OAuth flow</span>
+claude auth
+
+<span class="cm"># Stores credentials in ~/.claude/credentials.json</span>
+<span class="cm"># Useful for dev workstations where env var management is cumbersome</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">Step 3 — First Run</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>bash</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Navigate to your project root first — context is set from here</span>
+cd my-fastapi-project
+
+<span class="cm"># Launch Claude Code (interactive REPL)</span>
+claude
+
+<span class="cm"># Or start with an immediate prompt (useful for scripts)</span>
+claude "Explain the architecture of this project in one paragraph"
+
+<span class="cm"># Non-interactive (returns JSON output, then exits)</span>
+claude --print "List all API endpoints defined in this codebase"</code></pre>
+        </div>
+
+        <h3 class="subsection-title">Permission Modes</h3>
+        <p>
+          Permission mode controls how Claude Code handles tool calls — specifically file writes and shell command execution. Choosing the wrong mode for your context creates either frustrating interruptions or unsupervised risk.
+        </p>
+
+        <div class="perm-grid">
+          <div class="perm-card">
+            <div class="perm-card-header default">Default (Ask)</div>
+            <div class="perm-card-body">
+              <p>Claude Code pauses and asks before every file write and shell command.</p>
+              <p><strong>Use for:</strong> Any unfamiliar codebase, onboarding, sensitive repos, production-adjacent work.</p>
+              <p><code>claude</code> — no flags needed</p>
+            </div>
+          </div>
+          <div class="perm-card">
+            <div class="perm-card-header auto">Auto-Approve</div>
+            <div class="perm-card-body">
+              <p>Claude Code executes tool calls without confirmation. Moves fast; higher blast radius.</p>
+              <p><strong>Use for:</strong> Throwaway branches, greenfield prototypes, after you trust the CLAUDE.md guardrails.</p>
+              <p><code>claude --dangerously-skip-permissions</code></p>
+            </div>
+          </div>
+          <div class="perm-card">
+            <div class="perm-card-header restrict">Restricted</div>
+            <div class="perm-card-body">
+              <p>Disables file writes and shell execution entirely. Read-only exploration and Q&amp;A only.</p>
+              <p><strong>Use for:</strong> Code review, audits, regulated environments, shared accounts.</p>
+              <p><code>claude --no-file-write --no-shell</code></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">✅</span>
+          <div class="callout-body">
+            <div class="callout-title">Default Mode for Enterprise Onboarding</div>
+            When rolling out Claude Code to a new team, mandate Default (Ask) mode for the first two weeks. Developers build intuition for what Claude Code wants to do before they start auto-approving. After that, auto-approve is reasonable on feature branches with proper CLAUDE.md guardrails. Restricted mode belongs in any environment where you wouldn't give a junior developer write access.
+          </div>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — Core Commands
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="core-commands">
+        <div class="section-label">
+          <span class="section-num">03</span>
+          <h2 class="section-title">Core Commands &amp; Slash Commands</h2>
+        </div>
+
+        <p>
+          Claude Code's interface is conversational by default — you type in natural language. Slash commands are shortcuts that invoke specific behaviors without constructing a full prompt. Think of them as power-user macros: one keystroke triggers a well-defined action. Knowing these cold is the difference between a developer who uses Claude Code occasionally and one who uses it as a primary workflow tool.
+        </p>
+
+        <h3 class="subsection-title">Slash Command Reference</h3>
+        <table class="cmd-table">
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>What It Does</th>
+              <th>When to Use It</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cmd-cell">/help</td>
+              <td>Lists all available slash commands and current session status</td>
+              <td>First run on any new machine; when you forget a command</td>
+            </tr>
+            <tr>
+              <td class="cmd-cell">/add &lt;file&gt;</td>
+              <td>Explicitly adds a file or glob pattern to the active context window</td>
+              <td>When Claude Code needs a file it hasn't loaded automatically — e.g. a config in a non-standard location</td>
+            </tr>
+            <tr>
+              <td class="cmd-cell">/clear</td>
+              <td>Resets the conversation history; starts a clean context</td>
+              <td>After completing a task before starting an unrelated one; when context is polluted with dead-end approaches</td>
+            </tr>
+            <tr>
+              <td class="cmd-cell">/review</td>
+              <td>Requests a structured code review of staged changes or a named file</td>
+              <td>Before opening a PR; after a large refactor; whenever you want a second pair of eyes without a teammate</td>
+            </tr>
+            <tr>
+              <td class="cmd-cell">/model</td>
+              <td>Switches the underlying model tier for the current session</td>
+              <td>Switch to Opus for complex multi-file architectural work; back to Sonnet for routine tasks</td>
+            </tr>
+            <tr>
+              <td class="cmd-cell">/diff</td>
+              <td>Shows the diff of all changes Claude Code has made in this session</td>
+              <td>Before committing; to review the full scope of a session's changes at a glance</td>
+            </tr>
+            <tr>
+              <td class="cmd-cell">/undo</td>
+              <td>Reverts the last file write Claude Code performed</td>
+              <td>When a generated change needs to be backed out without a full git reset</td>
+            </tr>
+            <tr>
+              <td class="cmd-cell">/status</td>
+              <td>Shows current model, context size, token usage, and permission mode</td>
+              <td>When debugging unexpected behavior; monitoring context window headroom</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 class="subsection-title">Keyboard Shortcuts</h3>
+        <table class="cmd-table">
+          <thead>
+            <tr>
+              <th>Shortcut</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cmd-cell">Ctrl+C</td>
+              <td>Interrupt the current task safely — Claude Code stops mid-execution without corrupting files that are already saved. Partial writes are rolled back.</td>
+            </tr>
+            <tr>
+              <td class="cmd-cell">Ctrl+D</td>
+              <td>Exit Claude Code session gracefully</td>
+            </tr>
+            <tr>
+              <td class="cmd-cell">↑ / ↓</td>
+              <td>Navigate command history in the REPL</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 class="subsection-title">The <code>--print</code> Flag for Non-Interactive Use</h3>
+        <p>
+          The <code>--print</code> flag is essential for CI pipelines, pre-commit hooks, and any scripted workflow. Claude Code runs the prompt, prints the result to stdout in JSON format, and exits. No REPL, no waiting for input.
+        </p>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>bash — Non-interactive usage</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Emit structured output for downstream tooling</span>
+claude --print "Does this codebase have any hardcoded API keys? List files and line numbers."
+
+<span class="cm"># Use in a shell script</span>
+<span class="va">review_output</span>=$(claude --print <span class="st">"Review the staged changes in this repo for security issues"</span>)
+<span class="bi">echo</span> <span class="st">"$review_output"</span> >> security-audit.log
+
+<span class="cm"># Combine with jq for structured parsing</span>
+claude --print --output-format json <span class="st">"List all TODO comments in the codebase"</span> \
+  | jq <span class="st">'.content[0].text'</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">How a Command Flows Through the System</h3>
+        <div class="arch-diagram">
+<span class="dim">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>                     <span class="label">CLAUDE CODE COMMAND FLOW</span>                          <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────────────────────────┘</span>
+
+  <span class="box">You type:</span>  <span class="good">"Add pagination to the /users endpoint. Use cursor-based pagination."</span>
+
+       │
+       ▼
+  <span class="label">1. Context Assembly</span>
+     ├── Reads CLAUDE.md  <span class="dim">(coding standards, banned patterns)</span>
+     ├── Reads relevant files  <span class="dim">(router, models, schemas, tests)</span>
+     └── Assembles full prompt  <span class="dim">(context + instruction → Anthropic API)</span>
+
+       │
+       ▼
+  <span class="label">2. Planning Phase</span>  <span class="dim">(visible in terminal as Claude reasons out loud)</span>
+     ├── Identifies files to modify: <span class="hi">routes/users.py, schemas/pagination.py</span>
+     ├── Identifies tests to update: <span class="hi">tests/test_users.py</span>
+     └── Plans execution order
+
+       │
+       ▼
+  <span class="label">3. Execution Phase</span>  <span class="dim">(tool calls, each shown with permission prompt in Default mode)</span>
+     ├── <span class="good">write_file</span>: routes/users.py  <span class="dim">→ [Approve? y/n]</span>
+     ├── <span class="good">write_file</span>: schemas/pagination.py  <span class="dim">→ [Approve? y/n]</span>
+     ├── <span class="good">run_command</span>: pytest tests/test_users.py  <span class="dim">→ [Approve? y/n]</span>
+     └── <span class="good">read_file</span>: reads test output, adjusts if failures
+
+       │
+       ▼
+  <span class="label">4. Summary</span>  <span class="dim">(diff + explanation + next steps shown in terminal)</span>
+        </div>
+
+        <div class="callout callout-note">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <div class="callout-title">Natural Language Over Commands</div>
+            Slash commands are useful, but the real productivity unlock is describing intent, not instructions. "Refactor the authentication middleware to use JWT with a 1-hour expiry, replace all session-based auth calls, and update the tests" is a better prompt than trying to micromanage each file edit. Claude Code is more capable than you might initially give it credit for on scope.
+          </div>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — CLAUDE.md
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="claude-md">
+        <div class="section-label">
+          <span class="section-num">04</span>
+          <h2 class="section-title">CLAUDE.md: Project Memory</h2>
+        </div>
+
+        <p>
+          CLAUDE.md is the single most important configuration artifact in any Claude Code deployment. It is a Markdown file that lives at your project root and is automatically read by Claude Code on every session start — before the first token of your actual prompt is processed. Think of it as the briefing document you'd hand a senior contractor on their first day: tech stack, team conventions, what not to touch, and where things live.
+        </p>
+
+        <p>
+          The ROI on writing a thorough CLAUDE.md is exceptional. You write it once. Every developer on your team benefits from it every session. Every time a new hire runs Claude Code on the repo, they inherit the accumulated architectural decisions without anyone explaining them in Slack. It compounds.
+        </p>
+
+        <h3 class="subsection-title">CLAUDE.md Hierarchy</h3>
+        <p>Claude Code resolves CLAUDE.md files in a layered hierarchy — global first, then project, then subdirectory. Each level adds or overrides the context established by the layer above.</p>
+
+        <div class="hierarchy-block">
+          <div class="h-label">Layer 1 — Global (User-Level)</div>
+          <div class="h-path">~/.claude/CLAUDE.md</div>
+          <div class="h-desc">Personal defaults that apply to every project you open. Good for: your preferred code style, your name and role, tools you always have available (e.g., "I have ripgrep, bat, and fd installed"), conventions you enforce across all your work.</div>
+        </div>
+        <div class="hierarchy-block level-2">
+          <div class="h-label">Layer 2 — Project (Team-Level)</div>
+          <div class="h-path">/repo-root/CLAUDE.md</div>
+          <div class="h-desc">The primary team convention file. Committed to git, reviewed like code, owned by the team. Contains architecture decisions, coding standards, test commands, banned patterns, and directory structure. This is the file this section focuses on.</div>
+        </div>
+        <div class="hierarchy-block level-3">
+          <div class="h-label">Layer 3 — Subdirectory (Module-Level)</div>
+          <div class="h-path">/repo-root/services/payments/CLAUDE.md</div>
+          <div class="h-desc">Scoped overrides for a specific module or service. Useful in monorepos where the payments service has different conventions than the frontend. Only loaded when Claude Code is working in or asked about that directory.</div>
+        </div>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">✅</span>
+          <div class="callout-body">
+            <div class="callout-title">Treat CLAUDE.md as Code</div>
+            Require pull request review for changes to CLAUDE.md just like you would for changes to a core library. If a developer decides to remove the rule banning raw SQL in CLAUDE.md, that decision should go through your normal review process — the same way changing a database migration policy would. CLAUDE.md is your team's contract with the AI.
+          </div>
+        </div>
+
+        <h3 class="subsection-title">What to Include in CLAUDE.md</h3>
+        <ul class="key-points">
+          <li><strong>Stack and versions:</strong> Python 3.12, FastAPI 0.111, SQLAlchemy 2.x, PostgreSQL 16 — so Claude Code doesn't suggest deprecated APIs</li>
+          <li><strong>Test commands:</strong> The exact commands to run the test suite — Claude Code uses these after making changes so it can verify before handing back to you</li>
+          <li><strong>Architecture decisions:</strong> "All database access goes through the repository layer; never call the ORM directly from routes" — these are the rules that don't appear in the code but shape every design decision</li>
+          <li><strong>Banned patterns:</strong> Explicit list of things that must never appear in this codebase — raw SQL, <code>print()</code> debugging, mutable default arguments, etc.</li>
+          <li><strong>Directory map:</strong> Where things live — especially in non-obvious layouts (monorepos, legacy structures)</li>
+          <li><strong>Coding style:</strong> Line length, import ordering, docstring format, naming conventions — saves constant back-and-forth on trivial style issues</li>
+        </ul>
+
+        <h3 class="subsection-title">Complete CLAUDE.md Example (FastAPI + PostgreSQL)</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>CLAUDE.md — project root</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># CLAUDE.md — Acme Corp API Platform</span>
+<span class="cm"># This file is read by Claude Code on every session start.</span>
+<span class="cm"># Review changes via PR before merging.</span>
+
+<span class="cm">## Stack</span>
+- Python 3.12 (use match/case, walrus operator where appropriate)
+- FastAPI 0.111 with async endpoints throughout
+- SQLAlchemy 2.x (async session; use `select()` not legacy `query()`)
+- PostgreSQL 16 — hosted on AWS RDS
+- Alembic for migrations (never edit migration files manually)
+- Pydantic v2 for all request/response schemas
+- pytest + httpx for testing; pytest-asyncio for async tests
+
+<span class="cm">## Test Commands</span>
+```bash
+# Run all tests
+pytest tests/ -v --tb=short
+
+# Run a single module
+pytest tests/test_users.py -v
+
+# Run with coverage
+pytest --cov=app --cov-report=term-missing
+
+# After any database schema change, generate migration:
+alembic revision --autogenerate -m "describe_change"
+alembic upgrade head
+```
+
+<span class="cm">## Project Structure</span>
+```
+app/
+  api/           # FastAPI routers — one file per resource
+  core/          # Config, security, dependencies, lifespan
+  models/        # SQLAlchemy ORM models (not Pydantic)
+  repositories/  # All database access — never call ORM from routes
+  schemas/       # Pydantic v2 request/response models
+  services/      # Business logic layer between routes and repos
+tests/           # Mirror app/ structure; fixtures in conftest.py
+alembic/         # Migration files — do not edit manually
+```
+
+<span class="cm">## Architecture Rules</span>
+- Routes call Services. Services call Repositories. Repositories call the ORM.
+  Never skip a layer. Never call ORM from a route file.
+- All endpoints must be async (`async def`). No sync database calls.
+- Every new endpoint requires: a schema, a service method, a repository method,
+  and at minimum one happy-path + one error-path test.
+- Use dependency injection via FastAPI Depends for auth, db sessions, pagination.
+- Pagination: cursor-based for all list endpoints. No offset pagination.
+
+<span class="cm">## Security Rules</span>
+- Never commit secrets. All config via environment variables or AWS Secrets Manager.
+- All routes except /health and /docs require authentication.
+- Validate and sanitize all user-supplied input at the schema layer (Pydantic).
+- Do not expose internal error details in API responses to clients.
+
+<span class="cm">## Banned Patterns — Never generate these</span>
+- Raw SQL strings (use SQLAlchemy ORM or Core expression language only)
+- `print()` statements (use `logging.getLogger(__name__)`)
+- `SELECT *` queries
+- Mutable default arguments (`def fn(data=[])`)
+- `from module import *`
+- Hardcoded IP addresses, ports, or credentials
+- `time.sleep()` in async code (use `asyncio.sleep()`)
+
+<span class="cm">## Code Style</span>
+- Black formatting, line length 99
+- isort for imports (profile=black)
+- Docstrings: Google style for public functions and classes
+- Type annotations required on all function signatures
+- All Pydantic models use `model_config = ConfigDict(from_attributes=True)`
+
+<span class="cm">## PR Checklist (remind me before I commit)</span>
+- [ ] Tests pass (`pytest tests/ -v`)
+- [ ] No new linting errors (`ruff check app/`)
+- [ ] Migration generated if models changed
+- [ ] New endpoint documented in OpenAPI description string
+- [ ] No print statements, no hardcoded values</code></pre>
+        </div>
+
+        <p>
+          Notice what this CLAUDE.md does: it eliminates entire classes of back-and-forth. Claude Code will not suggest offset pagination, will not write raw SQL, will not forget to add tests, will not use the legacy SQLAlchemy <code>query()</code> API. Every one of those rules was probably learned the hard way by someone on your team. Now they are encoded once and enforced automatically for every developer, every session.
+        </p>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 5 — IDE Integration
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="ide-integration">
+        <div class="section-label">
+          <span class="section-num">05</span>
+          <h2 class="section-title">IDE Integration</h2>
+        </div>
+
+        <p>
+          Claude Code's primary interface is the terminal. This is a deliberate design choice — the terminal has access to your full shell environment, your git state, your installed CLIs, and your project's actual file system. IDE integrations layer UX conveniences on top of this foundation without replacing it.
+        </p>
+
+        <p>
+          The right mental model: the IDE extension is a <strong>context bridge and UX shortcut</strong>. It makes it easier to select code and ask questions about it, or to trigger Claude Code actions from a right-click menu. The full agentic capability — multi-file edits, test execution, iterative fixing — lives in the terminal. Use both.
+        </p>
+
+        <div class="ide-grid">
+          <div class="ide-card">
+            <div class="ide-card-name">
+              Visual Studio Code
+              <span class="ide-badge vscode">VS Code</span>
+            </div>
+            <div class="ide-card-body">
+              <ul>
+                <li>Install "Claude Code" from the VS Code Marketplace</li>
+                <li>Sidebar panel shows conversation history and current context</li>
+                <li>Select any code block → right-click → "Ask Claude" sends selection with context</li>
+                <li><strong>Cmd+Shift+C</strong> (Mac) / <strong>Ctrl+Shift+C</strong> (Win/Linux) opens the Claude panel from anywhere</li>
+                <li>Inline diff review: proposed changes appear as red/green in the editor gutter before you accept</li>
+                <li>The integrated terminal inside VS Code gives full Claude Code CLI access alongside the extension</li>
+              </ul>
+            </div>
+          </div>
+          <div class="ide-card">
+            <div class="ide-card-name">
+              JetBrains IDEs
+              <span class="ide-badge jb">JetBrains</span>
+            </div>
+            <div class="ide-card-body">
+              <ul>
+                <li>Install "Claude Code" from JetBrains Marketplace (works in IntelliJ, PyCharm, WebStorm, GoLand, Rider)</li>
+                <li>Tool window panel docked to the right sidebar — persists across IDE restarts</li>
+                <li>Select code → right-click → "Ask Claude" / "Refactor with Claude" context actions</li>
+                <li>Diff viewer uses the native JetBrains merge tool — compare proposed changes side-by-side before accepting</li>
+                <li>Works best when you also have Claude Code running in the IDE's built-in terminal for complex multi-file tasks</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="subsection-title">Key IDE Workflows</h3>
+        <ul class="key-points">
+          <li><strong>Select + Ask:</strong> Highlight a function, right-click → "Ask Claude" → type "What does this do?" or "Explain the edge cases this misses" — gets you a focused answer without switching windows</li>
+          <li><strong>Inline diff review:</strong> Claude Code proposes a change; the IDE shows the diff in the gutter. You accept or reject individual hunks, exactly like a git merge. Never accept blindly — review every hunk</li>
+          <li><strong>Test generation:</strong> Select a function, ask "Write pytest tests for this function covering the happy path, type errors, and boundary conditions" — paste the generated tests into the test file</li>
+          <li><strong>Docstring generation:</strong> Select a class or function, ask "Write a Google-style docstring" — faster than writing from scratch, consistently formatted</li>
+          <li><strong>Terminal for agentic tasks:</strong> When the task spans more than one file, switch to the terminal and give Claude Code the full goal. The IDE extension is for single-file, targeted questions; the terminal is for agentic multi-step execution</li>
+        </ul>
+
+        <div class="callout callout-note">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <div class="callout-title">Terminal-First, IDE-Enhanced</div>
+            Developers who use only the IDE extension often plateau at "better autocomplete." Developers who combine the terminal REPL with the IDE extension — using the terminal for complex planning tasks and the IDE for targeted in-editor questions — get the 10× productivity gain. The terminal is where the agency lives.
+          </div>
+        </div>
+
+        <h3 class="subsection-title">Using the Integrated Terminal</h3>
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>bash — Inside VS Code or JetBrains terminal</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># The integrated terminal has full project context because</span>
+<span class="cm"># it launches from the project root automatically.</span>
+
+<span class="cm"># Start a full agentic session</span>
+claude
+
+<span class="cm"># Example: multi-file refactor from the terminal while IDE is open</span>
+<span class="cm"># Claude Code writes files → IDE refreshes automatically → you review in IDE diff</span>
+<span class="cm">> Migrate all synchronous database calls in the services/ directory to async.</span>
+<span class="cm">> Update the tests to use pytest-asyncio. Run the tests after each file change.</span>
+
+<span class="cm"># IDE shows diffs in real time as files are written</span></code></pre>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 6 — Enterprise Setup & Guardrails
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="enterprise-setup">
+        <div class="section-label">
+          <span class="section-num">06</span>
+          <h2 class="section-title">Enterprise Setup &amp; Guardrails</h2>
+        </div>
+
+        <p>
+          Handing developers Claude Code with a shared API key and no guidance is the fastest way to produce a governance incident. Enterprise deployments need deliberate setup across four dimensions: secret management, team conventions, rate/cost control, and audit logging. None of these are difficult; all of them are skipped by organizations that adopt Claude Code reactively instead of proactively.
+        </p>
+
+        <h3 class="subsection-title">API Key Management</h3>
+        <p>
+          The rule is simple: developers never see raw API keys. Keys are fetched at runtime from a secrets manager. This eliminates the entire class of "accidentally committed to git" incidents and gives your security team a single rotation point.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>bash — Fetch from AWS Secrets Manager at shell startup</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Add to ~/.zshrc or ~/.bashrc — executed at every shell start</span>
+<span class="cm"># Developer never sees the key; it is fetched and injected into env</span>
+
+anthropic_key() {
+  aws secretsmanager get-secret-value \
+    --secret-id "prod/anthropic/claude-code-api-key" \
+    --query SecretString \
+    --output text \
+    --region us-east-1 2>/dev/null
+}
+
+<span class="kw">export</span> <span class="va">ANTHROPIC_API_KEY</span>=$(anthropic_key)
+
+<span class="cm"># For HashiCorp Vault:</span>
+<span class="kw">export</span> <span class="va">ANTHROPIC_API_KEY</span>=$(vault kv get \
+  -field=api_key \
+  secret/engineering/anthropic)</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>bash — Block accidental commits with pre-commit hook</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm">#!/bin/sh</span>
+<span class="cm"># .git/hooks/pre-commit — blocks commits containing API key patterns</span>
+
+<span class="kw">if</span> git diff --cached --name-only | xargs grep -l <span class="st">'sk-ant-api'</span> 2>/dev/null; then
+  <span class="bi">echo</span> <span class="st">"ERROR: Anthropic API key pattern detected in staged files."</span>
+  <span class="bi">echo</span> <span class="st">"Remove it and use environment variables or secrets manager."</span>
+  <span class="kw">exit</span> 1
+fi
+
+<span class="kw">exit</span> 0</code></pre>
+        </div>
+
+        <h3 class="subsection-title">Team CLAUDE.md Governance</h3>
+        <p>
+          The project CLAUDE.md file should be committed to git and treated as a first-class configuration artifact — not a developer's personal notes file. Establish the following policies:
+        </p>
+        <ul class="key-points">
+          <li><strong>Require PR review:</strong> CLAUDE.md changes require at least one reviewer who is not the author — the same bar as changes to shared infrastructure</li>
+          <li><strong>Own it explicitly:</strong> Assign a CODEOWNER for CLAUDE.md in your repo's <code>CODEOWNERS</code> file — typically the tech lead or platform team</li>
+          <li><strong>Changelog:</strong> Keep a comment block at the top of CLAUDE.md logging significant rule additions with dates and rationale — "2025-03-12: Banned offset pagination after scaling incident in KGI-4421"</li>
+          <li><strong>CI validation:</strong> Add a lint step that verifies CLAUDE.md contains the required sections (Stack, Test Commands, Banned Patterns) — prevents accidental deletion</li>
+        </ul>
+
+        <h3 class="subsection-title">Rate Limiting &amp; Cost Controls</h3>
+
+        <div class="compare-grid">
+          <div class="compare-card">
+            <div class="compare-card-header blue">Per-Developer Keys</div>
+            <div class="compare-card-body">
+              <ul>
+                <li>Each developer gets their own API key</li>
+                <li>Usage visible per-developer in Anthropic console</li>
+                <li>Easy to revoke when a developer offboards</li>
+                <li>No single key represents the entire team's blast radius</li>
+                <li><strong>Best for:</strong> Teams of up to ~30 developers; direct API access</li>
+              </ul>
+            </div>
+          </div>
+          <div class="compare-card">
+            <div class="compare-card-header green">AI Gateway (Org-Level)</div>
+            <div class="compare-card-body">
+              <ul>
+                <li>All Claude Code traffic routes through an internal gateway</li>
+                <li>Per-team token budgets enforced at the gateway</li>
+                <li>Cost attribution by team/project/environment</li>
+                <li>Unified audit log regardless of which key was used</li>
+                <li><strong>Best for:</strong> 30+ developers; regulated environments; chargeback requirements</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="subsection-title">Audit Logging</h3>
+        <p>
+          Claude Code logs all sessions — including the prompts you send and the tool calls it makes — to <code>~/.claude/logs/</code> on each developer's machine. In an enterprise context, this is not sufficient; you need centralized, tamper-resistant logs for compliance and incident investigation.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>bash — Forward Claude Code logs to a SIEM</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Example: ship logs to Splunk via HEC (HTTP Event Collector)</span>
+<span class="cm"># Run as a background daemon on developer machines or golden AMI</span>
+
+<span class="kw">while</span> inotifywait -e modify ~/.claude/logs/ 2>/dev/null; <span class="kw">do</span>
+  <span class="kw">for</span> log <span class="kw">in</span> ~/.claude/logs/*.jsonl; <span class="kw">do</span>
+    tail -n 1 <span class="st">"$log"</span> | curl -s \
+      -H <span class="st">"Authorization: Splunk $SPLUNK_HEC_TOKEN"</span> \
+      -H <span class="st">"Content-Type: application/json"</span> \
+      --data-binary @- \
+      <span class="st">"https://splunk.internal:8088/services/collector/event"</span>
+  <span class="kw">done</span>
+<span class="kw">done</span>
+
+<span class="cm"># For AWS CloudWatch Logs (simpler, agent-based approach):</span>
+<span class="cm"># Add to your CloudWatch agent config:</span>
+<span class="cm"># {</span>
+<span class="cm">#   "file_path": "/home/*/. claude/logs/*.jsonl",</span>
+<span class="cm">#   "log_group_name": "/enterprise/claude-code/sessions",</span>
+<span class="cm">#   "log_stream_name": "{hostname}/{username}"</span>
+<span class="cm"># }</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">Restricted Mode for Regulated Environments</h3>
+        <p>
+          In environments where a developer should not have write access — production codebases under change-freeze, shared review environments, or environments where a second-person rule applies — use restricted mode to disable file writes and shell execution entirely. Claude Code becomes a read-only analysis and Q&amp;A tool.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>bash — Restricted mode examples</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Read-only: no file writes, no shell commands</span>
+claude --no-file-write --no-shell
+
+<span class="cm"># Alias for regulated environments — add to ~/.zshrc</span>
+<span class="kw">alias</span> <span class="va">claude-review</span>=<span class="st">'claude --no-file-write --no-shell'</span>
+
+<span class="cm"># Useful for: compliance audits, code review sessions, production investigation</span>
+<span class="cm"># Developers can still ask Claude Code to analyze, explain, and recommend —</span>
+<span class="cm"># they just have to apply changes manually.</span>
+
+<span class="cm"># Enforce via CLAUDE.md for the production branch:</span>
+<span class="cm"># ## Restricted Mode Policy</span>
+<span class="cm"># All Claude Code sessions on `main` branch must use --no-file-write.</span>
+<span class="cm"># Changes must be made on a feature branch and reviewed before merge.</span></code></pre>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <div class="callout-title">Auto-Approve is a Privilege, Not a Default</div>
+            The <code>--dangerously-skip-permissions</code> flag should be treated like <code>sudo</code>: available to developers who understand the consequences, not enabled by default, and never used in environments where changes require review. Enforce this via your onboarding documentation and CLAUDE.md policy — not by trusting developers to self-govern on production repos.
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-box">
+          <h4>Day 2 · Module 1 — Key Takeaways</h4>
+          <ul>
+            <li><strong>Agency, not autocomplete:</strong> Claude Code plans, executes, observes, and iterates — it is a reasoning process with tool access, not a smarter tab-complete</li>
+            <li><strong>Install and auth:</strong> <code>npm install -g @anthropic-ai/claude-code</code> + API key from Secrets Manager; never commit keys; use interactive <code>claude auth</code> on dev workstations</li>
+            <li><strong>Permission modes:</strong> Default (ask) for new environments, auto-approve on trusted feature branches, restricted for production-adjacent or regulated contexts</li>
+            <li><strong>Slash commands:</strong> <code>/clear</code>, <code>/add</code>, <code>/review</code>, <code>/model</code>, <code>/diff</code> are your day-to-day power tools; <code>--print</code> for scripted/CI use</li>
+            <li><strong>CLAUDE.md is your control plane:</strong> Encode team conventions, banned patterns, and test commands once — every developer and every session benefits automatically; review changes like code</li>
+            <li><strong>IDE integration:</strong> VS Code and JetBrains extensions add UX shortcuts; the terminal is where agentic power lives — use both together</li>
+            <li><strong>Enterprise guardrails:</strong> Per-developer keys or AI Gateway, CLAUDE.md in CODEOWNERS, logs forwarded to SIEM, restricted mode for regulated environments</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Page Navigation -->
+      <div class="page-nav">
+        <a href="day1-labs.html">
+          <span class="nav-dir">← Previous</span>
+          <span class="nav-title">Day 1 · Labs</span>
+        </a>
+        <a href="day2-module2-dev-workflows.html" class="nav-next">
+          <span class="nav-dir">Next →</span>
+          <span class="nav-title">Day 2 · Module 2: AI-Assisted Development Workflows</span>
+        </a>
+      </div>
+
+    </div><!-- end content-wrap -->
+
+    <!-- Right TOC -->
+    <aside class="toc">
+      <div class="toc-inner">
+        <div class="toc-label">On This Page</div>
+        <a href="#what-is-claude-code">What Is Claude Code</a>
+        <a href="#installation-setup">Installation &amp; Setup</a>
+        <a href="#core-commands">Core Commands</a>
+        <a href="#claude-md">CLAUDE.md: Project Memory</a>
+        <a href="#ide-integration">IDE Integration</a>
+        <a href="#enterprise-setup">Enterprise Setup &amp; Guardrails</a>
+      </div>
+    </aside>
+
+  </main>
+</div>
+
+<script src="assets/js/brand-theme.js"></script>
+<script src="assets/js/main.js"></script>
+
+<!-- ───────────── Tweaks Panel ───────────── -->
+<div id="tweaks-root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="assets/js/tweaks-panel.jsx"></script>
+<script type="text/babel" src="assets/js/module-tweaks.jsx"></script>
+</body>
+</html>

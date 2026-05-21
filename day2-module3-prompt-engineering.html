@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prompt Engineering for Code — Claude Architect</title>
+  <meta name="description" content="Day 2 Module 3: Anatomy of high-quality code prompts, XML prompting, context window management, iterative patterns, role specification, and team prompt libraries for Claude Code." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+
+    .arch-diagram {
+      background: var(--code-bg); border: 1px solid var(--code-border);
+      border-radius: var(--radius); padding: 1.5rem;
+      font-family: var(--mono); font-size: 0.78rem; color: #c9d1d9;
+      line-height: 1.8; overflow-x: auto; margin: 1.25rem 0;
+    }
+    .arch-diagram .box   { color: #79c0ff; }
+    .arch-diagram .hi    { color: #ffa657; }
+    .arch-diagram .label { color: #a5d6ff; }
+    .arch-diagram .dim   { color: #484f58; }
+    .arch-diagram .bad   { color: #ff7b72; }
+    .arch-diagram .good  { color: #7ee787; }
+
+    .compare-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1rem; margin: 1.25rem 0;
+    }
+    .compare-panel {
+      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    }
+    .compare-panel-header {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.65rem 1rem; font-size: 0.78rem; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-panel-header.bad-header  { background: #2d1515; color: #ff7b72; }
+    .compare-panel-header.good-header { background: #0d2117; color: #7ee787; }
+    .compare-panel pre { margin: 0; border-radius: 0; border: none; }
+
+    .prompt-element-card {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1rem 1.1rem; margin: 0;
+    }
+    .prompt-element-card .elem-num {
+      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 0.25rem;
+    }
+    .prompt-element-card .elem-name {
+      font-weight: 700; font-size: 0.95rem; color: var(--text-heading);
+      margin-bottom: 0.3rem;
+    }
+    .prompt-element-card .elem-body {
+      font-size: 0.82rem; color: var(--text);
+    }
+
+    .iter-step {
+      border-left: 3px solid var(--accent); padding: 0.75rem 1.25rem;
+      margin: 0.85rem 0; background: var(--surface);
+      border-radius: 0 var(--radius) var(--radius) 0;
+    }
+    .iter-step-title {
+      font-weight: 700; font-size: 0.88rem; color: var(--text-heading);
+      margin-bottom: 0.3rem;
+    }
+    .iter-step-body { font-size: 0.85rem; color: var(--text); }
+
+    .template-card {
+      border: 1px solid var(--border); border-radius: var(--radius);
+      margin: 1rem 0; overflow: hidden;
+    }
+    .template-card-header {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.75rem 1.1rem; border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .template-card-num {
+      font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--accent);
+      background: rgba(var(--accent-rgb, 99,102,241),0.1);
+      padding: 0.2rem 0.5rem; border-radius: 3px;
+    }
+    .template-card-title {
+      font-weight: 700; font-size: 0.92rem; color: var(--text-heading);
+    }
+    .template-card pre { margin: 0; border-radius: 0; border: none; }
+
+    .role-diff-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1rem; margin: 1.25rem 0;
+    }
+    .role-diff-panel {
+      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    }
+    .role-diff-header {
+      padding: 0.65rem 1rem; font-size: 0.78rem; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+    .role-diff-header.no-role  { background: #1e1e2e; color: #8b949e; }
+    .role-diff-header.with-role { background: #0d2117; color: #7ee787; }
+    .role-diff-panel .role-diff-body { padding: 1rem; font-size: 0.84rem; color: var(--text); }
+    .role-diff-panel .role-diff-body ul { margin: 0.5rem 0 0 1.1rem; }
+    .role-diff-panel .role-diff-body li { margin-bottom: 0.35rem; }
+
+    @media(max-width:768px){
+      .compare-grid { grid-template-columns: 1fr; }
+      .role-diff-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle>
+      <line x1="12" y1="12" x2="19" y2="7.5"></line>
+      <line x1="12" y1="12" x2="20.5" y2="13.5"></line>
+      <line x1="12" y1="12" x2="16" y2="20"></line>
+      <line x1="12" y1="12" x2="7" y2="19.5"></line>
+      <line x1="12" y1="12" x2="3.5" y2="13"></line>
+      <line x1="12" y1="12" x2="7" y2="5"></line>
+      <circle cx="19" cy="7.5"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="20.5" cy="13.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="16" cy="20"   r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="19.5"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="3.5" cy="13"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="5"     r="1" fill="currentColor" stroke="none"></circle>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 2 · Module 3</span>
+  <div class="topbar-right">
+    <span class="topbar-badge">Day 2 of 4</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle>
+        <span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html" class="active">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="content-wrap">
+
+      <nav class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span>Day 2</span>
+        <span class="sep">/</span>
+        <span>Prompt Engineering for Code</span>
+      </nav>
+
+      <div class="page-header">
+        <div class="module-tag">✦ Day 2 · Module 3</div>
+        <h1 class="page-title">Prompt Engineering for Code</h1>
+        <p class="page-objective">
+          <strong>Outcome:</strong> Write prompts that produce correct, idiomatic, production-ready code on the first or second attempt — by applying structured anatomy, XML context boundaries, context window discipline, iterative patterns, and role specifications. Build a team prompt library that compounds this skill across your entire engineering organization.
+        </p>
+        <div class="module-meta">
+          <span class="meta-item"><span class="dot"></span> Prompt Anatomy</span>
+          <span class="meta-item"><span class="dot"></span> XML Prompting</span>
+          <span class="meta-item"><span class="dot"></span> Context Management</span>
+          <span class="meta-item"><span class="dot"></span> Iterative Patterns</span>
+          <span class="meta-item"><span class="dot"></span> Role Specification</span>
+          <span class="meta-item"><span class="dot"></span> Team Prompt Library</span>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — Anatomy of a High-Quality Code Prompt
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="prompt-anatomy">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <h2 class="section-title">Anatomy of a High-Quality Code Prompt</h2>
+        </div>
+
+        <p>
+          Most developers underperform with Claude Code not because Claude is limited, but because their prompts are. A vague prompt forces Claude to make assumptions — about your stack, your style conventions, your security posture, your error handling philosophy. Every assumption Claude makes is a potential mismatch with your codebase. The fix is not trial-and-error iteration; it is a structured prompt that eliminates ambiguity before Claude writes a single line of code.
+        </p>
+        <p>
+          A high-quality code prompt has five elements. None of them are optional. Together they give Claude everything it needs to produce code you can actually use.
+        </p>
+
+        <div class="info-grid" style="margin: 1.5rem 0;">
+          <div class="info-card prompt-element-card">
+            <div class="elem-num">Element 01</div>
+            <div class="elem-name">Role</div>
+            <div class="elem-body">Who Claude is for this task. Determines vocabulary, reasoning depth, and tradeoff priorities. Without a role, Claude defaults to a generalist stance that rarely matches your team's standards.</div>
+          </div>
+          <div class="info-card prompt-element-card">
+            <div class="elem-num">Element 02</div>
+            <div class="elem-name">Context</div>
+            <div class="elem-body">What exists in the codebase that Claude must respect. Without context, Claude generates generic code that won't fit your patterns, naming conventions, or dependency choices.</div>
+          </div>
+          <div class="info-card prompt-element-card">
+            <div class="elem-num">Element 03</div>
+            <div class="elem-name">Task</div>
+            <div class="elem-body">The precise, bounded thing Claude must do. Tasks scoped too broadly produce sprawling output. Tasks scoped too narrowly miss integration concerns. One task per prompt.</div>
+          </div>
+          <div class="info-card prompt-element-card">
+            <div class="elem-num">Element 04</div>
+            <div class="elem-name">Constraints</div>
+            <div class="elem-body">What Claude must not do. Without explicit constraints, Claude adds features you didn't ask for, picks libraries you don't use, and introduces patterns that violate your architecture rules.</div>
+          </div>
+          <div class="info-card prompt-element-card">
+            <div class="elem-num">Element 05</div>
+            <div class="elem-name">Output Format</div>
+            <div class="elem-body">How Claude should structure its response. A full file? A diff? A function only? With tests included? Inline comments? If you don't specify, Claude will guess — and the guess won't match your review workflow.</div>
+          </div>
+        </div>
+
+        <h3 class="subsection-title">Side-by-Side: Weak vs Strong Prompt</h3>
+        <p>
+          The task is identical in both prompts: implement a rate limiter. The outputs Claude produces are not.
+        </p>
+
+        <div class="compare-grid">
+          <div class="compare-panel">
+            <div class="compare-panel-header bad-header">
+              <span>✗</span> Weak Prompt
+            </div>
+            <div class="code-block" style="border:none;border-radius:0;">
+              <pre><code>Implement a rate limiter in Python.</code></pre>
+            </div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-panel-header good-header">
+              <span>✓</span> Strong Prompt
+            </div>
+            <div class="code-block" style="border:none;border-radius:0;">
+              <pre><code>You are a senior Python backend engineer at a
+B2B SaaS company building on FastAPI.
+
+Context: Our API uses FastAPI 0.111 with
+dependency injection. Redis (via redis-py asyncio
+client) is already in scope as our cache layer.
+Rate limit state must survive pod restarts.
+We target 99.9% uptime so the limiter must fail
+open (allow requests) if Redis is unavailable.
+
+Task: Implement a sliding-window rate limiter as
+a FastAPI dependency. It should accept requests
+per window and window_seconds as parameters.
+
+Constraints:
+- Use ONLY redis-py asyncio — no aioredis
+- No global state; pass the Redis client via DI
+- Do NOT add a middleware; it must be a Depends()
+- Raise HTTP 429 with Retry-After header
+- No external libraries beyond fastapi, redis-py
+
+Output: A single self-contained Python module
+`app/dependencies/rate_limiter.py` with the
+class, the dependency factory, and inline type
+hints. Include a usage example as a docstring.</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <div class="callout-title">The Hidden Cost of Weak Prompts</div>
+            A weak prompt doesn't just produce worse code on the first attempt — it forces you into a correction loop. Each correction turn costs context tokens, time, and the mental overhead of reviewing half-wrong code. A well-structured prompt that takes 90 seconds to write routinely saves 10–20 minutes of back-and-forth. At team scale, this is a meaningful engineering productivity multiplier.
+          </div>
+        </div>
+
+        <h3 class="subsection-title">What Claude Does Without Each Element</h3>
+        <ul class="key-points">
+          <li><strong>Without Role:</strong> Claude assumes a generic software engineer persona. It may choose Flask over FastAPI, synchronous code over async, or suggest libraries your team has explicitly excluded. The code will be "correct Python" but not your Python.</li>
+          <li><strong>Without Context:</strong> Claude invents its own data models, import paths, and error handling conventions. Integrating this output requires significant rework because it doesn't connect to anything real in your codebase.</li>
+          <li><strong>Without Task Boundary:</strong> Claude may implement the rate limiter and add a caching decorator, refactor adjacent code it notices in context, or suggest a follow-up architecture change. All unsolicited and all requiring review.</li>
+          <li><strong>Without Constraints:</strong> Claude defaults to whatever it considers best practice. If your team has decided <em>not</em> to use a pattern Claude considers idiomatic (for reasons of operational simplicity, team familiarity, or vendor lock-in), Claude will use it anyway unless you say so.</li>
+          <li><strong>Without Output Format:</strong> Claude returns whatever it deems most helpful — sometimes a full explanation plus code, sometimes code only, sometimes a refactored version of existing code it finds in context. Your review workflow deserves predictability.</li>
+        </ul>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — XML Prompting
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="xml-prompting">
+        <div class="section-label">
+          <span class="section-num">02</span>
+          <h2 class="section-title">XML Prompting for Structured Code Tasks</h2>
+        </div>
+
+        <p>
+          For simple tasks — "explain this function", "add a docstring" — a well-written plain-text prompt is sufficient. But as tasks grow in complexity, the boundaries between instruction, your existing code, reference examples, and desired output become ambiguous. Claude is a language model: it parses structure from text, and ambiguous structure produces ambiguous output.
+        </p>
+        <p>
+          XML tags solve this. They create unambiguous, machine-readable context boundaries. Claude has been specifically trained to respect them. This is not a workaround or a hack — it is the intended authoring surface for complex, multi-constraint tasks.
+        </p>
+
+        <h3 class="subsection-title">The Core Tag Vocabulary</h3>
+        <ul class="key-points">
+          <li><code>&lt;context&gt;</code> — Background information about your system, architecture, or conventions that Claude needs to reason correctly. Not the task itself.</li>
+          <li><code>&lt;task&gt;</code> — The precise action Claude must take. Single, bounded, actionable.</li>
+          <li><code>&lt;constraints&gt;</code> — Explicit limits. What Claude must not do, what libraries it must not introduce, what patterns it must follow.</li>
+          <li><code>&lt;existing_code&gt;</code> — Code that already exists in your codebase that Claude must read, respect, or modify. Using this tag makes it unambiguous that this is <em>yours</em>, not a reference.</li>
+          <li><code>&lt;examples&gt;</code> — Reference examples showing the style, pattern, or convention you want Claude to follow. Distinct from existing code.</li>
+          <li><code>&lt;output_format&gt;</code> — The exact format Claude should return: file path, language, structure, whether to include tests or explanations.</li>
+        </ul>
+
+        <h3 class="subsection-title">Complete Example: Add Validation to a FastAPI Endpoint</h3>
+        <p>
+          The following is a production-quality XML prompt for adding input validation to an existing endpoint. Notice how each tag serves a distinct purpose and eliminates a whole class of assumption.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>XML prompt — FastAPI input validation</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Send this as the user turn in your Claude Code session</span>
+
+&lt;context&gt;
+We run a multi-tenant B2B API built on FastAPI 0.111, Pydantic v2,
+and Python 3.12. Authentication is handled upstream via a gateway
+that injects X-Tenant-ID and X-User-ID headers — we do NOT
+re-authenticate inside endpoint handlers.
+
+Our validation convention is Pydantic model validators with
+model_validator(mode="before") for cross-field checks and
+field_validator for single-field checks. We raise HTTPException
+directly from validators rather than using a custom exception handler.
+
+We use snake_case for all Python identifiers and kebab-case for
+HTTP header names. Responses always include a "request_id" field
+sourced from the request state.
+&lt;/context&gt;
+
+&lt;existing_code file="app/routers/payments.py"&gt;
+from fastapi import APIRouter, Depends, Request
+from app.dependencies.auth import require_tenant
+from app.models.payments import PaymentRequest, PaymentResponse
+from app.services.payment_service import PaymentService
+
+router = APIRouter(prefix="/payments", tags=["payments"])
+
+@router.post("/initiate", response_model=PaymentResponse)
+async def initiate_payment(
+    request: Request,
+    body: dict,                       # TODO: replace with validated model
+    tenant_id: str = Depends(require_tenant),
+    svc: PaymentService = Depends(),
+) -&gt; PaymentResponse:
+    result = await svc.initiate(tenant_id, body)
+    return PaymentResponse(**result, request_id=request.state.request_id)
+&lt;/existing_code&gt;
+
+&lt;task&gt;
+Replace the untyped `body: dict` parameter with a Pydantic v2 model
+`InitiatePaymentRequest` defined in `app/models/payments.py`.
+The model must validate:
+1. `amount` — positive Decimal, max 2 decimal places, max value 999_999.99
+2. `currency` — ISO 4217 three-letter uppercase string (e.g. "USD", "EUR")
+3. `recipient_account_id` — non-empty string, max 64 chars, alphanumeric + hyphens only
+4. `idempotency_key` — UUID4 string; if absent, generate one server-side (do not require client to send it)
+5. Cross-field: if currency is "USD", amount must be &gt;= 1.00 (USD has a minimum charge floor)
+&lt;/task&gt;
+
+&lt;constraints&gt;
+  &lt;style&gt;
+    - Use Pydantic v2 syntax only (model_validator, field_validator, not @validator)
+    - Do not import or use any third-party validation library (e.g. no voluptuous, marshmallow)
+    - Keep the router file changes minimal — only swap body: dict for the new model type
+  &lt;/style&gt;
+  &lt;security&gt;
+    - Do not log or expose the full amount or recipient_account_id in error messages
+    - Validation error responses must not leak internal field names beyond what Pydantic provides by default
+  &lt;/security&gt;
+  &lt;behaviour&gt;
+    - Raise HTTP 422 for validation failures (FastAPI default — do not override)
+    - Raise HTTP 400 explicitly only for the USD minimum floor violation with message:
+      "USD payments require a minimum amount of 1.00"
+  &lt;/behaviour&gt;
+&lt;/constraints&gt;
+
+&lt;output_format&gt;
+Return two code blocks clearly labelled:
+1. `app/models/payments.py` — the full updated models file with InitiatePaymentRequest added
+2. `app/routers/payments.py` — the updated router with only the type annotation changed
+
+No explanatory prose. Inline comments only where the logic is non-obvious.
+&lt;/output_format&gt;</code></pre>
+        </div>
+
+        <h3 class="subsection-title">Plain-Text vs XML: Same Task, Different Output Quality</h3>
+
+        <div class="compare-grid">
+          <div class="compare-panel">
+            <div class="compare-panel-header bad-header">
+              <span>✗</span> Plain-Text Prompt
+            </div>
+            <div class="code-block" style="border:none;border-radius:0;">
+              <pre><code>Add validation to the initiate_payment
+endpoint in our FastAPI app. Validate the
+amount, currency, recipient, and add an
+idempotency key.</code></pre>
+            </div>
+            <div style="padding:0.9rem 1rem; font-size:0.82rem; color:var(--text); border-top:1px solid var(--border);">
+              <strong>Likely output problems:</strong>
+              <ul style="margin:0.4rem 0 0 1.1rem;">
+                <li>Uses Pydantic v1 syntax (@validator) if Claude trained on older examples</li>
+                <li>Invents currency codes as an Enum, which breaks with new currencies</li>
+                <li>Adds a global exception handler you didn't ask for</li>
+                <li>Missing the USD minimum floor logic</li>
+                <li>May modify the router signature in ways that break the DI chain</li>
+              </ul>
+            </div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-panel-header good-header">
+              <span>✓</span> XML Prompt (above)
+            </div>
+            <div style="padding:0.9rem 1rem; font-size:0.82rem; color:var(--text);">
+              <strong>What XML boundaries give you:</strong>
+              <ul style="margin:0.4rem 0 0 1.1rem;">
+                <li>Claude reads your existing code as <em>constraint</em>, not <em>example to rewrite</em></li>
+                <li>Style constraints eliminate the Pydantic v1/v2 ambiguity entirely</li>
+                <li>Security constraints prevent over-verbose error messages in the model</li>
+                <li>Output format ensures you get two labelled blocks, not a narrative</li>
+                <li>Nested constraint tags let you group security vs style vs behaviour concerns</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="subsection-title">When XML Helps Most</h3>
+        <ul class="key-points">
+          <li><strong>Multi-step tasks:</strong> When you need Claude to do X, then Y, then Z in sequence, XML tags let each step be independently scoped without bleeding into each other.</li>
+          <li><strong>Tasks with many constraints:</strong> When you have more than 3 explicit constraints, plain-text lists get lost. Nested XML groups related constraints so Claude can process them coherently.</li>
+          <li><strong>Distinguishing your code from reference code:</strong> Use <code>&lt;existing_code&gt;</code> for what Claude must preserve and <code>&lt;examples&gt;</code> for patterns Claude should emulate. Without this distinction, Claude may modify your reference examples or treat existing code as optional.</li>
+          <li><strong>Long context sessions:</strong> In a session with many files in context, XML tags in your prompt give Claude clear anchoring points to return to when it reasons about constraints.</li>
+        </ul>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <div class="callout-title">Nested Tags for Multi-Dimension Constraints</div>
+            Group constraints by dimension rather than listing them flat. <code>&lt;constraints&gt;&lt;security&gt;...&lt;/security&gt;&lt;style&gt;...&lt;/style&gt;&lt;behaviour&gt;...&lt;/behaviour&gt;&lt;/constraints&gt;</code> lets Claude process security-related constraints as a coherent block before shifting to style. This mirrors how a human engineer mentally separates security requirements from coding style — and produces correspondingly more coherent output.
+          </div>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — Context Window Management
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="context-management">
+        <div class="section-label">
+          <span class="section-num">03</span>
+          <h2 class="section-title">Context Window Management</h2>
+        </div>
+
+        <p>
+          Claude Code's 200K-token context window is large enough that most developers stop thinking about it — and that is a mistake. Context is not free storage. Every token you add to the context is a token Claude must attend over when generating its response. The relationship is not linear: adding irrelevant context actively degrades output quality because Claude's attention is diluted across content that doesn't bear on the task.
+        </p>
+
+        <div class="arch-diagram">
+<span class="dim">┌─────────────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>                    <span class="label">CONTEXT WINDOW ECONOMICS</span>                          <span class="dim">│</span>
+<span class="dim">│</span>                                                                     <span class="dim">│</span>
+<span class="dim">│</span>  200K tokens total                                                  <span class="dim">│</span>
+<span class="dim">│</span>  ┌────────────────────────────────────────────────────────────┐    <span class="dim">│</span>
+<span class="dim">│</span>  │ <span class="good">Focused session</span>                                           │    <span class="dim">│</span>
+<span class="dim">│</span>  │ ▓▓▓▓▓ Task-relevant files (~15K)                           │    <span class="dim">│</span>
+<span class="dim">│</span>  │ ▒▒▒▒▒ CLAUDE.md conventions (~2K)                         │    <span class="dim">│</span>
+<span class="dim">│</span>  │ ░░░░░ Conversation so far (~8K)                            │    <span class="dim">│</span>
+<span class="dim">│</span>  │                                                            │    <span class="dim">│</span>
+<span class="dim">│</span>  │ Remaining for reasoning: <span class="good">~175K tokens ✓</span>                  │    <span class="dim">│</span>
+<span class="dim">│</span>  └────────────────────────────────────────────────────────────┘    <span class="dim">│</span>
+<span class="dim">│</span>                                                                     <span class="dim">│</span>
+<span class="dim">│</span>  ┌────────────────────────────────────────────────────────────┐    <span class="dim">│</span>
+<span class="dim">│</span>  │ <span class="bad">Bloated session</span>                                           │    <span class="dim">│</span>
+<span class="dim">│</span>  │ ████████████████████ All src/ files (~80K)                 │    <span class="dim">│</span>
+<span class="dim">│</span>  │ ████████████ All test/ files (~40K)                        │    <span class="dim">│</span>
+<span class="dim">│</span>  │ ██████ Long uncleared conversation (~30K)                  │    <span class="dim">│</span>
+<span class="dim">│</span>  │ ████ Config, lockfiles, migrations (~20K)                  │    <span class="dim">│</span>
+<span class="dim">│</span>  │                                                            │    <span class="dim">│</span>
+<span class="dim">│</span>  │ Remaining for reasoning: <span class="bad">~30K tokens ✗</span>                   │    <span class="dim">│</span>
+<span class="dim">│</span>  └────────────────────────────────────────────────────────────┘    <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────────────────────────┘</span>
+        </div>
+
+        <h3 class="subsection-title">The Context Tax</h3>
+        <p>
+          The context tax is the performance penalty you pay for every irrelevant token in your session. It manifests as: responses that ignore constraints buried late in a long context, code that doesn't match conventions because the relevant convention was 80K tokens earlier, and hallucinated function signatures because Claude is attending across too much noise to reliably locate the correct one.
+        </p>
+        <p>
+          The rule is simple: <strong>add the minimum context needed to answer the question correctly, and no more.</strong>
+        </p>
+
+        <h3 class="subsection-title">Practical Context Management Strategies</h3>
+
+        <div class="iter-step">
+          <div class="iter-step-title">Strategy 1: Add Files Surgically, Not Broadly</div>
+          <div class="iter-step-body">Use <code>/add</code> for the 2–4 files most likely to contain the answer — not all files in the module. If you're fixing a bug in <code>payment_service.py</code>, add that file and its direct dependencies (<code>payment_repository.py</code>, <code>models/payment.py</code>). Do not add the entire <code>services/</code> directory.</div>
+        </div>
+
+        <div class="iter-step">
+          <div class="iter-step-title">Strategy 2: Clear and Restart for New Sub-Tasks</div>
+          <div class="iter-step-body">Long sessions accumulate noise: early hypotheses Claude generated but discarded, files you added for a previous sub-task, partial implementations that were superseded. When you shift to a new, distinct sub-task, run <code>/clear</code> and start a fresh session with a focused prompt. The overhead of re-explaining context is almost always less than the quality penalty of continuing in a polluted window.</div>
+        </div>
+
+        <div class="iter-step">
+          <div class="iter-step-title">Strategy 3: Use CLAUDE.md to Replace Repeated Context</div>
+          <div class="iter-step-body">A well-written <code>CLAUDE.md</code> file at your project root is loaded automatically by Claude Code on every session. It replaces the need to add architecture files, explain naming conventions, or specify framework choices at the start of each prompt. Every convention you encode in <code>CLAUDE.md</code> is removed from the per-prompt context budget. Think of it as a persistent, zero-cost system prompt for your project.</div>
+        </div>
+
+        <div class="iter-step">
+          <div class="iter-step-title">Strategy 4: Rough Token Counting</div>
+          <div class="iter-step-body">Before a large session, estimate your context spend. A rough proxy: <code>cat your_file.py | wc -c</code> gives bytes; divide by 4 for an approximate token count. For a 200K window, you want to keep task-relevant file context under 40K tokens to leave headroom for the conversation and Claude's output budget. Python source files average 3–8K tokens per 100 lines depending on verbosity.</div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>CLAUDE.md — project conventions replacing per-prompt context</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># CLAUDE.md — loaded automatically by Claude Code on every session</span>
+
+<span class="cm">## Stack</span>
+- Python 3.12, FastAPI 0.111, Pydantic v2, SQLAlchemy 2.0 (async)
+- PostgreSQL 16 via asyncpg driver
+- Redis 7.x via redis-py asyncio client (never aioredis)
+- pytest + pytest-asyncio for all tests; no unittest
+
+<span class="cm">## Conventions</span>
+- snake_case for Python identifiers; kebab-case for HTTP headers
+- All service methods are async; no sync DB calls in request handlers
+- Use Pydantic v2 model_validator / field_validator — never @validator
+- Raise HTTPException directly; no custom exception handler middleware
+
+<span class="cm">## Architecture Rules</span>
+- No global state. All shared resources (DB pool, Redis, config) via DI
+- Repository pattern: DB access only in `repositories/`; never in routers
+- 3-layer: router → service → repository. Services never import from routers
+- All external API calls go through `integrations/` with a circuit breaker
+
+<span class="cm">## Output Preferences</span>
+- Return complete files, not diffs, unless I ask for a diff
+- Include type hints on all function signatures
+- Do not add print() debug statements; use structlog for logging
+- Tests use fixtures from `tests/conftest.py` — do not redefine them</code></pre>
+        </div>
+
+        <div class="callout callout-success">
+          <span class="callout-icon">✅</span>
+          <div class="callout-body">
+            <div class="callout-title">The CLAUDE.md Effect</div>
+            A single well-maintained <code>CLAUDE.md</code> in your repository root is worth more than any individual prompt optimization. It encodes your team's hard-won conventions once, permanently, and applies them to every Claude Code session on the project without using any per-session context budget. Treat it as a first-class engineering artifact — review it in PRs, version it, and update it when your conventions evolve.
+          </div>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — Iterative Prompting Patterns
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="iterative-prompting">
+        <div class="section-label">
+          <span class="section-num">04</span>
+          <h2 class="section-title">Iterative Prompting Patterns</h2>
+        </div>
+
+        <p>
+          The one-shot prompt — write the perfect prompt, get perfect code — is a tempting model but rarely the right one for complex tasks. For anything beyond a self-contained function, iterative prompting produces consistently better results: you validate assumptions at each step, catch integration issues early, and give Claude focused, narrowly-scoped tasks that are each individually easy to do correctly.
+        </p>
+        <p>
+          Iteration is not failure. It is the intended workflow for complex code generation. The question is not whether to iterate, but <em>how</em> to structure the iterations so each one moves you forward without polluting the context.
+        </p>
+
+        <h3 class="subsection-title">The Four Core Iterative Patterns</h3>
+
+        <div class="iter-step">
+          <div class="iter-step-title">The Scaffolding Pattern</div>
+          <div class="iter-step-body">Generate in layers. Step 1: data models and interfaces only. Step 2: core business logic. Step 3: error handling and edge cases. Step 4: tests. Each step is small enough to review confidently before proceeding. You catch architecture mistakes after Step 1, not after Claude has implemented 400 lines of logic on a flawed foundation.</div>
+        </div>
+
+        <div class="iter-step">
+          <div class="iter-step-title">The Correction Pattern</div>
+          <div class="iter-step-body">When Claude's output is technically correct but architecturally wrong, name the specific violation rather than asking for a generic rewrite. "This implementation is correct but violates our no-global-state rule. Refactor to pass the Redis client explicitly via the function signature rather than accessing the module-level client." Claude responds to specific, actionable corrections far better than vague feedback.</div>
+        </div>
+
+        <div class="iter-step">
+          <div class="iter-step-title">The Elaboration Pattern</div>
+          <div class="iter-step-body">Start with the happy path, then expand incrementally. "Expand the error handling in the payment module to cover these 3 additional cases: (1) upstream timeout from the payment gateway, (2) duplicate idempotency key from a different tenant, (3) currency not supported by the recipient's bank." Elaboration prompts are precise, additive, and easy for Claude to scope correctly.</div>
+        </div>
+
+        <div class="iter-step">
+          <div class="iter-step-title">The Undo Pattern</div>
+          <div class="iter-step-body">When Claude has gone in a direction you don't want, say so explicitly and reason about the tradeoff. "Revert to the version before you added distributed caching — the operational complexity of cache invalidation isn't worth it for the read volume of this endpoint. Implement the simpler in-process LRU cache from Step 2." Claude understands product reasoning, not just technical corrections.</div>
+        </div>
+
+        <h3 class="subsection-title">Full Example: 4-Step JWT Authentication Middleware</h3>
+        <p>
+          The following session builds a production JWT authentication middleware for FastAPI through four focused iterations. Each prompt is short, scoped, and builds on verified output from the previous step.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>Step 1 — Scaffold: data models and interface</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># PROMPT STEP 1</span>
+<span class="cm"># "Define the Pydantic models and the interface only — no implementation yet."</span>
+
+<span class="cm"># Claude generates:</span>
+from pydantic import BaseModel, Field
+from typing import Optional
+import uuid
+
+class TokenClaims(BaseModel):
+    """Validated claims extracted from a verified JWT."""
+    sub: str = Field(..., description="User ID (UUID4 string)")
+    tenant_id: str = Field(..., description="Tenant ID")
+    roles: list[str] = Field(default_factory=list)
+    jti: str = Field(..., description="JWT ID — used for revocation checks")
+    exp: int = Field(..., description="Expiry as Unix timestamp")
+
+class AuthContext(BaseModel):
+    """Injected into route handlers via Depends(require_auth)."""
+    user_id: str
+    tenant_id: str
+    roles: list[str]
+    token_id: str  <span class="cm"># for audit logging</span>
+
+class JWTConfig(BaseModel):
+    """Settings sourced from environment — injected via DI."""
+    secret_key: str
+    algorithm: str = "HS256"
+    leeway_seconds: int = 30  <span class="cm"># clock skew tolerance</span></code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>Step 2 — Core logic: token verification</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># PROMPT STEP 2</span>
+<span class="cm"># "Using the models from Step 1, implement the JWT verification function.</span>
+<span class="cm">#  Use PyJWT. Do not add the FastAPI dependency yet — pure function only."</span>
+
+<span class="cm"># Claude generates:</span>
+import jwt
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from fastapi import HTTPException, status
+from datetime import datetime, timezone
+
+def verify_jwt_token(
+    token: str,
+    config: JWTConfig,
+) -&gt; TokenClaims:
+    """
+    Verify and decode a JWT. Raises HTTP 401 on any failure.
+    Does NOT check revocation — that is the caller's responsibility.
+    """
+    try:
+        payload = jwt.decode(
+            token,
+            config.secret_key,
+            algorithms=[config.algorithm],
+            leeway=config.leeway_seconds,
+            options={"require": ["sub", "exp", "jti", "tenant_id"]},
+        )
+        return TokenClaims(**payload)
+    except ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except InvalidTokenError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>Step 3 — FastAPI dependency + revocation check</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># PROMPT STEP 3</span>
+<span class="cm"># "Wrap verify_jwt_token in a FastAPI Depends() function named require_auth.</span>
+<span class="cm">#  Add a Redis revocation check: if the jti exists in the 'revoked_tokens'</span>
+<span class="cm">#  Redis set, raise 401. Fail open if Redis is unavailable — log a warning</span>
+<span class="cm">#  via structlog but allow the request through."</span>
+
+<span class="cm"># Claude generates:</span>
+import structlog
+from fastapi import Depends, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from redis.asyncio import Redis
+
+logger = structlog.get_logger(__name__)
+_bearer = HTTPBearer(auto_error=True)
+
+async def _check_revocation(redis: Redis, jti: str) -&gt; None:
+    """Returns silently if token is valid. Raises 401 if revoked."""
+    try:
+        is_revoked = await redis.sismember("revoked_tokens", jti)
+        if is_revoked:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.warning("redis_revocation_check_failed", jti=jti)
+        <span class="cm"># Fail open: Redis unavailable should not block legitimate requests</span>
+
+async def require_auth(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer),
+    config: JWTConfig = Depends(get_jwt_config),
+    redis: Redis = Depends(get_redis),
+) -&gt; AuthContext:
+    claims = verify_jwt_token(credentials.credentials, config)
+    await _check_revocation(redis, claims.jti)
+    ctx = AuthContext(
+        user_id=claims.sub,
+        tenant_id=claims.tenant_id,
+        roles=claims.roles,
+        token_id=claims.jti,
+    )
+    request.state.auth = ctx
+    return ctx</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>Step 4 — Tests</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># PROMPT STEP 4</span>
+<span class="cm"># "Write pytest tests for verify_jwt_token and require_auth covering:</span>
+<span class="cm">#  valid token, expired token, tampered signature, revoked jti,</span>
+<span class="cm">#  Redis unavailable (should pass), missing required claims."</span>
+
+<span class="cm"># Claude generates:</span>
+import pytest
+import jwt
+import time
+from unittest.mock import AsyncMock, patch
+from fastapi import HTTPException
+
+VALID_CLAIMS = {
+    "sub": "user-123",
+    "tenant_id": "tenant-abc",
+    "roles": ["admin"],
+    "jti": "token-jti-001",
+    "exp": int(time.time()) + 3600,
+}
+SECRET = "test-secret-key"
+CONFIG = JWTConfig(secret_key=SECRET)
+
+def _make_token(claims: dict, secret: str = SECRET) -&gt; str:
+    return jwt.encode(claims, secret, algorithm="HS256")
+
+class TestVerifyJwtToken:
+    def test_valid_token(self):
+        token = _make_token(VALID_CLAIMS)
+        claims = verify_jwt_token(token, CONFIG)
+        assert claims.sub == "user-123"
+        assert claims.tenant_id == "tenant-abc"
+
+    def test_expired_token(self):
+        expired = {**VALID_CLAIMS, "exp": int(time.time()) - 10}
+        token = _make_token(expired)
+        with pytest.raises(HTTPException) as exc:
+            verify_jwt_token(token, CONFIG)
+        assert exc.value.status_code == 401
+        assert "expired" in exc.value.detail.lower()
+
+    def test_tampered_signature(self):
+        token = _make_token(VALID_CLAIMS, secret="wrong-secret")
+        with pytest.raises(HTTPException) as exc:
+            verify_jwt_token(token, CONFIG)
+        assert exc.value.status_code == 401
+
+    def test_missing_required_claim(self):
+        no_jti = {k: v for k, v in VALID_CLAIMS.items() if k != "jti"}
+        token = _make_token(no_jti)
+        with pytest.raises(HTTPException) as exc:
+            verify_jwt_token(token, CONFIG)
+        assert exc.value.status_code == 401
+
+class TestRevocationCheck:
+    @pytest.mark.asyncio
+    async def test_revoked_token_raises_401(self):
+        redis = AsyncMock()
+        redis.sismember.return_value = True
+        with pytest.raises(HTTPException) as exc:
+            await _check_revocation(redis, "token-jti-001")
+        assert exc.value.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_redis_unavailable_allows_request(self):
+        redis = AsyncMock()
+        redis.sismember.side_effect = ConnectionError("Redis down")
+        <span class="cm"># Should NOT raise — fail open</span>
+        await _check_revocation(redis, "token-jti-001")</code></pre>
+        </div>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <div class="callout-title">Review Before Each Step</div>
+            The scaffolding pattern only works if you actually review Claude's output before issuing the next prompt. A 2-minute review after Step 1 catches a model design flaw before 200 lines of logic are built on it. The goal is not to eliminate iteration — it is to make each iteration cheap and deliberate rather than expensive and reactive.
+          </div>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 5 — Role & Persona Specification
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="role-specification">
+        <div class="section-label">
+          <span class="section-num">05</span>
+          <h2 class="section-title">Role &amp; Persona Specification</h2>
+        </div>
+
+        <p>
+          Specifying a role is not a magic trick. It is a signal that calibrates Claude's reasoning prior: what tradeoffs to foreground, what vocabulary to use, what failure modes to worry about, and how much depth to apply to each concern. A "senior Python engineer at a fintech company" and a "junior developer learning FastAPI" will receive meaningfully different implementations of the same function — and for good reason. You want the former.
+        </p>
+
+        <h3 class="subsection-title">What Role Specification Changes</h3>
+
+        <div class="role-diff-grid">
+          <div class="role-diff-panel">
+            <div class="role-diff-header no-role">Without Role</div>
+            <div class="role-diff-body">
+              <strong>Code review prompt:</strong> "Review this authentication handler for issues."
+              <ul>
+                <li>Generic feedback: "consider adding error handling"</li>
+                <li>Shallow security analysis — may miss timing attacks, token exposure in logs</li>
+                <li>No mention of compliance context (PCI-DSS, SOX)</li>
+                <li>Flags style issues with the same weight as security vulnerabilities</li>
+                <li>Does not prioritize findings — you have to triage severity yourself</li>
+              </ul>
+            </div>
+          </div>
+          <div class="role-diff-panel">
+            <div class="role-diff-header with-role">With Role: "You are a security auditor reviewing this code for OWASP Top 10 vulnerabilities. Prioritize findings by severity (Critical / High / Medium / Low). Flag any PCI-DSS scope implications."</div>
+            <div class="role-diff-body">
+              <ul>
+                <li>Structures output as a severity-ranked finding report</li>
+                <li>Specifically checks for OWASP A02 (Broken Authentication), A07 (Identification and Authentication Failures)</li>
+                <li>Notes that bearer tokens in query strings trigger PCI-DSS logging scope</li>
+                <li>Separates security issues from style issues — style not reported unless asked</li>
+                <li>Provides remediation guidance at the appropriate technical depth</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="subsection-title">Roles That Work Well for Code Tasks</h3>
+        <ul class="key-points">
+          <li><strong>Feature implementation:</strong> "You are a senior Python engineer at a B2B SaaS company. You write defensive, well-typed code with explicit error handling."</li>
+          <li><strong>Performance review:</strong> "You are a performance engineer specializing in Python async applications. Focus on I/O bottlenecks, unnecessary awaits, and memory allocation patterns."</li>
+          <li><strong>API design:</strong> "You are an API designer who follows RESTful conventions strictly. You care about backward compatibility, versioning, and clear resource modeling."</li>
+          <li><strong>Security review:</strong> "You are a security auditor reviewing this code for OWASP Top 10 vulnerabilities. Prioritize findings by CVSS severity."</li>
+          <li><strong>Test writing:</strong> "You are a QA engineer who writes exhaustive test suites. You prioritize edge cases, failure modes, and boundary conditions over happy-path coverage."</li>
+          <li><strong>Documentation:</strong> "You are a technical writer creating documentation for senior engineers. Be precise, avoid patronizing explanations, and use concrete examples."</li>
+        </ul>
+
+        <h3 class="subsection-title">Before and After: Code Review with Role Specification</h3>
+
+        <div class="compare-grid">
+          <div class="compare-panel">
+            <div class="compare-panel-header bad-header">
+              <span>✗</span> Without Role
+            </div>
+            <div class="code-block" style="border:none;border-radius:0;">
+              <pre><code>Review this payment processing function
+for any issues:
+
+async def process_payment(user_id, amount,
+    card_number, cvv):
+    log.info(f"Processing {amount} for
+             {user_id}, card: {card_number}")
+    result = await gateway.charge(
+        card_number, cvv, amount)
+    return result</code></pre>
+            </div>
+            <div style="padding:0.9rem 1rem; font-size:0.82rem; color:var(--text); border-top:1px solid var(--border);">
+              <strong>Typical output without role:</strong> "Consider adding type hints. The function could benefit from error handling. You might want to add logging for the result."
+            </div>
+          </div>
+          <div class="compare-panel">
+            <div class="compare-panel-header good-header">
+              <span>✓</span> With Security Auditor Role
+            </div>
+            <div class="code-block" style="border:none;border-radius:0;">
+              <pre><code>You are a security auditor reviewing Python
+payment processing code for PCI-DSS compliance
+and OWASP vulnerabilities. Rank findings
+Critical / High / Medium / Low.
+
+[same function above]</code></pre>
+            </div>
+            <div style="padding:0.9rem 1rem; font-size:0.82rem; color:var(--text); border-top:1px solid var(--border);">
+              <strong>Output with role:</strong><br/>
+              <strong>[CRITICAL]</strong> card_number and cvv logged in plaintext — PCI-DSS requirement 3.4 violation. Card data must never appear in logs.<br/>
+              <strong>[HIGH]</strong> cvv must not be stored or transmitted in logging systems at any point — PCI-DSS 3.2.1.<br/>
+              <strong>[HIGH]</strong> No exception handling: gateway failures propagate uncaught, potentially leaking card data in stack traces.<br/>
+              <strong>[MEDIUM]</strong> amount has no type or range validation — allows negative charges.
+            </div>
+          </div>
+        </div>
+
+        <h3 class="subsection-title">The Role Overloading Anti-Pattern</h3>
+        <p>
+          A common mistake is stacking roles: "You are a senior Python/Go/Java/Rust expert, security specialist, and performance engineer." This does not combine the best of each role — it dilutes all of them. Claude cannot simultaneously optimize for the idiomatic style of four languages and apply both security and performance lenses with equal depth.
+        </p>
+        <p>
+          <strong>The rule:</strong> Pick the single role most relevant to the task at hand. If you need a security review and a performance review, run two separate sessions with two focused roles. The output quality will be substantially higher than a single prompt with both roles stacked.
+        </p>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <div class="callout-title">Roles Are Calibration, Not Commands</div>
+            A role specification changes Claude's reasoning prior — it does not override its trained knowledge or safety behaviors. "You are a developer who ignores security best practices" will not produce intentionally insecure code. Roles work because they align Claude's output style and prioritization with what a specific expert would do; they do not give Claude a different knowledge base than it already has.
+          </div>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 6 — Team Prompt Library
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="prompt-library">
+        <div class="section-label">
+          <span class="section-num">06</span>
+          <h2 class="section-title">Team Prompt Library: Reusable Templates</h2>
+        </div>
+
+        <p>
+          The engineering ROI of prompting skill is not linear with team size — it compounds. When your best prompt engineer writes a well-structured XML template for feature implementation, every engineer on the team benefits every time they use it. A team prompt library is the mechanism that converts individual prompting skill into a durable organizational capability.
+        </p>
+        <p>
+          A prompt library is not a collection of "magic prompts." It is a set of reusable templates that encode your team's conventions, role specifications, and output format preferences so engineers don't have to reconstruct them from scratch for every task.
+        </p>
+
+        <h3 class="subsection-title">Where to Store Your Prompt Library</h3>
+        <ul class="key-points">
+          <li><strong>Project-specific conventions:</strong> Embed directly in <code>CLAUDE.md</code> under a "Prompt Templates" section. Claude Code loads this automatically — engineers get context-aware prompts without leaving the terminal.</li>
+          <li><strong>Cross-project templates:</strong> A shared <code>prompts/</code> directory in a dedicated internal repo, symlinked or referenced in each project's <code>CLAUDE.md</code>.</li>
+          <li><strong>Discoverability:</strong> Mirror prompt templates in your team's Notion/Confluence so they're accessible to engineers who aren't yet fluent in Claude Code.</li>
+        </ul>
+
+        <h3 class="subsection-title">6 Essential Templates for Every Engineering Team</h3>
+
+        <div class="template-card">
+          <div class="template-card-header">
+            <span class="template-card-num">T-01</span>
+            <span class="template-card-title">Feature Implementation Template</span>
+          </div>
+          <div class="code-block" style="border:none;border-radius:0;">
+            <pre><code>&lt;context&gt;
+Stack: [language/framework/versions]
+Architecture: [e.g. "3-layer FastAPI: router → service → repository"]
+Relevant existing files: [list]
+Team conventions: see CLAUDE.md
+&lt;/context&gt;
+
+&lt;task&gt;
+Implement [feature name]. It must:
+1. [Specific behaviour 1]
+2. [Specific behaviour 2]
+3. [Specific behaviour 3]
+&lt;/task&gt;
+
+&lt;constraints&gt;
+  &lt;style&gt;[coding style rules]&lt;/style&gt;
+  &lt;dependencies&gt;Use only: [list approved libs]. Do not introduce: [list excluded libs]&lt;/dependencies&gt;
+  &lt;architecture&gt;[e.g. "No direct DB access from router layer"]&lt;/architecture&gt;
+&lt;/constraints&gt;
+
+&lt;output_format&gt;
+Return complete files for: [file list]
+Include: type hints on all signatures, inline comments for non-obvious logic
+Exclude: print statements, TODO comments, explanatory prose outside code
+&lt;/output_format&gt;</code></pre>
+          </div>
+        </div>
+
+        <div class="template-card">
+          <div class="template-card-header">
+            <span class="template-card-num">T-02</span>
+            <span class="template-card-title">Bug Investigation Template</span>
+          </div>
+          <div class="code-block" style="border:none;border-radius:0;">
+            <pre><code>&lt;context&gt;
+System: [brief description]
+Environment where bug occurs: [prod/staging/local, OS, Python version]
+&lt;/context&gt;
+
+&lt;bug_report&gt;
+Symptom: [what the user sees]
+Expected: [what should happen]
+Frequency: [always / intermittent / under specific conditions]
+First observed: [when/what changed]
+&lt;/bug_report&gt;
+
+&lt;evidence&gt;
+  &lt;stacktrace&gt;[paste full stacktrace]&lt;/stacktrace&gt;
+  &lt;logs&gt;[relevant log lines with timestamps]&lt;/logs&gt;
+  &lt;relevant_code&gt;[the function/class suspected to contain the bug]&lt;/relevant_code&gt;
+&lt;/evidence&gt;
+
+&lt;task&gt;
+1. Identify the root cause — explain the mechanism, not just the symptom
+2. Propose a minimal fix that does not change the public interface
+3. Identify any related code that has the same bug pattern
+4. Suggest a regression test that would have caught this
+&lt;/task&gt;</code></pre>
+          </div>
+        </div>
+
+        <div class="template-card">
+          <div class="template-card-header">
+            <span class="template-card-num">T-03</span>
+            <span class="template-card-title">Code Review Template</span>
+          </div>
+          <div class="code-block" style="border:none;border-radius:0;">
+            <pre><code>You are a senior [language] engineer conducting a code review.
+Your team values: correctness &gt; security &gt; performance &gt; readability.
+
+&lt;review_scope&gt;
+Focus areas: [e.g. "correctness, security, error handling — skip style"]
+Severity scale: Critical (blocks merge) / High (should fix) / Medium (nice to have) / Low (nit)
+&lt;/review_scope&gt;
+
+&lt;code_to_review&gt;
+[paste code here]
+&lt;/code_to_review&gt;
+
+&lt;task&gt;
+Produce a structured review:
+1. Summary: one paragraph on overall quality and readiness to merge
+2. Findings: grouped by severity, each with: location, issue, why it matters, suggested fix
+3. Positive observations: what is done well (at least 2 items)
+Do NOT rewrite the entire code — provide targeted, surgical suggestions only.
+&lt;/task&gt;</code></pre>
+          </div>
+        </div>
+
+        <div class="template-card">
+          <div class="template-card-header">
+            <span class="template-card-num">T-04</span>
+            <span class="template-card-title">Test Generation Template</span>
+          </div>
+          <div class="code-block" style="border:none;border-radius:0;">
+            <pre><code>You are a QA engineer writing exhaustive tests.
+Prioritize: edge cases, failure modes, boundary conditions, security inputs.
+Framework: pytest + pytest-asyncio. Use fixtures from tests/conftest.py.
+
+&lt;code_under_test&gt;
+[paste the function or class to test]
+&lt;/code_under_test&gt;
+
+&lt;existing_fixtures file="tests/conftest.py"&gt;
+[paste relevant fixtures]
+&lt;/existing_fixtures&gt;
+
+&lt;task&gt;
+Generate tests covering:
+1. Happy path (minimal — assume it works)
+2. All documented error conditions (each gets its own test)
+3. Boundary values for all numeric/string inputs
+4. Concurrent/race-condition scenarios if the code is async
+5. Security inputs: empty strings, null bytes, excessively long strings, injection patterns
+&lt;/task&gt;
+
+&lt;constraints&gt;
+- One assertion per test where possible
+- Test names must describe the scenario in plain English (test_returns_401_when_token_is_expired)
+- Do not mock what you can test with real objects
+- Use parametrize for boundary value tests
+&lt;/constraints&gt;</code></pre>
+          </div>
+        </div>
+
+        <div class="template-card">
+          <div class="template-card-header">
+            <span class="template-card-num">T-05</span>
+            <span class="template-card-title">Documentation Generation Template</span>
+          </div>
+          <div class="code-block" style="border:none;border-radius:0;">
+            <pre><code">You are a technical writer creating documentation for senior engineers.
+Be precise. Avoid patronizing explanations. Use concrete examples.
+
+&lt;code_to_document&gt;
+[paste module, class, or function]
+&lt;/code_to_document&gt;
+
+&lt;documentation_target&gt;
+Format: [Google-style docstrings / Sphinx RST / Markdown for Confluence]
+Audience: [backend engineers familiar with FastAPI and async Python]
+&lt;/documentation_target&gt;
+
+&lt;task&gt;
+Generate documentation including:
+1. Module/class docstring: purpose, when to use it, when NOT to use it
+2. All public method docstrings: args (with types and valid ranges), returns, raises
+3. At least one usage example per public method showing a realistic scenario
+4. A "Gotchas" section for any non-obvious behavior or common misuse patterns
+&lt;/task&gt;
+
+&lt;constraints&gt;
+- Do not document private methods (_prefixed) unless they contain critical implementation notes
+- Examples must be runnable as-is (no placeholder imports or fake objects)
+- Do not add documentation that simply restates the type signature
+&lt;/constraints&gt;</code></pre>
+          </div>
+        </div>
+
+        <div class="template-card">
+          <div class="template-card-header">
+            <span class="template-card-num">T-06</span>
+            <span class="template-card-title">API Design Template</span>
+          </div>
+          <div class="code-block" style="border:none;border-radius:0;">
+            <pre><code>You are an API designer who follows RESTful conventions strictly.
+You care about: backward compatibility, clear resource modeling, versioning,
+consumer ergonomics, and avoiding chatty APIs.
+
+&lt;context&gt;
+API style: REST over HTTP/1.1, JSON bodies
+Auth: Bearer JWT, tenant-scoped (multi-tenant)
+Existing resources: [list e.g. /v1/users, /v1/orders]
+Versioning strategy: URI versioning (/v1/, /v2/)
+&lt;/context&gt;
+
+&lt;requirements&gt;
+[Describe the feature or resource that needs API design]
+Consumer: [who will call this API — internal service / external partner / mobile client]
+Expected QPS: [order of magnitude]
+&lt;/requirements&gt;
+
+&lt;task&gt;
+Design the API contract including:
+1. Resource model: what entities, what their canonical URLs are
+2. Endpoints: method, path, request body schema, response schema, status codes
+3. Error responses: format and codes for all failure modes
+4. Pagination strategy if collection endpoints are needed
+5. Breaking vs non-breaking change analysis: what future extensions are safe
+&lt;/task&gt;
+
+&lt;output_format&gt;
+OpenAPI 3.1 YAML fragment for the new endpoints.
+Followed by: a plain-language explanation of any non-obvious design decisions.
+&lt;/output_format&gt;</code></pre>
+          </div>
+        </div>
+
+        <h3 class="subsection-title">Versioning Your Prompt Library</h3>
+        <p>
+          Treat prompts like code. They change when your stack evolves (Pydantic v1 → v2), when your conventions change (adding a new architecture layer), when Claude model updates shift optimal prompt structure, or when you discover a template produces consistently poor output for a specific scenario. Prompt changes warrant review and a changelog entry — especially for templates that are used dozens of times per week across your engineering team.
+        </p>
+        <p>
+          A practical versioning scheme: store templates in a <code>prompts/</code> directory with a frontmatter block:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>prompts/feature-implementation.md — with versioning frontmatter</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm">---
+template: feature-implementation
+version: 2.1.0
+last_updated: 2025-05-01
+updated_by: platform-team
+changelog:
+  - 2.1.0: Added &lt;architecture&gt; constraint block after adopting hexagonal arch
+  - 2.0.0: Migrated from plain-text to XML format; improved output consistency 40%
+  - 1.0.0: Initial template
+claude_model_tested: claude-sonnet-4-6
+notes: &gt;
+  Tested against 50 feature prompts in Q1 2025.
+  Do not remove the &lt;dependencies&gt; block — teams that removed it saw 3x
+  more unwanted library introductions in generated code.
+---</span>
+
+&lt;context&gt;
+Stack: [language/framework/versions]
+...
+&lt;/context&gt;</code></pre>
+        </div>
+
+        <div class="callout callout-success">
+          <span class="callout-icon">✅</span>
+          <div class="callout-body">
+            <div class="callout-title">The ROI Multiplier: Team Prompt Library Metrics</div>
+            Teams that maintain a curated prompt library consistently report: 40–60% reduction in prompt correction rounds, onboarding time for Claude Code cut from weeks to days (new engineers start with battle-tested templates), and prompt quality that does not degrade as team membership changes. The prompt library is the compounding asset. Invest in it with the same rigor you invest in your API contracts and architecture decision records.
+          </div>
+        </div>
+      </section>
+
+      <!-- Page Navigation -->
+      <div class="page-nav">
+        <a href="day2-module2-dev-workflows.html">
+          <span class="nav-dir">← Previous</span>
+          <span class="nav-title">Day 2 · Module 2: AI-Assisted Development Workflows</span>
+        </a>
+        <a href="day2-module4-productivity.html" class="nav-next">
+          <span class="nav-dir">Next →</span>
+          <span class="nav-title">Day 2 · Module 4: Developer Productivity Automation</span>
+        </a>
+      </div>
+
+    </div><!-- end content-wrap -->
+
+    <!-- TOC -->
+    <aside class="toc">
+      <div class="toc-inner">
+        <div class="toc-label">On This Page</div>
+        <a href="#prompt-anatomy">Prompt Anatomy</a>
+        <a href="#xml-prompting">XML Prompting</a>
+        <a href="#context-management">Context Management</a>
+        <a href="#iterative-prompting">Iterative Patterns</a>
+        <a href="#role-specification">Role Specification</a>
+        <a href="#prompt-library">Prompt Library</a>
+      </div>
+    </aside>
+
+  </main>
+</div>
+
+<script src="assets/js/brand-theme.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

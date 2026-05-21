@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-Assisted Development Workflows — Claude Architect</title>
+  <meta name="description" content="Day 2 Module 2: Master AI-assisted development workflows — feature development, systematic debugging, safe refactoring, codebase onboarding, TDD, and automated code review with Claude Code." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+
+    /* Conversation transcript blocks */
+    .transcript {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: var(--radius);
+      margin: 1.25rem 0;
+      overflow: hidden;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.7;
+    }
+    .transcript-turn {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #21262d;
+    }
+    .transcript-turn:last-child { border-bottom: none; }
+    .transcript-speaker {
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .transcript-speaker.human { color: #79c0ff; }
+    .transcript-speaker.claude { color: #56d364; }
+    .transcript-text { color: #c9d1d9; white-space: pre-wrap; }
+    .transcript-text .em { color: #f0883e; font-style: italic; }
+    .transcript-text .good { color: #56d364; }
+    .transcript-text .hi { color: #ffa657; }
+    .transcript-text .cmd { color: #79c0ff; }
+
+    /* Step flow (numbered workflow steps) */
+    .step-flow {
+      margin: 1.25rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .step-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+      align-items: flex-start;
+    }
+    .step-item:last-child { border-bottom: none; }
+    .step-num {
+      flex-shrink: 0;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-top: 0.1rem;
+    }
+    .step-body {}
+    .step-title { font-weight: 700; color: var(--text-heading); margin-bottom: 0.3rem; font-size: 0.95rem; }
+    .step-desc { font-size: 0.86rem; color: var(--text); line-height: 1.65; }
+
+    /* Protocol box */
+    .protocol-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      font-size: 0.87rem;
+    }
+    .protocol-box .proto-title {
+      font-weight: 700;
+      color: var(--text-heading);
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .protocol-box ul { margin: 0; padding-left: 1.3rem; }
+    .protocol-box li { padding: 0.2rem 0; color: var(--text); }
+
+    /* Pattern pill */
+    .pattern-pill {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      padding: 0.15rem 0.65rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin: 0.15rem 0.1rem;
+    }
+
+    /* Workflow phase labels */
+    .phase-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+      margin: 1.25rem 0;
+    }
+    .phase-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      text-align: center;
+    }
+    .phase-card-header {
+      padding: 0.6rem 0.5rem;
+      font-weight: 700;
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .phase-explore  { background: #eff6ff; color: #1e40af; border-bottom: 2px solid #3b82f6; }
+    .phase-plan     { background: #f0fdf4; color: #14532d; border-bottom: 2px solid #22c55e; }
+    .phase-code     { background: #faf5ff; color: #4c1d95; border-bottom: 2px solid #7c3aed; }
+    .phase-verify   { background: #fff7ed; color: #7c2d12; border-bottom: 2px solid #f97316; }
+    .phase-card-body { padding: 0.65rem 0.6rem; font-size: 0.78rem; color: var(--text); line-height: 1.5; }
+
+    /* Comparison table */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.25rem 0;
+      font-size: 0.84rem;
+    }
+    .compare-table th {
+      background: var(--code-bg);
+      color: var(--text-heading);
+      padding: 0.6rem 0.85rem;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid var(--border);
+    }
+    .compare-table td {
+      padding: 0.55rem 0.85rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+      vertical-align: top;
+    }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table td.good-cell { color: #16a34a; font-weight: 600; }
+    .compare-table td.bad-cell  { color: #dc2626; font-weight: 600; }
+
+    @media(max-width: 768px) {
+      .phase-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media(max-width: 480px) {
+      .phase-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle>
+      <line x1="12" y1="12" x2="19" y2="7.5"></line><line x1="12" y1="12" x2="20.5" y2="13.5"></line>
+      <line x1="12" y1="12" x2="16" y2="20"></line><line x1="12" y1="12" x2="7" y2="19.5"></line>
+      <line x1="12" y1="12" x2="3.5" y2="13"></line><line x1="12" y1="12" x2="7" y2="5"></line>
+      <circle cx="19" cy="7.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="20.5" cy="13.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="16" cy="20" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="19.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="3.5" cy="13" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7" cy="5" r="1" fill="currentColor" stroke="none"></circle>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 2 · Module 2</span>
+  <div class="topbar-right">
+    <span class="topbar-badge">Day 2 of 4</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle>
+        <span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html" class="active">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label" style="margin-top:1rem;">On This Page</div>
+    <div class="nav-sub" style="display:block;">
+      <a href="#feature-development">Feature Development Workflow</a>
+      <a href="#debugging">Systematic Debugging</a>
+      <a href="#refactoring">Refactoring with Confidence</a>
+      <a href="#codebase-understanding">Codebase Understanding</a>
+      <a href="#tdd-testing">TDD &amp; Test Generation</a>
+      <a href="#review-quality">Code Review &amp; Quality Gates</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="content-wrap">
+
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span>Day 2</span>
+        <span class="sep">/</span>
+        <span>AI-Assisted Development Workflows</span>
+      </nav>
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="module-tag" style="background:#f0fdf4;color:#14532d;">✦ Day 2 · Module 2</div>
+        <h1 class="page-title">AI-Assisted Development Workflows</h1>
+        <p class="page-subtitle">
+          Claude Code's real power isn't autocomplete — it's a repeatable loop that makes every phase of engineering work faster and safer. This module codifies the workflows that senior engineers use in practice: from feature exploration to code review, and everything in between.
+        </p>
+        <div class="module-meta">
+          <span class="meta-item"><span class="dot"></span> Explore → Plan → Code → Verify</span>
+          <span class="meta-item"><span class="dot"></span> Debugging Protocols</span>
+          <span class="meta-item"><span class="dot"></span> Safe Refactoring</span>
+          <span class="meta-item"><span class="dot"></span> TDD &amp; Test Generation</span>
+          <span class="meta-item"><span class="dot"></span> AI-Assisted Code Review</span>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — Feature Development Workflow
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="feature-development">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <h2 class="section-title">Feature Development Workflow</h2>
+        </div>
+
+        <p>
+          Most developers reach for Claude and immediately ask it to write code. This is backwards. The Explore → Plan → Code → Verify loop is the correct mental model — and the reason it works is that Claude's highest-leverage contribution is in the first two phases, not in generating boilerplate.
+        </p>
+
+        <div class="phase-grid">
+          <div class="phase-card">
+            <div class="phase-card-header phase-explore">Explore</div>
+            <div class="phase-card-body">Understand the existing system before touching anything. Ask Claude to read and explain the relevant code.</div>
+          </div>
+          <div class="phase-card">
+            <div class="phase-card-header phase-plan">Plan</div>
+            <div class="phase-card-body">Draft a concrete implementation plan. Surface risks, dependencies, and tradeoffs before writing a single line.</div>
+          </div>
+          <div class="phase-card">
+            <div class="phase-card-header phase-code">Code</div>
+            <div class="phase-card-body">Implement incrementally — one logical unit at a time — so you can review and correct at each step.</div>
+          </div>
+          <div class="phase-card">
+            <div class="phase-card-header phase-verify">Verify</div>
+            <div class="phase-card-body">Run tests, review the diff, and ask Claude to explain its decisions. Never merge without understanding what changed.</div>
+          </div>
+        </div>
+
+        <h3 id="fd-explore">Step 1: Explore — Orient Before You Act</h3>
+        <p>
+          Before adding OAuth2 to your application, you need to understand how authentication currently works. Don't ask Claude to "add OAuth2". Ask Claude to <em>explain the current auth system</em>. This is the single most effective habit change you can make when adopting AI-assisted development.
+        </p>
+
+        <div class="transcript">
+          <div class="transcript-turn">
+            <div class="transcript-speaker human">You</div>
+            <div class="transcript-text">/add app/auth/ app/middleware/auth.py app/models/user.py
+
+Explain the current authentication system in this codebase. I want to understand:
+1. How a request is authenticated end-to-end
+2. Where sessions are created and stored
+3. What user identity information is persisted
+4. Any known limitations or hardcoded assumptions</div>
+          </div>
+          <div class="transcript-turn">
+            <div class="transcript-speaker claude">Claude</div>
+            <div class="transcript-text">Here's what I can see from the three files:
+
+<span class="good">Authentication flow:</span>
+  1. Request hits `AuthMiddleware.before_request()` in middleware/auth.py
+  2. Middleware reads `session_id` from a signed cookie (using `itsdangerous.TimestampSigner`)
+  3. Session is looked up in Redis (key: `session:{session_id}`) with a 24h TTL
+  4. If found, `g.current_user` is populated from the session JSON
+
+<span class="good">Session creation:</span>
+  POST /auth/login → validates credentials → creates session dict → writes to Redis
+  The session dict contains: {user_id, email, role, created_at}
+  No refresh token logic — sessions simply expire after 24h
+
+<span class="hi">Limitations I noticed:</span>
+  - `role` is stored in the session, not re-read from the DB on each request.
+    If a user's role changes, they won't see it until their session expires.
+  - The Redis key prefix is hardcoded as "session:" — no namespace isolation
+    between environments if they share a Redis instance.
+  - No concurrent session limiting — a user can have unlimited active sessions.
+
+<span class="em">This matters for OAuth2:</span> Any OAuth2 implementation needs to either
+reuse this Redis session layer or introduce a parallel identity layer.
+Touching both simultaneously would be risky.</div>
+          </div>
+        </div>
+
+        <div class="callout callout-note">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <div class="callout-title">The Explore step has compounding value</div>
+            Claude's analysis in the Explore step surfaces constraints that would otherwise become bugs: the role staleness issue, Redis namespace collision, and session layer coupling. You now have a design checklist before writing any code. Most developers discover these things mid-implementation or in a post-deployment incident.
+          </div>
+        </div>
+
+        <h3 id="fd-plan">Step 2: Plan — Draft the Architecture First</h3>
+        <p>
+          With the Explore context established, ask Claude to produce a concrete implementation plan. The critical constraint is that you are not asking Claude to <em>write code yet</em>. You want a plan you can review, challenge, and modify.
+        </p>
+
+        <div class="transcript">
+          <div class="transcript-turn">
+            <div class="transcript-speaker human">You</div>
+            <div class="transcript-text">Based on everything you've read, draft an implementation plan for adding Google OAuth2 support.
+
+Constraints:
+- Do NOT modify the existing session layer (Redis + itsdangerous)
+- The existing login flow must continue to work unchanged
+- We need to handle the case where a Google account email matches an existing local account
+
+Give me the plan as numbered steps, identify which files change, and flag any risks.</div>
+          </div>
+          <div class="transcript-turn">
+            <div class="transcript-speaker claude">Claude</div>
+            <div class="transcript-text"><span class="good">Implementation Plan: Google OAuth2 (additive, no session layer changes)</span>
+
+<span class="hi">New files:</span>
+  app/auth/oauth.py         — Google OAuth2 client (uses authlib)
+  app/auth/routes_oauth.py  — /auth/google and /auth/google/callback endpoints
+
+<span class="hi">Modified files:</span>
+  app/models/user.py        — add google_id column (nullable), add classmethod find_or_create_from_google()
+  app/config.py             — GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI
+  alembic/versions/         — new migration for google_id column
+
+<span class="good">Steps:</span>
+  1. Add `google_id` nullable column to users table (migration first)
+  2. Add `User.find_or_create_from_google(profile)` — matches on email if google_id is null,
+     links account. Creates new user if no match.
+  3. Implement /auth/google → redirects to Google with state param (CSRF protection)
+  4. Implement /auth/google/callback → validates state, exchanges code for token,
+     fetches profile, calls find_or_create_from_google(), then creates session
+     using the EXISTING session creation logic from routes.py (no duplication)
+  5. Add GOOGLE_* env vars to config.py and .env.example
+
+<span class="hi">Risks:</span>
+  - Email collision: a user registers locally with the same email as a Google account.
+    find_or_create_from_google() will silently link accounts. You need to decide
+    if this is the intended behaviour or if it requires user confirmation.
+  - State parameter: must be stored server-side (Redis) or use a signed value.
+    A simple random string in the session cookie is not sufficient for production.
+  - Scope creep: if you later need to access Google Calendar/Drive, the OAuth scopes
+    need to be set correctly now. Adding scopes later forces users to re-authorize.</div>
+          </div>
+        </div>
+
+        <h3 id="fd-code">Step 3: Code — One Logical Unit at a Time</h3>
+        <p>
+          Now that you have an agreed plan, ask Claude to implement <em>one step</em> at a time. Never ask for all five steps at once. The incremental approach means you review each piece, catch errors early, and stay in control of what enters the codebase.
+        </p>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <div class="callout-title">The "do it all in one shot" trap</div>
+            Asking Claude to "implement the entire OAuth2 feature" produces a large, tangled diff that's difficult to review. You lose the ability to catch mistakes early. The plan you just created is your implementation checklist — work through it one step at a time, review and run tests between steps, and only proceed when each piece is correct.
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Incremental code prompt example</span>
+          </div>
+          <pre><code># Step 1 only — database migration
+"Implement step 1 from the plan: create the Alembic migration to add
+the google_id nullable column to the users table. Show me the migration
+file only — do not change any application code yet."
+
+# After reviewing and running the migration:
+"Good. Now implement step 2: add the google_id column to the User model
+and write the find_or_create_from_google() classmethod. Match the style
+of the existing classmethods in app/models/user.py."</code></pre>
+        </div>
+
+        <h3 id="fd-verify">Step 4: Verify — Never Merge Without Understanding</h3>
+        <p>
+          After each implementation step, run your tests and then ask Claude to explain what it changed and why. This builds team trust, creates an audit trail, and surfaces assumptions Claude made that differ from your intent.
+        </p>
+
+        <div class="transcript">
+          <div class="transcript-turn">
+            <div class="transcript-speaker human">You</div>
+            <div class="transcript-text">Tests pass. Before I commit this, explain what decisions you made in find_or_create_from_google() that weren't explicitly specified in the plan, and why.</div>
+          </div>
+          <div class="transcript-turn">
+            <div class="transcript-speaker claude">Claude</div>
+            <div class="transcript-text">Three decisions I made that weren't explicit in the plan:
+
+<span class="hi">1. Case-insensitive email matching</span>
+   I used `User.query.filter(func.lower(User.email) == func.lower(profile['email']))`.
+   Google normalizes email to lowercase but some existing users may have registered
+   with mixed case. This prevents duplicate accounts for the same person.
+
+<span class="hi">2. Updating google_id on link</span>
+   When an existing user is matched by email, I update their google_id column.
+   This means subsequent Google logins will use google_id lookup (faster, unambiguous)
+   rather than email lookup. The alternative — always matching by email — is slower
+   and fails if a user later changes their Google account email.
+
+<span class="hi">3. No auto-verification of email</span>
+   I did NOT set `email_verified = True` on newly linked accounts. Even though
+   Google guarantees verified emails, your existing users table doesn't have this
+   column, so I left it out rather than assume your verification semantics.</div>
+          </div>
+        </div>
+
+        <p>
+          These three explanations are exactly the kind of information a code reviewer needs. By asking for them explicitly, you've turned a black-box code generation into a documented engineering decision log.
+        </p>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — Systematic Debugging
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="debugging">
+        <div class="section-label">
+          <span class="section-num">02</span>
+          <h2 class="section-title">Systematic Debugging with Claude</h2>
+        </div>
+
+        <p>
+          Debugging with Claude is most effective when you apply the same discipline a good senior engineer would: reproduce the issue reliably, isolate the cause, then fix it. Skipping directly to "here's my error, fix it" produces low-quality patches because Claude lacks the context it needs to understand the root cause.
+        </p>
+
+        <div class="step-flow">
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <div class="step-title">Reproduce — Give Claude a reliable trigger</div>
+              <div class="step-desc">Provide the exact request, input data, or sequence of actions that reliably triggers the bug. Include the full stack trace, not just the last line of the error. A bug that "sometimes happens" needs a reproduction recipe before Claude can help effectively.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <div class="step-title">Isolate — Point Claude at the right files</div>
+              <div class="step-desc">Use <code>/add</code> to bring in only the files relevant to the error path. Don't dump the entire codebase. The stack trace tells you which files to add. Context precision matters: too little and Claude misses the cause; too much and the signal-to-noise ratio drops.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <div class="step-title">Fix — Hypothesis first, then code</div>
+              <div class="step-desc">Always ask Claude to explain its hypothesis before generating a fix. If the hypothesis is wrong, the fix will be wrong — even if it makes the error disappear. A patch that hides symptoms without addressing the root cause is worse than the original bug.</div>
+            </div>
+          </div>
+        </div>
+
+        <h3 id="debug-report">The Anatomy of a Useful Bug Report</h3>
+        <p>
+          The quality of Claude's debugging output is directly proportional to the quality of your bug report. Use this template every time:
+        </p>
+
+        <div class="protocol-box">
+          <div class="proto-title">Effective Bug Report Template</div>
+          <ul>
+            <li><strong>Error message:</strong> Full text, including HTTP status code or exception class</li>
+            <li><strong>Stack trace:</strong> Complete trace from application code (not just the framework wrapper)</li>
+            <li><strong>Reproduction:</strong> The exact request/input that triggers it, including headers if relevant</li>
+            <li><strong>Relevant files:</strong> Added via <code>/add</code> — routes, models, middleware on the error path</li>
+            <li><strong>What you tried:</strong> Any fixes you already attempted, and what changed (or didn't)</li>
+            <li><strong>Environment context:</strong> Local vs staging vs prod, relevant env var values (not secrets)</li>
+          </ul>
+        </div>
+
+        <h3 id="debug-hypothesis">The Hypothesis-First Pattern</h3>
+        <p>
+          The most important prompt pattern in debugging is: <strong>"Before suggesting a fix, explain what you think is causing this and why."</strong> This one constraint forces Claude to reason about causality rather than pattern-matching to a syntactically similar fix.
+        </p>
+
+        <h3 id="debug-fastapi-example">Example: FastAPI 422 Unprocessable Entity</h3>
+        <p>
+          A 422 from FastAPI is one of the most common errors new FastAPI users hit. Here is a real debugging session pattern:
+        </p>
+
+        <div class="transcript">
+          <div class="transcript-turn">
+            <div class="transcript-speaker human">You</div>
+            <div class="transcript-text">/add app/routers/orders.py app/schemas/order.py
+
+I'm getting a 422 Unprocessable Entity when calling POST /orders. Here's the exact request:
+
+curl -X POST http://localhost:8000/orders \
+  -H "Content-Type: application/json" \
+  -d '{"product_id": 42, "quantity": 3}'
+
+FastAPI response:
+{
+  "detail": [
+    {
+      "type": "missing",
+      "loc": ["body", "customer_id"],
+      "msg": "Field required",
+      "input": {"product_id": 42, "quantity": 3},
+      "url": "https://errors.pydantic.dev/2.0/v/missing"
+    }
+  ]
+}
+
+The frontend is definitely sending the payload I showed above.
+Before suggesting a fix, explain what you think is causing this and why.</div>
+          </div>
+          <div class="transcript-turn">
+            <div class="transcript-speaker claude">Claude</div>
+            <div class="transcript-text"><span class="good">Hypothesis:</span>
+
+The 422 is coming from FastAPI's request body validation — Pydantic is rejecting the
+payload because `customer_id` is defined as required in `OrderCreate` but the client
+isn't sending it.
+
+Looking at app/schemas/order.py:
+
+  class OrderCreate(BaseModel):
+      product_id: int
+      quantity: int
+      customer_id: int   # ← no default value, so Pydantic treats this as required
+
+The request body `{"product_id": 42, "quantity": 3}` is missing `customer_id`,
+so validation fails before your route handler even executes.
+
+<span class="hi">Two possible root causes — you need to choose:</span>
+
+  Option A: customer_id should be extracted from the authenticated user's token,
+  not sent by the client. In this case, remove customer_id from OrderCreate and
+  read it from request.state.user.id in the route handler.
+
+  Option B: The frontend genuinely needs to send customer_id but has a bug where
+  it's omitting it. Check the frontend's order submission code.
+
+<span class="em">I'd recommend Option A</span> — clients should never self-report their own identity.
+If the API trusts a client-supplied customer_id, any authenticated user can create
+orders on behalf of any other user.
+
+Which approach should I implement?</div>
+          </div>
+        </div>
+
+        <div class="callout callout-success">
+          <span class="callout-icon">✅</span>
+          <div class="callout-body">
+            <div class="callout-title">When to ask Claude vs. when to read the docs</div>
+            Ask Claude when the error is in <em>your application code</em> — Claude can trace the execution path through your codebase. Read the docs yourself when the issue is in a third-party library's behaviour or an undocumented API edge case. Claude's training data on library internals can be stale, and hallucinated method signatures are a real risk. Use Claude to narrow down <em>where</em> to look; use official documentation to understand <em>how</em> the library actually behaves.
+          </div>
+        </div>
+
+        <h3 id="debug-add-strategy">Strategic Use of <code>/add</code> for Debugging</h3>
+        <p>
+          A common mistake is either adding too few files (Claude can't see the bug) or adding entire feature directories (signal drowns in noise). The right approach is to trace the stack:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Stack-driven /add strategy</span>
+          </div>
+          <pre><code># Read the stack trace, identify the files it touches, add exactly those:
+# Example stack: routes/orders.py → services/order_service.py → models/order.py
+
+/add app/routers/orders.py app/services/order_service.py app/models/order.py
+
+# DO NOT add the entire app/ directory "just in case"
+# DO NOT add unrelated models or utility files
+# If Claude asks for more context, add one file at a time</code></pre>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — Refactoring
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="refactoring">
+        <div class="section-label">
+          <span class="section-num">03</span>
+          <h2 class="section-title">Refactoring with Confidence</h2>
+        </div>
+
+        <p>
+          Refactoring is where Claude Code genuinely excels — and where most AI coding tools fall short. The reason is context scale: a robust refactor requires understanding every call site, every type signature, every side effect. Claude can hold 200K tokens of code in context and trace cross-file dependency chains that would take a human engineer an hour to map manually.
+        </p>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <div class="callout-title">Safe refactoring rule: tests before refactor, always</div>
+            Before asking Claude to refactor anything, you must have tests that cover the behaviour being refactored. If the tests don't exist, write them first (see Section 5). A refactor without tests is a rewrite — Claude may preserve the structure while silently changing the behaviour, and without tests you have no way to detect it.
+          </div>
+        </div>
+
+        <h3 id="refactor-incremental">Incremental vs. Big-Bang Refactoring</h3>
+        <p>
+          The incremental approach — refactor one function, verify, move to the next — is the only safe strategy with Claude. Big-bang refactors produce diffs that are impossible to review, break bisectability of your git history, and compound errors. An incremental refactor keeps every commit green and reviewable.
+        </p>
+
+        <div class="compare-table-wrapper" style="overflow-x:auto;margin:1.25rem 0;">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Approach</th>
+                <th>Diff Size</th>
+                <th>Review Complexity</th>
+                <th>Error Detection</th>
+                <th>Git History</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Incremental</strong> (one function at a time)</td>
+                <td class="good-cell">Small</td>
+                <td class="good-cell">Low</td>
+                <td class="good-cell">Immediate</td>
+                <td class="good-cell">Bisectable</td>
+              </tr>
+              <tr>
+                <td><strong>Big-bang</strong> (entire module at once)</td>
+                <td class="bad-cell">Large</td>
+                <td class="bad-cell">High</td>
+                <td class="bad-cell">Late / missed</td>
+                <td class="bad-cell">Black box</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="refactor-prompts">Common Refactoring Prompts That Work</h3>
+
+        <div class="protocol-box">
+          <div class="proto-title">Proven refactoring prompt patterns</div>
+          <ul>
+            <li><span class="pattern-pill">Extract function</span> "Extract the validation logic in lines 45-72 of order_service.py into a private function <code>_validate_order_constraints()</code>. Keep the same behaviour, add a docstring explaining what it validates."</li>
+            <li><span class="pattern-pill">Rename across codebase</span> "Rename <code>user_token</code> to <code>access_token</code> everywhere in the codebase. Show me every file that changes before making the edit."</li>
+            <li><span class="pattern-pill">Sync → async</span> "Convert <code>fetch_user_profile()</code> from synchronous requests to async httpx. Match the pattern used in services/notification_service.py. Don't change the public interface."</li>
+            <li><span class="pattern-pill">Library migration</span> "Migrate all HTTP calls in services/ from the <code>requests</code> library to <code>httpx</code>. Make them async. One file at a time, starting with order_service.py."</li>
+            <li><span class="pattern-pill">Type annotations</span> "Add full type annotations to models/user.py. Use the Python 3.11 syntax. Don't change any logic."</li>
+          </ul>
+        </div>
+
+        <h3 id="refactor-httpx-example">Real Example: Migrating <code>requests</code> to <code>httpx</code> (sync → async)</h3>
+        <p>
+          A common migration task: your service layer uses the synchronous <code>requests</code> library, but you need async support for your FastAPI application. Here is the exact workflow:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>Before (requests, synchronous)</span>
+          </div>
+          <pre><code><span class="kw">import</span> requests
+
+<span class="kw">def</span> <span class="fn">fetch_payment_status</span>(order_id: str) -> dict:
+    <span class="va">response</span> = requests.<span class="fn">get</span>(
+        <span class="st">f"https://payment-api.internal/orders/{order_id}/status"</span>,
+        headers={<span class="st">"Authorization"</span>: <span class="st">f"Bearer {settings.PAYMENT_API_KEY}"</span>},
+        timeout=<span class="nm">10</span>
+    )
+    response.<span class="fn">raise_for_status</span>()
+    <span class="kw">return</span> response.<span class="fn">json</span>()</code></pre>
+        </div>
+
+        <div class="transcript">
+          <div class="transcript-turn">
+            <div class="transcript-speaker human">You</div>
+            <div class="transcript-text">/add app/services/payment_service.py tests/test_payment_service.py
+
+Migrate fetch_payment_status() from the requests library to async httpx.
+- Keep the function signature except add `async` keyword
+- Use an httpx.AsyncClient with a 10s timeout
+- The error handling pattern should match httpx conventions (raise_for_status still works)
+- Show me the diff only — don't touch any other function in the file</div>
+          </div>
+          <div class="transcript-turn">
+            <div class="transcript-speaker claude">Claude</div>
+            <div class="transcript-text">Here's the diff for payment_service.py:
+
+<span class="cmd">- import requests</span>
+<span class="good">+ import httpx</span>
+
+<span class="cmd">- def fetch_payment_status(order_id: str) -> dict:</span>
+<span class="good">+ async def fetch_payment_status(order_id: str) -> dict:</span>
+<span class="good">+     async with httpx.AsyncClient(timeout=10.0) as client:</span>
+<span class="cmd">-     response = requests.get(</span>
+<span class="cmd">-         f"https://payment-api.internal/orders/{order_id}/status",</span>
+<span class="cmd">-         headers={"Authorization": f"Bearer {settings.PAYMENT_API_KEY}"},</span>
+<span class="cmd">-         timeout=10</span>
+<span class="cmd">-     )</span>
+<span class="cmd">-     response.raise_for_status()</span>
+<span class="cmd">-     return response.json()</span>
+<span class="good">+         response = await client.get(</span>
+<span class="good">+             f"https://payment-api.internal/orders/{order_id}/status",</span>
+<span class="good">+             headers={"Authorization": f"Bearer {settings.PAYMENT_API_KEY}"},</span>
+<span class="good">+         )</span>
+<span class="good">+         response.raise_for_status()  # httpx raises httpx.HTTPStatusError</span>
+<span class="good">+         return response.json()</span>
+
+<span class="hi">Note:</span> Your existing test uses unittest.mock.patch("requests.get").
+You'll need to update it to mock httpx.AsyncClient. I can do that next
+if you confirm this diff looks correct.</div>
+          </div>
+        </div>
+
+        <h3 id="refactor-trust">Building Team Trust with the "Explain What Changed" Pattern</h3>
+        <p>
+          When multiple engineers share a codebase, AI-generated refactors can erode trust if teammates can't understand what changed and why. The fix is simple: always close a refactoring task by asking Claude to produce a one-paragraph plain-English summary of what changed. This becomes your commit message, your PR description, and your code review context — written in under 30 seconds.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Post-refactor explanation prompt</span>
+          </div>
+          <pre><code>"Write a two-sentence commit message explaining what you changed in this
+refactor and why the old approach needed to change. Write it in the
+imperative mood (e.g. 'Convert X to Y because...')."</code></pre>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — Codebase Understanding
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="codebase-understanding">
+        <div class="section-label">
+          <span class="section-num">04</span>
+          <h2 class="section-title">Codebase Understanding &amp; Onboarding</h2>
+        </div>
+
+        <p>
+          Joining a new codebase is one of the highest-friction events in an engineer's career. A senior teammate can compress weeks of learning into a few well-placed conversations. Claude Code can play this role 24/7, with perfect recall of every file you show it, and no impatience with beginner questions.
+        </p>
+
+        <h3 id="understanding-questions">Questions That Produce High-Quality Answers</h3>
+        <p>
+          Not all codebase questions are equal. Claude produces much better answers when questions are <em>specific and scoped</em> rather than open-ended. Here is a progression from weak to strong:
+        </p>
+
+        <div class="compare-table-wrapper" style="overflow-x:auto;margin:1.25rem 0;">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Weak Question</th>
+                <th>Strong Question</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>"How does this app work?"</td>
+                <td class="good-cell">"What does the services/ module do, and how does it relate to the routers/ module?"</td>
+              </tr>
+              <tr>
+                <td>"Where is X?"</td>
+                <td class="good-cell">"Where is the function that validates an incoming webhook signature? Which file is it in?"</td>
+              </tr>
+              <tr>
+                <td>"What calls this function?"</td>
+                <td class="good-cell">"What calls process_payment()? Trace every caller and tell me what data each one passes."</td>
+              </tr>
+              <tr>
+                <td>"Why was this written this way?"</td>
+                <td class="good-cell">"This retry loop in worker.py uses exponential backoff with jitter. What failure mode is this designed to handle, and what would break if the jitter were removed?"</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="understanding-diagrams">Generating Architecture Diagrams from Code</h3>
+        <p>
+          One of the most powerful onboarding uses of Claude is generating architecture diagrams directly from source code. You don't need to maintain a Confluence page — you ask Claude to produce an ASCII or Mermaid diagram from the actual code, which means it's always up to date.
+        </p>
+
+        <div class="transcript">
+          <div class="transcript-turn">
+            <div class="transcript-speaker human">You</div>
+            <div class="transcript-text">/add app/routers/ app/services/ app/models/ app/middleware/
+
+Draw an ASCII diagram showing the request lifecycle for POST /orders.
+Include: middleware layers, which services are called, what database models are touched,
+and where errors are caught. Keep it to one screen height.</div>
+          </div>
+          <div class="transcript-turn">
+            <div class="transcript-speaker claude">Claude</div>
+            <div class="transcript-text"><span class="good">POST /orders — Request Lifecycle</span>
+
+  Client
+    │
+    ▼
+  ┌─────────────────────┐
+  │  AuthMiddleware      │  ← reads session cookie, sets g.current_user
+  │  RateLimitMiddleware │  ← checks Redis counter for IP
+  └────────┬────────────┘
+           │  (401 if unauthenticated, 429 if rate limited)
+           ▼
+  ┌─────────────────────┐
+  │  orders router       │  app/routers/orders.py
+  │  POST /orders        │  ← validates OrderCreate schema (Pydantic)
+  └────────┬────────────┘
+           │  (422 if schema invalid)
+           ▼
+  ┌─────────────────────┐
+  │  OrderService        │  app/services/order_service.py
+  │  .create_order()     │  ← business logic, stock check
+  └──┬──────────┬───────┘
+     │          │
+     ▼          ▼
+  ┌───────┐  ┌──────────────────┐
+  │ Order │  │ PaymentService   │  ← async httpx to payment API
+  │ model │  │ .charge()        │
+  └───┬───┘  └────────┬─────────┘
+      │               │  (httpx.HTTPStatusError → OrderService catches,
+      │               │   raises PaymentFailedError → router returns 402)
+      ▼               ▼
+  ┌───────────────────────┐
+  │  PostgreSQL (SQLAlchemy│
+  │  orders + order_items) │
+  └───────────────────────┘</div>
+          </div>
+        </div>
+
+        <h3 id="understanding-strategy">The Strategic <code>/add</code> Approach for Understanding</h3>
+        <p>
+          The single most common mistake when using Claude for codebase understanding is adding everything. Counter-intuitively, adding the entire codebase degrades the quality of Claude's answers because relevant signals are diluted. Use a layered strategy:
+        </p>
+
+        <div class="step-flow">
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <div class="step-title">Start with the entry point</div>
+              <div class="step-desc">Add the router/controller file for the feature you're investigating. Ask Claude what it does and what it depends on.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <div class="step-title">Follow the dependencies Claude identifies</div>
+              <div class="step-desc">Claude will mention service classes, models, or utility functions. Add those files next, in response to Claude's questions or your own.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <div class="step-title">Add configuration and middleware last</div>
+              <div class="step-desc">Once you understand the happy path, add middleware and config files to understand the security and observability layers.</div>
+            </div>
+          </div>
+        </div>
+
+        <h3 id="understanding-mental-model">Building a Mental Model: Data Flow, Error Handling, Auth Chain</h3>
+        <p>
+          For a new engineer joining a Django application, a high-value first session with Claude might look like this:
+        </p>
+
+        <div class="transcript">
+          <div class="transcript-turn">
+            <div class="transcript-speaker human">You</div>
+            <div class="transcript-text">/add myapp/views/api.py myapp/middleware.py myapp/models.py myapp/serializers.py
+
+I'm a new engineer on this team. Walk me through these four files and answer:
+1. Where does authentication happen — middleware or the view?
+2. What ORM models does the main API endpoint touch?
+3. How are validation errors returned to the client — what shape is the error response?
+4. Is there anything in this code that a new engineer typically trips over?</div>
+          </div>
+          <div class="transcript-turn">
+            <div class="transcript-speaker claude">Claude</div>
+            <div class="transcript-text"><span class="good">1. Authentication location:</span>
+   Authentication happens in both places, in sequence.
+   middleware.py contains JWTAuthenticationMiddleware which runs first and attaches
+   request.user. The views then use the @login_required decorator which checks that
+   request.user.is_authenticated is True. Unauthenticated requests are rejected at
+   the middleware layer with 401, not by the view.
+
+<span class="good">2. ORM models touched by the main endpoint (GET /api/v1/items):</span>
+   - Item (SELECT with filter on owner_id)
+   - ItemTag (prefetch_related — avoids N+1)
+   - Category (select_related — single JOIN)
+   The query is in views/api.py line 88. It uses select_related + prefetch_related,
+   which is good practice. Note: it filters by request.user.id, so each user only
+   sees their own items.
+
+<span class="good">3. Error response shape:</span>
+   Validation errors come from DRF serializers and are shaped as:
+   {"field_name": ["error message"]} for field errors
+   {"non_field_errors": ["message"]} for object-level errors
+   This is standard DRF format, documented at django-rest-framework.org.
+
+<span class="hi">4. Things that trip up new engineers:</span>
+   - The `owner` field on Item is NOT the same as `created_by`. owner can be
+     transferred (see Item.transfer_ownership()). created_by is immutable.
+     New engineers often use them interchangeably and create subtle permission bugs.
+   - ItemSerializer has a custom to_representation() that excludes soft-deleted
+     tags. If you add a tag and it disappears, check the tag's is_deleted flag.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 5 — TDD & Test Generation
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="tdd-testing">
+        <div class="section-label">
+          <span class="section-num">05</span>
+          <h2 class="section-title">TDD &amp; Test Generation</h2>
+        </div>
+
+        <p>
+          Claude is a capable test author — but only when given the right context. Without context, Claude generates generic tests that pass on the first try against a correct implementation but miss edge cases, don't match your team's testing conventions, and don't integrate with your fixture setup. With the right context, Claude generates tests that a senior engineer would be proud to commit.
+        </p>
+
+        <div class="callout callout-note">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <div class="callout-title">The right order: failing test first, then implementation</div>
+            The TDD loop with Claude is: (1) ask Claude to write a failing test for the behaviour you want, (2) verify it fails for the right reason, (3) ask Claude to make it pass with the simplest correct implementation, (4) review what it changed. This keeps you in control of the specification and prevents Claude from writing tests that vacuously pass against a hollow implementation.
+          </div>
+        </div>
+
+        <h3 id="test-context">What Context Claude Needs to Write Good Tests</h3>
+
+        <div class="protocol-box">
+          <div class="proto-title">Required context for high-quality test generation</div>
+          <ul>
+            <li><strong>The function under test:</strong> Add the source file with the function via <code>/add</code></li>
+            <li><strong>An example test file:</strong> Add <code>tests/test_similar_thing.py</code> so Claude matches your team's style — pytest fixtures, factory patterns, assertion style</li>
+            <li><strong>The test framework and key fixtures:</strong> If you have shared fixtures in <code>conftest.py</code>, add it</li>
+            <li><strong>Explicit coverage requirements:</strong> State the cases you need covered — don't leave it to Claude's judgment</li>
+          </ul>
+        </div>
+
+        <h3 id="test-prompt-pattern">The Test Generation Prompt Pattern</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>High-signal test generation prompt</span>
+          </div>
+          <pre><code>/add app/services/user_service.py tests/test_auth_service.py tests/conftest.py
+
+Write pytest tests for register_user() in user_service.py.
+
+Match the style and fixture patterns in tests/test_auth_service.py exactly:
+- Use the `db_session` fixture from conftest.py
+- Use UserFactory for creating test users
+- Use `pytest.raises` for expected exceptions
+- One assertion per test function, named test_<what>_<when>_<expected>
+
+Cover these cases:
+  1. Happy path: valid email + password → returns User object with hashed password
+  2. Missing required field: no email → raises ValidationError
+  3. Duplicate email: same email registered twice → raises DuplicateEmailError
+  4. Weak password: fewer than 8 chars → raises PasswordTooWeakError
+  5. Email normalisation: "User@EXAMPLE.COM" should be stored as "user@example.com"</code></pre>
+        </div>
+
+        <p>
+          This prompt produces useful tests because it specifies <em>style</em> (fixture patterns, assertion style, naming), <em>coverage</em> (five explicit cases), and <em>constraints</em> (don't invent new fixtures). Compare that to the low-signal alternative:
+        </p>
+
+        <div class="compare-table-wrapper" style="overflow-x:auto;margin:1.25rem 0;">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>Low-Signal Prompt</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>"Add tests for register_user()"</td>
+                <td class="bad-cell">Generic tests, wrong fixture names, misses edge cases, may not run</td>
+              </tr>
+              <tr>
+                <td>"Write comprehensive tests for user_service.py"</td>
+                <td class="bad-cell">Broad coverage of easy paths, sparse on error conditions, invented mock patterns</td>
+              </tr>
+              <tr>
+                <td>The prompt above with explicit coverage list</td>
+                <td class="good-cell">Tests that run immediately, match team style, cover specified cases</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="test-snapshot">Snapshot Testing for API Responses</h3>
+        <p>
+          Claude is particularly useful for generating baseline snapshots for API response contract testing. The workflow: hit your local server, capture the response, ask Claude to generate a snapshot test that locks in the current response shape.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Snapshot test generation</span>
+          </div>
+          <pre><code># 1. Capture the current API response
+curl -s http://localhost:8000/api/v1/users/me \
+  -H "Authorization: Bearer $TEST_TOKEN" | python3 -m json.tool > /tmp/me_response.json
+
+# 2. In Claude Code:
+# /add tests/test_users.py tests/conftest.py /tmp/me_response.json
+#
+# "Generate a pytest snapshot test for GET /api/v1/users/me that:
+# - Uses the response shape from me_response.json as the expected baseline
+# - Checks the status code is 200
+# - Checks that all top-level keys are present (not exact values for volatile fields like timestamps)
+# - Uses syrupy or pytest-snapshot for the snapshot assertion
+# - Follows the pattern in tests/test_users.py"</code></pre>
+        </div>
+
+        <h3 id="test-failure-mode">Common Failure Mode: "Add Tests" Without Context</h3>
+        <p>
+          The most common way teams get low value from Claude's test generation is asking it to "add tests" on a file it has never seen, with no example tests and no specification of what to cover. Claude will generate something that <em>looks</em> like a test suite but: uses the wrong test runner, invents fixtures that don't exist, passes trivially because the mocks are too permissive, and misses every business-critical edge case.
+        </p>
+        <p>
+          The fix is not a better model — it is a better prompt. Always add the source file, always add an example test file, always enumerate the cases you want covered.
+        </p>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 6 — Code Review & Quality Gates
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="review-quality">
+        <div class="section-label">
+          <span class="section-num">06</span>
+          <h2 class="section-title">Code Review &amp; Quality Gates</h2>
+        </div>
+
+        <p>
+          Code review is one of the highest-leverage places to apply Claude Code — not because it replaces human reviewers, but because it functions as a pre-review filter that catches a large class of mechanical issues before the diff reaches a human. Your reviewers spend their time on architecture, intent, and business logic; Claude handles the checklist.
+        </p>
+
+        <h3 id="review-pre-pr">Claude as Pre-Review Reviewer</h3>
+        <p>
+          The workflow is straightforward: before opening a PR, pipe your diff to Claude with a specific review checklist. This is not a vague "review this code" — it is a structured audit against a defined set of risk categories.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Pre-PR review prompt</span>
+          </div>
+          <pre><code># Generate the diff against main branch
+git diff main > /tmp/feature-diff.patch
+
+# In Claude Code:
+/add /tmp/feature-diff.patch CLAUDE.md
+
+Review this diff against the following checklist. For each item, either confirm
+it's clean or quote the exact line and explain the problem:
+
+SECURITY:
+  [ ] SQL injection: any raw string interpolation into SQL queries?
+  [ ] Missing authentication/authorisation checks on new endpoints?
+  [ ] Secrets or credentials hardcoded or logged?
+  [ ] Untrusted user input passed directly to shell commands or file paths?
+
+CORRECTNESS:
+  [ ] Null/None checks missing where the value could be absent?
+  [ ] Off-by-one errors in loops or pagination?
+  [ ] Race conditions in async code (e.g. check-then-act on shared state)?
+  [ ] Error paths that silently swallow exceptions?
+
+PERFORMANCE:
+  [ ] N+1 queries introduced (ORM calls inside loops)?
+  [ ] Unbounded queries (missing LIMIT on user-controlled filters)?
+  [ ] Synchronous blocking calls in async context?
+
+STYLE (per CLAUDE.md):
+  [ ] Function names match our snake_case convention?
+  [ ] All new public functions have docstrings?
+  [ ] No commented-out code left in?</code></pre>
+        </div>
+
+        <h3 id="review-claude-md">Adding CLAUDE.md to the Review Context</h3>
+        <p>
+          <code>CLAUDE.md</code> is your team's coding standards document — the file Claude Code reads to understand your conventions. When you include it in a code review prompt, Claude can flag style inconsistencies against your <em>actual</em> standards rather than generic style advice. If your team requires type annotations on all public functions, Claude will catch the missing ones. If you have a specific error handling pattern, Claude will flag deviations.
+        </p>
+
+        <div class="callout callout-note">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <div class="callout-title">CLAUDE.md is your living style guide</div>
+            Every team should maintain a CLAUDE.md at the repo root that documents: code style decisions, architectural patterns, forbidden patterns (e.g. "never use raw SQL"), test conventions, and CI requirements. This file serves double duty: it guides Claude Code's behaviour in interactive sessions, and it gives the review prompt the context it needs to catch standard deviations.
+          </div>
+        </div>
+
+        <h3 id="review-what-claude-catches">What Claude Reliably Catches</h3>
+
+        <div class="arch-diagram">
+<span class="label">CLAUDE CODE REVIEW — DETECTION RELIABILITY</span>
+
+<span class="good">High reliability (catches consistently):</span>
+  <span class="box">■</span> Missing null/undefined checks on method return values
+  <span class="box">■</span> String interpolation in SQL queries (classic SQLi pattern)
+  <span class="box">■</span> Secrets/API keys in code or log statements
+  <span class="box">■</span> ORM calls inside for/while loops (N+1 query pattern)
+  <span class="box">■</span> Missing error handling on external API calls (unhandled exceptions)
+  <span class="box">■</span> Style violations when CLAUDE.md is in context
+
+<span class="hi">Medium reliability (catches most, misses some):</span>
+  <span class="box">■</span> Race conditions in async code (detects obvious patterns)
+  <span class="box">■</span> Missing input validation on user-controlled parameters
+  <span class="box">■</span> Authorisation gaps on new endpoints
+  <span class="box">■</span> Off-by-one errors in pagination/slicing logic
+
+<span class="dim">Low reliability (requires human review):</span>
+  <span class="box">■</span> Performance regressions under production load (needs profiling data)
+  <span class="box">■</span> Correctness under concurrent high-traffic scenarios
+  <span class="box">■</span> Business logic errors (requires domain knowledge)
+  <span class="box">■</span> Subtle auth bypass via chained permission checks</div>
+
+        <h3 id="review-ci-integration">CI Integration: Non-Blocking Advisory Step</h3>
+        <p>
+          The most scalable way to deploy Claude code review is as a non-blocking advisory step in CI. On every PR, a CI job runs <code>git diff main</code>, pipes the diff to Claude via the API, and posts the review as a PR comment. Engineers see Claude's findings immediately — before human reviewers engage — and can address mechanical issues proactively.
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-py"></span>CI advisory review script (GitHub Actions)</span>
+          </div>
+          <pre><code><span class="cm"># .github/scripts/claude_review.py</span>
+<span class="kw">import</span> <span class="va">anthropic</span>, <span class="va">subprocess</span>, <span class="va">os</span>, <span class="va">sys</span>
+
+<span class="va">client</span> = <span class="va">anthropic</span>.<span class="fn">Anthropic</span>()
+
+<span class="cm"># Capture diff from main branch</span>
+<span class="va">diff</span> = <span class="va">subprocess</span>.<span class="fn">check_output</span>(
+    [<span class="st">"git"</span>, <span class="st">"diff"</span>, <span class="st">"origin/main...HEAD"</span>],
+    text=<span class="kw">True</span>
+)
+
+<span class="kw">if not</span> <span class="va">diff</span>.strip():
+    <span class="fn">print</span>(<span class="st">"No changes detected."</span>)
+    <span class="va">sys</span>.<span class="fn">exit</span>(<span class="nm">0</span>)
+
+<span class="va">prompt</span> = <span class="st">f"""Review this diff for a Python/FastAPI codebase:
+
+{diff[:30000]}  # truncate to stay within token budget
+
+Flag ONLY real issues. For each issue, output:
+  FILE: path/to/file.py:LINE_NUMBER
+  SEVERITY: critical | warning | info
+  ISSUE: one-sentence description
+  FIX: one-sentence recommendation
+
+If the diff is clean, output: NO_ISSUES_FOUND"""</span>
+
+<span class="va">response</span> = <span class="va">client</span>.messages.<span class="fn">create</span>(
+    <span class="va">model</span>=<span class="st">"claude-sonnet-4-6"</span>,
+    <span class="va">max_tokens</span>=<span class="nm">2048</span>,
+    <span class="va">messages</span>=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="va">prompt</span>}]
+)
+
+<span class="fn">print</span>(<span class="va">response</span>.content[<span class="nm">0</span>].text)  <span class="cm"># captured by CI and posted as PR comment</span></code></pre>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <div class="callout-title">Keep AI review non-blocking — never gate merges on it</div>
+            Claude's code review should inform human reviewers, never replace them or block merges automatically. Claude does not understand your production load patterns, your deployment constraints, or the organisational context behind a design decision. A false positive that blocks a critical hotfix is worse than a false negative that requires a follow-up ticket. Configure the CI step with <code>continue-on-error: true</code> and treat Claude's output as advisory commentary, not a quality gate.
+          </div>
+        </div>
+
+        <h3 id="review-missing">What Claude Misses — and Why Human Review Remains Essential</h3>
+        <p>
+          Claude's code review operates on static analysis of the diff. It has no access to production metrics, no memory of previous incidents, and no knowledge of the organisational context behind a design decision. Specifically, Claude cannot catch:
+        </p>
+        <ul class="key-points">
+          <li><strong>Performance regressions at production scale:</strong> Claude can identify N+1 patterns but cannot predict whether a query will be acceptable at 10K RPS. That requires load test data and production query plans.</li>
+          <li><strong>Correctness under concurrency:</strong> Race conditions that only manifest under specific timing and load patterns are extremely difficult to detect from static analysis alone.</li>
+          <li><strong>Business logic correctness:</strong> Whether a discount calculation or an access control rule matches the product specification requires domain knowledge Claude doesn't have.</li>
+          <li><strong>Intentional tech debt:</strong> Claude will flag code it considers suboptimal even when the team has consciously chosen the simpler approach for now. Context about the roadmap matters.</li>
+        </ul>
+      </section>
+
+      <!-- Page Navigation -->
+      <div class="page-nav">
+        <a href="day2-module1-claude-code.html">
+          <span class="nav-dir">← Previous</span>
+          <span class="nav-title">Day 2 · Module 1: Claude Code – Practitioner Level</span>
+        </a>
+        <a href="day2-module3-prompt-engineering.html" class="nav-next">
+          <span class="nav-dir">Next →</span>
+          <span class="nav-title">Day 2 · Module 3: Prompt Engineering for Code</span>
+        </a>
+      </div>
+
+    </div><!-- end content-wrap -->
+
+    <!-- TOC -->
+    <aside class="toc">
+      <div class="toc-inner">
+        <div class="toc-label">On This Page</div>
+        <a href="#feature-development">Feature Development Workflow</a>
+        <a href="#debugging">Systematic Debugging</a>
+        <a href="#refactoring">Refactoring with Confidence</a>
+        <a href="#codebase-understanding">Codebase Understanding</a>
+        <a href="#tdd-testing">TDD &amp; Test Generation</a>
+        <a href="#review-quality">Code Review &amp; Quality Gates</a>
+      </div>
+    </aside>
+
+  </main>
+</div>
+
+<script src="assets/js/brand-theme.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>

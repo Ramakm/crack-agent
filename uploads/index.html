@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claude Architect — 4-Day Enterprise Program | Techademy</title>
+  <meta name="description" content="Enterprise-grade Claude architecture training — Claude ecosystem, Claude Code, MCP, multi-agent systems, governance, and CI/CD integration." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+
+    .day-section { padding: 0 3rem 1rem; max-width: 1100px; }
+    .day-header {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin: 2rem 0 1rem;
+    }
+    .day-pill {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.07em;
+      text-transform: uppercase; padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+    }
+    .day-pill.d1 { background:#dbeafe; color:#1e40af; }
+    .day-pill.d2 { background:#ede9fe; color:#5b21b6; }
+    .day-pill.d3 { background:#dcfce7; color:#14532d; }
+    .day-pill.d4 { background:#fff7ed; color:#c2410c; }
+
+    .day-title { font-size: 1.1rem; font-weight: 700; color: var(--text-heading); }
+    .day-desc  { font-size: 0.82rem; color: var(--muted); }
+
+    .author-strip {
+      display:flex;align-items:center;justify-content:center;
+      gap:1rem;padding:1.25rem;
+      border:1px solid var(--border);border-radius:var(--radius);
+      max-width:540px;margin:0 auto 1rem;
+    }
+    .author-avatar {
+      width:46px;height:46px;border-radius:50%;
+      background:linear-gradient(135deg,#1e40af,#5b21b6);
+      display:flex;align-items:center;justify-content:center;
+      color:white;font-weight:800;font-size:1rem;flex-shrink:0;
+    }
+    .author-name { font-weight:700;font-size:0.95rem;color:var(--text-heading); }
+    .author-role { font-size:0.78rem;color:var(--muted); }
+
+    .module-card.available { cursor: pointer; }
+    .module-card.labs {
+      border-style: dashed;
+      background: #fafafa;
+    }
+    .module-card.labs .module-card-num { color: #059669; }
+
+    @media (max-width: 768px) {
+      .day-section { padding: 0 1.25rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="index.html" class="topbar-logo">
+    <div class="logo-icon">CA</div>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Enterprise Program</span>
+  <div class="topbar-right">
+    <span class="topbar-badge">4 Days · Techademy</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle>
+        <span class="mod-num" style="background:rgba(59,130,246,0.15);color:#60a5fa;">D1</span>
+        Ecosystem &amp; Foundations
+        <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="#" style="opacity:.45;pointer-events:none;">Enterprise Governance &amp; Responsible AI</a>
+        <a href="#" style="opacity:.45;pointer-events:none;">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">D2</span> Claude Code &amp; Dev Workflows
+        <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">D3</span> Context, CI/CD &amp; Multi-Agent
+        <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">D4</span> MCP, Security &amp; Capstone
+        <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="content-wrap" style="max-width:900px; padding-top:2rem; padding-bottom:1rem;">
+
+      <!-- Hero -->
+      <div class="home-hero" style="padding-top:2rem;">
+        <div class="home-badge">✦ Enterprise Architecture Program</div>
+        <h1 class="home-title">
+          <span>Claude Architect</span>
+        </h1>
+        <p class="home-sub">
+          A 4-day intensive program for engineers and architects building production-grade AI systems with Claude. From ecosystem foundations and enterprise governance to MCP integrations, multi-agent systems, and CI/CD pipelines.
+        </p>
+
+        <div class="home-actions">
+          <a href="day1-module1-claude-ecosystem.html" class="home-cta">Start Day 1 →</a>
+          <a href="#curriculum" class="home-cta-secondary">View Full Curriculum</a>
+        </div>
+
+        <div class="home-stats">
+          <div class="stat"><div class="stat-num">4</div><div class="stat-label">Days</div></div>
+          <div class="stat"><div class="stat-num">16</div><div class="stat-label">Modules</div></div>
+          <div class="stat"><div class="stat-num">8</div><div class="stat-label">Labs</div></div>
+          <div class="stat"><div class="stat-num">1</div><div class="stat-label">Capstone</div></div>
+        </div>
+      </div>
+
+      <div class="author-strip">
+        <div class="author-avatar">T</div>
+        <div>
+          <div class="author-name">Techademy · Claude Architect Program</div>
+          <div class="author-role">Enterprise AI Engineering · Architecture · Governance</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Curriculum -->
+    <div id="curriculum">
+
+      <!-- Day 1 -->
+      <div class="day-section">
+        <div class="day-header">
+          <span class="day-pill d1">Day 1</span>
+          <div>
+            <div class="day-title">Claude Ecosystem &amp; Enterprise Foundations</div>
+            <div class="day-desc">Build your mental model of the full Claude product stack and enterprise deployment strategy</div>
+          </div>
+        </div>
+        <div class="modules-grid" style="padding:0; margin-bottom:0.5rem;">
+          <a href="day1-module1-claude-ecosystem.html" class="module-card available">
+            <div class="module-card-num">Day 1 · Module 1</div>
+            <div class="module-card-title">Claude Ecosystem &amp; Enterprise Foundations</div>
+            <div class="module-card-desc">Claude.ai, Cowork, Code, APIs, AWS Bedrock, Vertex AI, model selection (Haiku/Sonnet/Opus), responsible AI, governance, prompt safety, enterprise deployment strategy.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-blue">Claude API</span>
+              <span class="tag tag-purple">AWS Bedrock</span>
+              <span class="tag tag-green">Vertex AI</span>
+            </div>
+          </a>
+
+          <div class="module-card locked">
+            <div class="module-card-num">Day 1 · Module 2</div>
+            <div class="module-card-title">Claude Cowork – Business Automation</div>
+            <div class="module-card-desc">No-code automation, desktop workflow automation, document processing, HR workflows, reporting automation, finance workflows.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-blue">No-Code</span>
+              <span class="tag tag-orange">HR Workflows</span>
+            </div>
+          </div>
+
+          <div class="module-card locked">
+            <div class="module-card-num">Day 1 · Module 3</div>
+            <div class="module-card-title">Enterprise Governance &amp; Responsible AI</div>
+            <div class="module-card-desc">Constitutional AI, prompt injection prevention, privacy controls, audit logging, compliance concepts.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-pink">Constitutional AI</span>
+              <span class="tag tag-gray">Compliance</span>
+            </div>
+          </div>
+
+          <div class="module-card locked labs">
+            <div class="module-card-num" style="color:#059669;">Day 1 · Labs</div>
+            <div class="module-card-title">Product Mapping &amp; Workflow Automation</div>
+            <div class="module-card-desc">Product mapping exercise, workflow automation, HR onboarding automation. Hands-on enterprise scenario design.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-green">Hands-on</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 2 -->
+      <div class="day-section">
+        <div class="day-header">
+          <span class="day-pill d2">Day 2</span>
+          <div>
+            <div class="day-title">Claude Code &amp; AI-Assisted Development</div>
+            <div class="day-desc">Master Claude Code CLI, prompt engineering for software tasks, and developer workflow automation</div>
+          </div>
+        </div>
+        <div class="modules-grid" style="padding:0; margin-bottom:0.5rem;">
+          <div class="module-card locked">
+            <div class="module-card-num">Day 2 · Module 1</div>
+            <div class="module-card-title">Claude Code – Practitioner Level</div>
+            <div class="module-card-desc">Claude Code architecture, CLI-based AI coding, installation & setup, API authentication, IDE integrations.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-purple">CLI</span>
+              <span class="tag tag-blue">IDE</span>
+            </div>
+          </div>
+
+          <div class="module-card locked">
+            <div class="module-card-num">Day 2 · Module 2</div>
+            <div class="module-card-title">AI-Assisted Development Workflows</div>
+            <div class="module-card-desc">Feature development, debugging, refactoring, codebase understanding, regression testing with Claude.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-green">Debugging</span>
+              <span class="tag tag-blue">Refactoring</span>
+            </div>
+          </div>
+
+          <div class="module-card locked">
+            <div class="module-card-num">Day 2 · Module 3</div>
+            <div class="module-card-title">Prompt Engineering for Code</div>
+            <div class="module-card-desc">Structured prompts, XML prompts, iterative prompting, coding prompt design patterns.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-orange">XML Prompts</span>
+              <span class="tag tag-purple">Patterns</span>
+            </div>
+          </div>
+
+          <div class="module-card locked">
+            <div class="module-card-num">Day 2 · Module 4</div>
+            <div class="module-card-title">Developer Productivity Automation</div>
+            <div class="module-card-desc">Shell pipelines, log analysis, PR summaries, linting automation, merge conflict assistance.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-gray">Shell</span>
+              <span class="tag tag-blue">PR Automation</span>
+            </div>
+          </div>
+
+          <div class="module-card locked labs">
+            <div class="module-card-num" style="color:#059669;">Day 2 · Labs</div>
+            <div class="module-card-title">REST API Creation &amp; Coding Workflows</div>
+            <div class="module-card-desc">REST API creation, debugging exercise, prompt comparison workshop, git diff automation.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-green">Hands-on</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 3 -->
+      <div class="day-section">
+        <div class="day-header">
+          <span class="day-pill d3">Day 3</span>
+          <div>
+            <div class="day-title">Context Engineering, CI/CD &amp; Multi-Agent Architecture</div>
+            <div class="day-desc">Enterprise context design, DevOps integration, and scalable multi-agent system architecture</div>
+          </div>
+        </div>
+        <div class="modules-grid" style="padding:0; margin-bottom:0.5rem;">
+          <div class="module-card locked">
+            <div class="module-card-num">Day 3 · Module 1</div>
+            <div class="module-card-title">Context Engineering &amp; CLAUDE.md</div>
+            <div class="module-card-desc">CLAUDE.md, AGENTS.md, SKILL.md, coding standards, security constraints, reusable context design.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-blue">CLAUDE.md</span>
+              <span class="tag tag-purple">AGENTS.md</span>
+            </div>
+          </div>
+
+          <div class="module-card locked">
+            <div class="module-card-num">Day 3 · Module 2</div>
+            <div class="module-card-title">CI/CD &amp; GitHub Integration</div>
+            <div class="module-card-desc">GitHub Actions, automated code reviews, changelog generation, build failure analysis.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-gray">GitHub Actions</span>
+              <span class="tag tag-green">CI/CD</span>
+            </div>
+          </div>
+
+          <div class="module-card locked">
+            <div class="module-card-num">Day 3 · Module 3</div>
+            <div class="module-card-title">Multi-Agent Architecture</div>
+            <div class="module-card-desc">Orchestrator-worker patterns, specialist agents, parallel execution, human approval workflows.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-orange">Orchestrator</span>
+              <span class="tag tag-purple">Multi-Agent</span>
+            </div>
+          </div>
+
+          <div class="module-card locked">
+            <div class="module-card-num">Day 3 · Module 4</div>
+            <div class="module-card-title">Enterprise AI Platform Architecture</div>
+            <div class="module-card-desc">Cost optimization, model routing, observability, token monitoring, internal developer platforms.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-blue">Observability</span>
+              <span class="tag tag-pink">Cost Control</span>
+            </div>
+          </div>
+
+          <div class="module-card locked labs">
+            <div class="module-card-num" style="color:#059669;">Day 3 · Labs</div>
+            <div class="module-card-title">Enterprise CLAUDE.md &amp; Multi-Agent Design</div>
+            <div class="module-card-desc">Enterprise CLAUDE.md creation, GitHub workflow automation, multi-agent architecture design, token cost estimation.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-green">Hands-on</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Day 4 -->
+      <div class="day-section" style="padding-bottom:4rem;">
+        <div class="day-header">
+          <span class="day-pill d4">Day 4</span>
+          <div>
+            <div class="day-title">MCP, Security, Governance &amp; Capstone</div>
+            <div class="day-desc">Model Context Protocol, enterprise integrations, security compliance, and final architecture delivery</div>
+          </div>
+        </div>
+        <div class="modules-grid" style="padding:0; margin-bottom:0.5rem;">
+          <div class="module-card locked">
+            <div class="module-card-num">Day 4 · Module 1</div>
+            <div class="module-card-title">Model Context Protocol (MCP)</div>
+            <div class="module-card-desc">MCP architecture, client-server model, tools/resources/prompts, enterprise integrations.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-blue">MCP</span>
+              <span class="tag tag-purple">Client-Server</span>
+            </div>
+          </div>
+
+          <div class="module-card locked">
+            <div class="module-card-num">Day 4 · Module 2</div>
+            <div class="module-card-title">Enterprise Integrations using MCP</div>
+            <div class="module-card-desc">GitHub, Slack, Jira, Google Workspace, Databases, Browser automation integrations.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-gray">GitHub</span>
+              <span class="tag tag-blue">Slack</span>
+              <span class="tag tag-orange">Jira</span>
+            </div>
+          </div>
+
+          <div class="module-card locked">
+            <div class="module-card-num">Day 4 · Module 3</div>
+            <div class="module-card-title">Custom MCP Server Development</div>
+            <div class="module-card-desc">MCP SDK, Python/TypeScript development, API wrapping, authentication, deployment models.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-blue">Python SDK</span>
+              <span class="tag tag-purple">TypeScript</span>
+            </div>
+          </div>
+
+          <div class="module-card locked">
+            <div class="module-card-num">Day 4 · Module 4</div>
+            <div class="module-card-title">Security, Governance &amp; Compliance</div>
+            <div class="module-card-desc">Access controls, audit logging, GDPR, HIPAA, SOC2, execution safety, prompt security.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-pink">GDPR</span>
+              <span class="tag tag-orange">HIPAA</span>
+              <span class="tag tag-gray">SOC2</span>
+            </div>
+          </div>
+
+          <div class="module-card locked" style="border-color:#6366f1; background:linear-gradient(135deg,#faf5ff,#eff6ff);">
+            <div class="module-card-num" style="color:#6366f1;">Day 4 · Capstone</div>
+            <div class="module-card-title">Capstone Project &amp; Final Presentation</div>
+            <div class="module-card-desc">Enterprise AI coding assistant platform architecture, CI/CD integration, governance model, multi-agent design. Architecture showcase and evaluation.</div>
+            <div class="module-card-footer">
+              <span class="tag tag-purple">End-to-End</span>
+              <span class="tag tag-blue">Architecture</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end curriculum -->
+  </main>
+</div>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>

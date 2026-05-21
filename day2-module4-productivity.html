@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Developer Productivity Automation — Claude Architect</title>
+  <meta name="description" content="Day 2 Module 4: Shell pipelines, log analysis, PR summaries, linting automation, merge conflict resolution, and git workflow automation with Claude Code." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+
+    .arch-diagram {
+      background: var(--code-bg); border: 1px solid var(--code-border);
+      border-radius: var(--radius); padding: 1.5rem;
+      font-family: var(--mono); font-size: 0.78rem; color: #c9d1d9;
+      line-height: 1.8; overflow-x: auto; margin: 1.25rem 0;
+    }
+    .arch-diagram .box   { color: #79c0ff; }
+    .arch-diagram .hi    { color: #ffa657; }
+    .arch-diagram .label { color: #a5d6ff; }
+    .arch-diagram .dim   { color: #484f58; }
+    .arch-diagram .bad   { color: #ff7b72; }
+    .arch-diagram .good  { color: #7ee787; }
+
+    /* Pipeline step cards */
+    .pipeline-steps {
+      display: flex; flex-direction: column; gap: 0; margin: 1.25rem 0;
+    }
+    .pipeline-step {
+      display: flex; gap: 1rem; align-items: flex-start;
+      padding: 0.9rem 1.1rem;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      position: relative;
+    }
+    .pipeline-step:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+    .pipeline-step:last-child  { border-radius: 0 0 var(--radius) var(--radius); border-top: none; }
+    .pipeline-step:not(:first-child):not(:last-child) { border-top: none; }
+    .pipeline-step-num {
+      font-family: var(--mono); font-size: 0.62rem; font-weight: 700;
+      background: var(--accent-tint); color: var(--accent);
+      border: 1px solid var(--accent-soft);
+      border-radius: 3px; padding: 0.15rem 0.48rem;
+      flex-shrink: 0; margin-top: 0.1rem;
+    }
+    .pipeline-step-body { flex: 1; font-size: 0.9rem; }
+    .pipeline-step-title { font-weight: 700; color: var(--text-heading); margin-bottom: 0.2rem; font-size: 0.9rem; }
+    .pipeline-step-desc  { color: var(--muted); font-size: 0.84rem; }
+
+    /* Git alias table tidy */
+    .alias-table { width: 100%; border-collapse: collapse; margin: 1.2rem 0;
+      font-size: 0.86rem; border: 1px solid var(--border); border-radius: var(--radius);
+      overflow: hidden; }
+    .alias-table th { background: var(--surface); color: var(--text-heading);
+      font-weight: 600; text-align: left; padding: 0.65rem 0.9rem;
+      border-bottom: 1px solid var(--border); font-size: 0.72rem;
+      text-transform: uppercase; letter-spacing: 0.07em; }
+    .alias-table td { padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--hairline);
+      vertical-align: top; }
+    .alias-table tr:last-child td { border-bottom: none; }
+    .alias-table tr:hover td { background: var(--surface); }
+    .alias-table code { font-size: 0.78rem; }
+
+    /* Inline shell example pill */
+    .shell-ex {
+      display: inline-block; background: var(--code-bg);
+      color: #a8c896; font-family: var(--mono); font-size: 0.81rem;
+      padding: 0.18em 0.6em; border-radius: 4px;
+      border: 1px solid var(--code-border);
+    }
+
+    /* Conflict block — side-by-side */
+    .conflict-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin: 1.2rem 0;
+    }
+    .conflict-pane { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--code-border); }
+    .conflict-pane-header {
+      padding: 0.45rem 0.9rem; font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      font-family: var(--mono);
+    }
+    .conflict-pane-header.ours   { background: #1e2f1c; color: #7ee787; }
+    .conflict-pane-header.theirs { background: #2a1e1c; color: #ff7b72; }
+    .conflict-pane pre { border-radius: 0; border: none; padding: 0.9rem 1rem; margin: 0; font-size: 0.82rem; }
+
+    @media(max-width:768px){
+      .conflict-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar">
+    <span></span><span></span><span></span>
+  </button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"></circle>
+      <line x1="12" y1="12" x2="19" y2="7.5"></line>
+      <line x1="12" y1="12" x2="20.5" y2="13.5"></line>
+      <line x1="12" y1="12" x2="16" y2="20"></line>
+      <line x1="12" y1="12" x2="7" y2="19.5"></line>
+      <line x1="12" y1="12" x2="3.5" y2="13"></line>
+      <line x1="12" y1="12" x2="7" y2="5"></line>
+      <circle cx="19" cy="7.5"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="20.5" cy="13.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="16" cy="20"   r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7"  cy="19.5" r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="3.5" cy="13"  r="1" fill="currentColor" stroke="none"></circle>
+      <circle cx="7"   cy="5"   r="1" fill="currentColor" stroke="none"></circle>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 2 · Module 4</span>
+  <div class="topbar-right">
+    <span class="topbar-badge">Day 2 of 4</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">01</span>
+        Ecosystem &amp; Foundations
+        <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub" style="display:none">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle>
+        <span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span>
+      </div>
+      <div class="nav-sub">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html" class="active">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module">
+      <div class="nav-module-header" data-toggle>
+        <span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="lock-icon">🔒</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="content-wrap">
+
+      <nav class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span class="sep">/</span>
+        <span>Day 2</span>
+        <span class="sep">/</span>
+        <span>Developer Productivity Automation</span>
+      </nav>
+
+      <div class="page-header">
+        <div class="module-tag">✦ Day 2 · Module 4</div>
+        <h1 class="page-title">Developer Productivity Automation</h1>
+        <p class="page-objective">
+          <strong>Outcome:</strong> Wire Claude into your daily terminal workflow — log triage, PR descriptions, commit messages, linting, and merge conflicts — so the cognitive overhead of bookkeeping disappears and you spend your attention on decisions, not formatting.
+        </p>
+        <div class="module-meta">
+          <span class="meta-item"><span class="dot"></span> Shell Pipelines</span>
+          <span class="meta-item"><span class="dot"></span> Log Analysis</span>
+          <span class="meta-item"><span class="dot"></span> PR Summaries</span>
+          <span class="meta-item"><span class="dot"></span> Linting &amp; Pre-commit</span>
+          <span class="meta-item"><span class="dot"></span> Merge Conflicts</span>
+          <span class="meta-item"><span class="dot"></span> Git Workflow</span>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — Shell Pipelines
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="shell-pipelines">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <h2 class="section-title">Shell Pipelines &amp; Claude CLI</h2>
+        </div>
+
+        <p>
+          Claude Code ships with a <code>--print</code> flag that turns it into a non-interactive Unix citizen. No TUI, no streaming spinner — just stdin in, stdout out. That single flag is what makes Claude composable with every other tool in your shell. If you understand Unix pipes, you already understand the pattern.
+        </p>
+
+        <div class="callout callout-note">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <div class="callout-title">Non-interactive Mode Is Not a Downgrade</div>
+            <code>claude --print</code> skips the interactive TUI entirely. This means no context window accumulation across invocations, no session state, and deterministic single-shot execution. That is exactly what you want in pipelines, hooks, and watch scripts. Treat each invocation as a pure function: input in, analysis out.
+          </div>
+        </div>
+
+        <h3 class="subsection-title">The Bash Wrapper Pattern</h3>
+        <p>
+          The most immediately useful thing you can do is alias <code>claude --print</code> as a smart shell command. Drop this in your <code>.zshrc</code> or <code>.bashrc</code>:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>~/.zshrc — ask-claude wrapper</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Smart shell assistant — use like: ask-claude "what does this mean?"</span>
+<span class="kw">function</span> <span class="fn">ask-claude</span>() {
+  <span class="kw">if</span> [ -p /dev/stdin ]; <span class="kw">then</span>
+    <span class="cm"># Data piped in: prepend it to the prompt</span>
+    <span class="va">piped</span>=$(cat)
+    claude --print <span class="st">"$piped
+
+$*"</span>
+  <span class="kw">else</span>
+    <span class="cm"># No pipe: prompt only</span>
+    claude --print <span class="st">"$*"</span>
+  <span class="kw">fi</span>
+}
+
+<span class="cm"># Convenience aliases</span>
+<span class="kw">alias</span> <span class="va">ac</span>=<span class="st">'ask-claude'</span>
+<span class="kw">alias</span> <span class="va">explain</span>=<span class="st">'ask-claude "Explain this to a senior engineer, be concise:"'</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">5 Shell Pipeline Examples — Copy and Adapt</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>1. Log analysis — top error categories</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Pull the last 500 error lines and ask Claude to categorise them</span>
+grep -i <span class="st">"error\|exception\|fatal"</span> /var/log/api.log | tail -500 \
+  | claude --print <span class="st">"Summarise the top 3 error categories in this log.
+For each: name, frequency estimate, likely root cause, suggested fix.
+Be concise — output markdown bullet points only."</span></code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>2. Intelligent file rename — batch across a directory</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Generate a rename script for all files in ./screenshots/
+# Claude reads the filenames and proposes semantic names</span>
+ls ./screenshots/ \
+  | claude --print <span class="st">"These are screenshot filenames from our app.
+Propose cleaner, kebab-case, descriptive filenames.
+Output ONLY a bash script of 'mv' commands, no commentary."</span> \
+  | bash <span class="cm"># pipe directly to bash — review first in practice!</span></code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>3. JSON transformation — reshape an API response</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Get a complex API response, reshape it with Claude, then process with jq</span>
+curl -s https://api.example.com/events \
+  | claude --print <span class="st">"Transform this JSON into a flat array where each element has:
+{id, user_email, event_type, timestamp_utc}.
+Output valid JSON only, no markdown fences."</span> \
+  | jq <span class="st">'.[] | select(.event_type == "purchase")'</span></code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>4. Test report summary — CI output to Slack-ready message</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Summarise pytest output into a one-paragraph Slack message</span>
+python -m pytest --tb=short 2>&amp;1 \
+  | claude --print <span class="st">"This is pytest output. Write a 2-sentence Slack message
+summarising the result: how many passed/failed, which tests failed,
+and the most likely cause. Plain text only."</span> \
+  | pbcopy <span class="cm"># macOS: copies to clipboard — use xclip on Linux</span></code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>5. Config diff explanation — understand what changed</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Explain what a Terraform plan diff actually means in plain English</span>
+terraform plan 2>&amp;1 \
+  | claude --print <span class="st">"This is a Terraform plan output. Explain in plain English:
+1) What resources will be created, modified, or destroyed?
+2) Any changes that look risky (deletions, IAM modifications, network changes)?
+3) Is it safe to apply? Keep it under 200 words."</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">Watch Mode — Auto-Explain File Changes</h3>
+        <p>
+          Combine <code>fswatch</code> (macOS) or <code>inotifywait</code> (Linux) with Claude to build a lightweight "explain this change" feedback loop while you edit:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Watch mode — explain every save to a Python file</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># macOS: brew install fswatch
+# Watches a file and explains what changed after each save</span>
+<span class="kw">function</span> <span class="fn">watch-explain</span>() {
+  <span class="va">file</span>=<span class="st">"$1"</span>
+  <span class="va">prev</span>=$(cat <span class="st">"$file"</span>)
+  echo <span class="st">"Watching $file — will explain each change..."</span>
+
+  fswatch -o <span class="st">"$file"</span> | <span class="kw">while</span> read; <span class="kw">do</span>
+    <span class="va">curr</span>=$(cat <span class="st">"$file"</span>)
+    <span class="va">diff</span>=$(diff <(echo <span class="st">"$prev"</span>) <(echo <span class="st">"$curr"</span>))
+    <span class="kw">if</span> [ -n <span class="st">"$diff"</span> ]; <span class="kw">then</span>
+      echo <span class="st">"---"</span>
+      echo <span class="st">"$diff"</span> \
+        | claude --print <span class="st">"In one sentence: what did this code change do?"</span>
+      <span class="va">prev</span>=<span class="st">"$curr"</span>
+    <span class="kw">fi</span>
+  <span class="kw">done</span>
+}
+
+<span class="cm"># Usage: watch-explain src/payments/processor.py</span></code></pre>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <div class="callout-title">Never Pipe Secrets into Claude</div>
+            Before building any pipeline that processes files automatically, audit what those files might contain. Log files, config files, and API responses regularly contain API keys, tokens, and credentials. Add a scrubbing step before any pipe that processes files you don't fully control — or use an allowlist of specific log fields rather than raw log lines.
+          </div>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — Production Log Analysis
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="log-analysis">
+        <div class="section-label">
+          <span class="section-num">02</span>
+          <h2 class="section-title">Production Log Analysis</h2>
+        </div>
+
+        <p>
+          Production log files are a war zone: thousands of lines per minute, mixed severity, noisy repetition from health checks, and the one critical error buried three screens down. APM tools (Datadog, CloudWatch, New Relic) solve the <em>metrics</em> problem. They don't solve the <em>meaning</em> problem — understanding why a pattern emerged, what sequences of events preceded an incident, or whether an unusual request pattern indicates a security anomaly.
+        </p>
+        <p>
+          Claude augments your APM tooling. It does not replace it. The workflow is: APM tools surface that something is wrong, Claude helps you understand what and why.
+        </p>
+
+        <h3 class="subsection-title">The Triage Workflow</h3>
+
+        <div class="pipeline-steps">
+          <div class="pipeline-step">
+            <span class="pipeline-step-num">01</span>
+            <div class="pipeline-step-body">
+              <div class="pipeline-step-title">Pull logs for the incident window</div>
+              <div class="pipeline-step-desc">Export from Datadog (<code>datadog-ci</code>), CloudWatch Logs Insights, or pull directly from the server. Scope to ±15 minutes around the alert trigger.</div>
+            </div>
+          </div>
+          <div class="pipeline-step">
+            <span class="pipeline-step-num">02</span>
+            <div class="pipeline-step-body">
+              <div class="pipeline-step-title">Filter by time window and severity</div>
+              <div class="pipeline-step-desc">Use <code>grep</code>, <code>awk</code>, or <code>jq</code> to strip health-check noise and focus on ERROR/WARN/CRITICAL. Target 300–800 lines — enough signal, not so much that Claude loses the thread.</div>
+            </div>
+          </div>
+          <div class="pipeline-step">
+            <span class="pipeline-step-num">03</span>
+            <div class="pipeline-step-body">
+              <div class="pipeline-step-title">Pipe to Claude with a structured triage prompt</div>
+              <div class="pipeline-step-desc">Use the prompt pattern below. Ask for specific outputs: severity grouping, timeline, security flags, and recommended immediate actions.</div>
+            </div>
+          </div>
+          <div class="pipeline-step">
+            <span class="pipeline-step-num">04</span>
+            <div class="pipeline-step-body">
+              <div class="pipeline-step-title">Route the analysis</div>
+              <div class="pipeline-step-desc">Paste the Claude summary into your incident Slack channel. Use it as the starting point for postmortem. Never use Claude's analysis as a substitute for reading the logs yourself on P0 incidents.</div>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="subsection-title">The Triage Prompt Pattern</h3>
+        <p>
+          This prompt template is production-tested. It asks Claude for structured output, which you can parse or paste directly into your incident doc:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Log triage — full prompt pattern</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="va">INCIDENT_WINDOW</span>=<span class="st">"2025-05-21 14:30 to 14:55 UTC"</span>
+<span class="va">SERVICE</span>=<span class="st">"payments-api"</span>
+
+<span class="cm"># Pull filtered logs from CloudWatch JSON export</span>
+cat incident-logs.json \
+  | jq -r <span class="st">'.events[] | "\(.timestamp) [\(.level)] \(.message)"'</span> \
+  | grep -v <span class="st">"health_check\|/ping\|/metrics"</span> \
+  | claude --print <span class="st">"You are a senior SRE triaging a production incident.
+Service: $SERVICE
+Window: $INCIDENT_WINDOW
+
+Here are the filtered production API logs.
+
+Identify and report:
+1. ERROR SPIKES: Groups of errors that appear together. For each group:
+   - Error type and message pattern
+   - First occurrence timestamp
+   - Approximate frequency (errors/minute)
+   - Likely root cause
+
+2. UNUSUAL PATTERNS: Request sequences that look abnormal —
+   high latency, unexpected 4xx bursts, retry storms, cascade failures.
+
+3. SECURITY FLAGS: Anything that looks like a scan, brute-force,
+   unusual IP concentration, or unexpected auth failures.
+
+4. TIMELINE: A bullet-point chronological sequence of significant events.
+
+5. IMMEDIATE ACTIONS: Top 3 things the on-call engineer should
+   check or do right now.
+
+Format as markdown sections. Be specific — quote log lines when relevant."</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">A Real Log Excerpt and Analysis</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Example log excerpt — payments-api incident</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>2025-05-21T14:32:01Z [INFO]  POST /payments/charge 200 142ms user=u_9821
+2025-05-21T14:32:44Z [INFO]  POST /payments/charge 200 138ms user=u_1042
+2025-05-21T14:33:01Z [ERROR] stripe.error.APIConnectionError: Connection timeout after 10000ms
+2025-05-21T14:33:02Z [ERROR] stripe.error.APIConnectionError: Connection timeout after 10000ms
+2025-05-21T14:33:03Z [ERROR] stripe.error.APIConnectionError: Connection timeout after 10000ms
+2025-05-21T14:33:04Z [WARN]  Retry 1/3 for charge ch_3abc user=u_7711
+2025-05-21T14:33:07Z [ERROR] stripe.error.APIConnectionError: Connection timeout after 10000ms
+2025-05-21T14:33:08Z [ERROR] Max retries exceeded — returning 503 to user=u_7711
+2025-05-21T14:33:09Z [ERROR] Max retries exceeded — returning 503 to user=u_4422
+2025-05-21T14:33:15Z [WARN]  Circuit breaker OPEN: stripe_charge — threshold 5 errors/10s exceeded
+2025-05-21T14:33:15Z [ERROR] Circuit breaker open — fast-failing charge for user=u_9904
+2025-05-21T14:33:16Z [ERROR] Circuit breaker open — fast-failing charge for user=u_3381
+<span class="cm">... (continues for 12 more minutes)</span></code></pre>
+        </div>
+
+        <p>
+          Claude's analysis of this excerpt would correctly identify: a Stripe API connectivity failure beginning at 14:33:01, a retry storm that triggered the circuit breaker within 14 seconds, and the cascade from isolated timeouts to full fast-fail mode. It would flag the need to check Stripe's status page and verify whether an egress rule or firewall change was made in the previous 30 minutes.
+        </p>
+
+        <div class="callout callout-note">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <div class="callout-title">Claude Cannot Query Live Systems</div>
+            Claude operates on the text you give it. It cannot run queries against your log platform, connect to your observability stack, or read logs in real-time. Always pre-pull and pre-filter log excerpts before passing them to Claude. For live dashboards and alerts, keep your APM tooling as the source of truth — Claude is the analyst, not the database.
+          </div>
+        </div>
+
+        <h3 class="subsection-title">Exporting from Your APM to Claude</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Datadog and CloudWatch export patterns</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># ── Datadog: export via CLI ────────────────────────────────────</span>
+<span class="cm"># Install: pip install datadog-api-client</span>
+datadog-ci log tail \
+  --service payments-api \
+  --from "2025-05-21T14:30:00Z" \
+  --to   "2025-05-21T15:00:00Z" \
+  --query "status:error" \
+  --format json \
+  > incident-logs.json
+
+<span class="cm"># ── CloudWatch Logs Insights: via AWS CLI ─────────────────────</span>
+aws logs start-query \
+  --log-group-name /ecs/payments-api \
+  --start-time 1716297000 \
+  --end-time   1716298800 \
+  --query-string 'fields @timestamp, level, message
+    | filter level in ["ERROR", "WARN"]
+    | filter message not like "health"
+    | sort @timestamp asc
+    | limit 500' \
+  --output text <span class="cm"># then poll with get-query-results</span>
+
+<span class="cm"># Both outputs → pipe to the triage prompt above</span></code></pre>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — PR Summaries & Changelogs
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="pr-summaries">
+        <div class="section-label">
+          <span class="section-num">03</span>
+          <h2 class="section-title">Automated PR Summaries &amp; Changelogs</h2>
+        </div>
+
+        <p>
+          Writing a PR description after finishing a feature is the worst possible moment to do it. You're context-switched out, you've already moved on mentally, and the description ends up as "fixes stuff" or a wall of bullet points copied from commit messages. Claude does this work at the moment the diff exists and it has maximum context.
+        </p>
+
+        <h3 class="subsection-title">The One-Liner That Changes Your Workflow</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Generate a PR description from the current branch diff</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>git diff main...HEAD \
+  | claude --print <span class="st">"Write a pull request description for this diff.
+
+Structure it exactly as:
+## Summary
+(2-3 sentences: what this PR does and why)
+
+## Key Changes
+(bullet points — implementation decisions, not file names)
+
+## Testing Notes
+(how to verify this works — specific steps)
+
+## Breaking Changes
+(any API surface changes, DB migrations, env var additions; 'None' if clean)
+
+## Reviewers: please pay attention to
+(the 1-2 places in the diff that are most risk-relevant)
+
+Tone: direct, no marketing language. Senior engineer writing to senior reviewers."</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">The Pre-Push Git Hook</h3>
+        <p>
+          Wrap that one-liner in a <code>pre-push</code> hook so a draft PR description is generated and copied to your clipboard before every push. Make it opt-in via an env var so engineers who don't want it aren't affected:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>.git/hooks/pre-push — opt-in PR description generator</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm">#!/usr/bin/env bash
+# .git/hooks/pre-push
+# Opt-in: set CLAUDE_PR_HELPER=1 in your shell profile to enable.
+# chmod +x .git/hooks/pre-push</span>
+
+<span class="kw">if</span> [ <span class="st">"$CLAUDE_PR_HELPER"</span> != <span class="st">"1"</span> ]; <span class="kw">then</span>
+  exit 0  <span class="cm"># silently skip if not opted in</span>
+<span class="kw">fi</span>
+
+<span class="cm"># Detect the base branch (main or master)</span>
+<span class="va">BASE</span>=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null \
+        | sed <span class="st">'s@^refs/remotes/origin/@@'</span>)
+<span class="va">BASE</span>=<span class="st">${BASE:-main}</span>
+
+<span class="cm"># Only run if there are commits ahead of base</span>
+<span class="va">AHEAD</span>=$(git rev-list --count <span class="st">"origin/$BASE..HEAD"</span> 2>/dev/null)
+<span class="kw">if</span> [ <span class="st">"$AHEAD"</span> -eq 0 ] 2>/dev/null; <span class="kw">then</span>
+  exit 0
+<span class="kw">fi</span>
+
+echo <span class="st">"[claude-pr-helper] Generating PR description..."</span>
+
+<span class="va">PR_DESCRIPTION</span>=$(git diff <span class="st">"$BASE...HEAD"</span> \
+  | claude --print <span class="st">"Write a pull request description for this diff.
+
+## Summary
+(2-3 sentences)
+
+## Key Changes
+(bullet points — decisions, not file names)
+
+## Testing Notes
+(specific verification steps)
+
+## Breaking Changes
+(API changes, migrations, env vars; or 'None')
+
+## Reviewers: pay attention to
+(1-2 risk-relevant sections)
+
+Direct tone. Senior engineer to senior reviewer."</span>)
+
+<span class="kw">if</span> [ -n <span class="st">"$PR_DESCRIPTION"</span> ]; <span class="kw">then</span>
+  <span class="cm"># Save to a temp file and open in editor (optional)</span>
+  <span class="va">TMPFILE</span>=$(mktemp /tmp/pr-description-XXXXXX.md)
+  echo <span class="st">"$PR_DESCRIPTION"</span> > <span class="st">"$TMPFILE"</span>
+
+  <span class="cm"># Copy to clipboard (macOS: pbcopy | Linux: xclip -sel clip)</span>
+  echo <span class="st">"$PR_DESCRIPTION"</span> | pbcopy 2>/dev/null || \
+  echo <span class="st">"$PR_DESCRIPTION"</span> | xclip -sel clip 2>/dev/null || true
+
+  echo <span class="st">"[claude-pr-helper] PR description copied to clipboard."</span>
+  echo <span class="st">"[claude-pr-helper] Saved to: $TMPFILE"</span>
+<span class="kw">fi</span>
+
+exit 0  <span class="cm"># always exit 0 — never block the push</span></code></pre>
+        </div>
+
+        <div class="callout callout-note">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body">
+            <div class="callout-title">Team Adoption: Always Make It Opt-In First</div>
+            Never force-install hooks team-wide without a trial period. Add <code>CLAUDE_PR_HELPER=1</code> to your own shell profile, use it for two weeks, then demonstrate the output quality to the team. Engineers adopt tools they see producing real value — not tools that appear in their <code>pre-push</code> hook from a top-down mandate.
+          </div>
+        </div>
+
+        <h3 class="subsection-title">Changelog Generation</h3>
+        <p>
+          The same pattern works for CHANGELOG entries. If your team uses Conventional Commits (<code>feat:</code>, <code>fix:</code>, <code>chore:</code>, etc.), Claude can produce structured changelogs from git log output with near-zero cleanup required:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Generate a CHANGELOG.md section from a tag range</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Replace v1.2.0 with the previous release tag
+# HEAD..HEAD generates nothing — always specify a real base tag</span>
+git log --oneline v1.2.0..HEAD \
+  | claude --print <span class="st">"Generate a CHANGELOG.md section from these conventional commits.
+
+Use this format exactly:
+## [Unreleased] — YYYY-MM-DD
+
+### Added
+- (feat: commits)
+
+### Fixed
+- (fix: commits)
+
+### Changed
+- (refactor:/perf: commits)
+
+### Breaking Changes
+- (any commits with BREAKING CHANGE footer or ! suffix)
+
+Rules:
+- Write each entry as a user-facing benefit, not a code detail
+- Skip chore:/ci:/docs: commits unless they affect users
+- Merge related commits into one entry where sensible
+- Do not invent or embellish — only use information in the commits"</span></code></pre>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — Linting Automation
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="linting-automation">
+        <div class="section-label">
+          <span class="section-num">04</span>
+          <h2 class="section-title">Linting &amp; Code Quality Automation</h2>
+        </div>
+
+        <p>
+          Static analysis tools — ruff, mypy, eslint, semgrep — are fast, consistent, and excellent at detecting a well-defined class of issues. They are blind to semantics. A function that calls an external payment API from inside a utility module is not a ruff violation. Missing error handling on a database call that could return null is not a mypy error if the type annotation is wrong. <strong>Claude catches the issues that require understanding intent, not just syntax.</strong>
+        </p>
+
+        <div class="arch-diagram">
+<span class="dim">┌──────────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>               <span class="label">THREE-LAYER CODE QUALITY STACK</span>                        <span class="dim">│</span>
+<span class="dim">├──────────────────────────────────────────────────────────────────┤</span>
+<span class="dim">│</span>                                                                  <span class="dim">│</span>
+<span class="dim">│</span>  <span class="good">Layer 1: Static Analysis</span>   ruff · mypy · eslint · semgrep         <span class="dim">│</span>
+<span class="dim">│</span>           Fast, deterministic. Catches: style, type errors,       <span class="dim">│</span>
+<span class="dim">│</span>           known antipatterns, import issues                       <span class="dim">│</span>
+<span class="dim">│</span>                                                                  <span class="dim">│</span>
+<span class="dim">│</span>  <span class="hi">Layer 2: Claude Semantic Review</span>   git diff --staged | claude     <span class="dim">│</span>
+<span class="dim">│</span>           Catches: missing error handling, security issues,       <span class="dim">│</span>
+<span class="dim">│</span>           context-specific rule violations, architectural drift   <span class="dim">│</span>
+<span class="dim">│</span>                                                                  <span class="dim">│</span>
+<span class="dim">│</span>  <span class="box">Layer 3: Human Code Review</span>   PR review by a second engineer      <span class="dim">│</span>
+<span class="dim">│</span>           Catches: design disagreements, business logic errors,   <span class="dim">│</span>
+<span class="dim">│</span>           team knowledge gaps, requirements misunderstandings     <span class="dim">│</span>
+<span class="dim">│</span>                                                                  <span class="dim">│</span>
+<span class="dim">│</span>  <span class="dim">Each layer catches different classes of issues.</span>                 <span class="dim">│</span>
+<span class="dim">│</span>  <span class="dim">Claude does not replace Layer 1 or Layer 3 — it fills the gap.</span>  <span class="dim">│</span>
+<span class="dim">└──────────────────────────────────────────────────────────────────┘</span>
+        </div>
+
+        <h3 class="subsection-title">The Staged-Diff Review Pattern</h3>
+        <p>
+          Run Claude against your staged diff before committing. This is the highest-signal moment — you've already decided these changes are ready. Claude acts as a fast second pair of eyes before the commit is sealed:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Review staged diff — security + error handling + standards</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Run manually before committing, or wire into a pre-commit hook</span>
+git diff --staged \
+  | claude --print <span class="st">"Review this staged diff. Check for:
+
+1. SECURITY ISSUES: SQL injection, unsanitised inputs, hardcoded secrets,
+   missing auth checks, insecure deserialization, path traversal.
+
+2. MISSING ERROR HANDLING: unhandled exceptions, no null checks on external
+   data, missing try/except around I/O or network calls, silent failures.
+
+3. STYLE VIOLATIONS vs our CLAUDE.md standards:
+   - All service layer functions must be async
+   - External API calls must go through the api_client module only
+   - Database queries must go through repository classes — never raw SQL in endpoints
+   - New functions in the payments/ module require a docstring
+
+4. LOGIC ISSUES: off-by-one errors, incorrect boolean logic, race conditions.
+
+Output format:
+- If all clear: one line 'LGTM — no issues found'
+- If issues found: markdown list, one item per issue, format:
+  [SEVERITY] [CATEGORY] Description. File:line if visible.
+
+Severities: BLOCKER | WARNING | SUGGESTION"</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">The Complete Pre-Commit Hook</h3>
+        <p>
+          This hook runs ruff and mypy first (fast, deterministic), then calls Claude only if the static analysis passes. This keeps the hook fast for clean code and reserves Claude's API cost for changes that cleared the baseline:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>.git/hooks/pre-commit — three-layer quality gate</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm">#!/usr/bin/env bash
+# .git/hooks/pre-commit
+# chmod +x .git/hooks/pre-commit
+# Requires: ruff, mypy, claude CLI installed in the project venv</span>
+
+<span class="va">RED</span>=<span class="st">'\033[0;31m'</span>; <span class="va">YELLOW</span>=<span class="st">'\033[1;33m'</span>; <span class="va">GREEN</span>=<span class="st">'\033[0;32m'</span>; <span class="va">NC</span>=<span class="st">'\033[0m'</span>
+<span class="va">FAIL</span>=0
+
+<span class="cm"># ── Layer 1a: ruff ──────────────────────────────────────────────</span>
+echo <span class="st">"[pre-commit] Running ruff..."</span>
+<span class="kw">if</span> ! ruff check --quiet .; <span class="kw">then</span>
+  echo -e <span class="st">"${RED}[BLOCKER] ruff found issues. Fix before committing.${NC}"</span>
+  <span class="va">FAIL</span>=1
+<span class="kw">fi</span>
+
+<span class="cm"># ── Layer 1b: mypy ──────────────────────────────────────────────</span>
+echo <span class="st">"[pre-commit] Running mypy..."</span>
+<span class="va">STAGED_PY</span>=$(git diff --cached --name-only --diff-filter=ACM | grep <span class="st">'\.py$'</span>)
+<span class="kw">if</span> [ -n <span class="st">"$STAGED_PY"</span> ]; <span class="kw">then</span>
+  <span class="kw">if</span> ! mypy --quiet $STAGED_PY; <span class="kw">then</span>
+    echo -e <span class="st">"${RED}[BLOCKER] mypy type errors. Fix before committing.${NC}"</span>
+    <span class="va">FAIL</span>=1
+  <span class="kw">fi</span>
+<span class="kw">fi</span>
+
+<span class="cm"># If static analysis failed, stop here — don't burn Claude API credits</span>
+<span class="kw">if</span> [ <span class="st">"$FAIL"</span> -eq 1 ]; <span class="kw">then</span>
+  exit 1
+<span class="kw">fi</span>
+
+<span class="cm"># ── Layer 2: Claude semantic review ─────────────────────────────</span>
+<span class="cm"># Skip if CLAUDE_LINT=0 (for quick WIP commits)</span>
+<span class="kw">if</span> [ <span class="st">"${CLAUDE_LINT:-1}"</span> == <span class="st">"0"</span> ]; <span class="kw">then</span>
+  echo <span class="st">"[pre-commit] Claude semantic review skipped (CLAUDE_LINT=0)"</span>
+  exit 0
+<span class="kw">fi</span>
+
+<span class="va">DIFF</span>=$(git diff --staged)
+<span class="kw">if</span> [ -z <span class="st">"$DIFF"</span> ]; <span class="kw">then</span>
+  exit 0
+<span class="kw">fi</span>
+
+echo <span class="st">"[pre-commit] Running Claude semantic review..."</span>
+<span class="va">REVIEW</span>=$(echo <span class="st">"$DIFF"</span> \
+  | claude --print <span class="st">"Review this diff for security issues, missing error handling,
+and violations of our coding standards in CLAUDE.md.
+If all clear: respond with exactly 'LGTM'
+If issues: list them as [SEVERITY] [CATEGORY] description.
+Severities: BLOCKER | WARNING | SUGGESTION"</span>)
+
+<span class="kw">if</span> echo <span class="st">"$REVIEW"</span> | grep -q <span class="st">"^LGTM"</span>; <span class="kw">then</span>
+  echo -e <span class="st">"${GREEN}[pre-commit] Claude: LGTM${NC}"</span>
+  exit 0
+<span class="kw">fi</span>
+
+<span class="cm"># Show the review</span>
+echo -e <span class="st">"${YELLOW}[pre-commit] Claude review findings:${NC}"</span>
+echo <span class="st">"$REVIEW"</span>
+
+<span class="cm"># Block on BLOCKER severity, warn on WARNING/SUGGESTION</span>
+<span class="kw">if</span> echo <span class="st">"$REVIEW"</span> | grep -q <span class="st">"\[BLOCKER\]"</span>; <span class="kw">then</span>
+  echo -e <span class="st">"${RED}[pre-commit] BLOCKER issues found. Fix or run: CLAUDE_LINT=0 git commit${NC}"</span>
+  exit 1
+<span class="kw">fi</span>
+
+echo -e <span class="st">"${YELLOW}[pre-commit] Warnings found — proceeding. Review before pushing.${NC}"</span>
+exit 0</code></pre>
+        </div>
+
+        <h3 class="subsection-title">Custom Rule Enforcement</h3>
+        <p>
+          The most powerful use of Claude as a semantic linter is enforcing rules that are too context-specific for static analysis. Add these to your CLAUDE.md and reference them in your pre-commit prompt:
+        </p>
+        <ul class="key-points">
+          <li><strong>Architectural boundaries:</strong> "Functions in <code>src/payments/</code> must not call external APIs directly — all external calls must go through <code>api_client.py</code>"</li>
+          <li><strong>Security patterns:</strong> "Every new route that modifies data must verify <code>current_user.has_permission()</code> before the database operation"</li>
+          <li><strong>Observability requirements:</strong> "New service layer functions that perform I/O must emit a structured log line with <code>correlation_id</code>"</li>
+          <li><strong>Data handling rules:</strong> "Functions that receive user input must not pass that input directly to a subprocess call, file path, or template without sanitization"</li>
+        </ul>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 5 — Merge Conflict Resolution
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="merge-conflicts">
+        <div class="section-label">
+          <span class="section-num">05</span>
+          <h2 class="section-title">Merge Conflict Resolution</h2>
+        </div>
+
+        <p>
+          Syntactic merge conflicts are the easy kind — git shows you the markers, you pick a side or combine them, and you move on. Semantic conflicts are the dangerous kind: both sides compile, both sides type-check, but the two changes are logically incompatible. One branch added retry logic with a 3-second backoff. The other added a 2-second request timeout. Neither git nor your linter can tell you these two changes will fight at runtime.
+        </p>
+        <p>
+          Claude's approach to merge conflicts is to understand the intent of each side before proposing a resolution. That is the same mental model a senior engineer uses — and it is exactly what makes Claude useful here.
+        </p>
+
+        <h3 class="subsection-title">The Conflict Resolution Prompt Pattern</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Pipe a conflict file to Claude for intent-first resolution</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># After a failed merge, find all conflict files</span>
+git diff --name-only --diff-filter=U
+
+<span class="cm"># For each file with conflicts:</span>
+cat src/payments/processor.py \
+  | claude --print <span class="st">"This file has git merge conflict markers (&lt;&lt;&lt;&lt;&lt;&lt;&lt;, =======, &gt;&gt;&gt;&gt;&gt;&gt;&gt;).
+
+For each conflict block:
+1. INTENT (OURS): What is the HEAD version trying to achieve?
+2. INTENT (THEIRS): What is the incoming branch trying to achieve?
+3. Are these intents compatible, or do they conflict logically?
+4. PROPOSED RESOLUTION: Show the code that correctly preserves both intents.
+   If they are logically incompatible, explain why and flag for human review.
+
+Output the fully resolved file with all conflict markers removed.
+Add a brief comment above each resolved block explaining the decision."</span> \
+  > src/payments/processor.resolved.py
+
+<span class="cm"># Review the resolved file before accepting it
+diff src/payments/processor.py src/payments/processor.resolved.py</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">A Real Python Conflict — Both Sides Were Right</h3>
+        <p>
+          This is a real class of conflict that happens when two engineers independently improve the same function:
+        </p>
+
+        <div class="conflict-grid">
+          <div class="conflict-pane">
+            <div class="conflict-pane-header ours">HEAD (our branch)</div>
+            <pre><code><span class="kw">def</span> <span class="fn">charge_customer</span>(
+    user_id: str,
+    amount_cents: int,
+    currency: str = <span class="st">"usd"</span>,
+) -> <span class="fn">ChargeResult</span>:
+    <span class="cm"># Added: input validation</span>
+    <span class="kw">if</span> amount_cents <= 0:
+        <span class="kw">raise</span> <span class="fn">ValueError</span>(
+            <span class="st">"amount_cents must be positive"</span>
+        )
+    <span class="kw">if</span> amount_cents > 999_999_99:
+        <span class="kw">raise</span> <span class="fn">ValueError</span>(
+            <span class="st">"amount exceeds Stripe limit"</span>
+        )
+    <span class="kw">return</span> <span class="va">stripe</span>.<span class="fn">charge</span>(
+        user_id, amount_cents, currency
+    )</code></pre>
+          </div>
+          <div class="conflict-pane">
+            <div class="conflict-pane-header theirs">THEIRS (incoming branch)</div>
+            <pre><code><span class="kw">def</span> <span class="fn">charge_customer</span>(
+    user_id: str,
+    amount_cents: int,
+    currency: str = <span class="st">"usd"</span>,
+    idempotency_key: str = <span class="st">""</span>,
+) -> <span class="fn">ChargeResult</span>:
+    <span class="cm"># Added: idempotency support</span>
+    <span class="kw">if</span> <span class="kw">not</span> idempotency_key:
+        idempotency_key = (
+            <span class="st">f"charge-{user_id}-"</span>
+            <span class="st">f"{amount_cents}-"</span>
+            <span class="st">f"{uuid4().hex[:8]}"</span>
+        )
+    <span class="kw">return</span> <span class="va">stripe</span>.<span class="fn">charge</span>(
+        user_id, amount_cents,
+        currency, idempotency_key
+    )</code></pre>
+          </div>
+        </div>
+
+        <p>
+          Claude correctly identifies that both changes are independent improvements with no logical conflict. Its resolution merges the input validation guards from HEAD with the idempotency parameter from THEIRS, producing a function that is both safer and idempotent. It would also note that the idempotency key generation belongs in a separate helper for testability.
+        </p>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body">
+            <div class="callout-title">Mandatory Escalation List — Never Auto-Merge</div>
+            Claude should flag the following conflict types for human review and never auto-commit a resolution: <strong>security code</strong> (auth, permissions, session management), <strong>database migrations</strong> (schema changes, data transforms), <strong>cryptographic operations</strong> (key handling, signing, hashing), <strong>payment processing logic</strong> (amounts, rounding, idempotency), and <strong>infrastructure-as-code</strong> (IAM policies, network rules). In these areas, a wrong resolution can cause data loss, security breaches, or financial errors. Claude can explain the conflict — the human makes the call.
+          </div>
+        </div>
+
+        <h3 class="subsection-title">The Safety Rule — Never Auto-Commit Claude's Resolution</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Safe conflict resolution workflow</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># ALWAYS follow this sequence — never skip the review step</span>
+
+<span class="cm"># 1. Get Claude's proposed resolution</span>
+cat conflicted-file.py \
+  | claude --print <span class="st">"Resolve this merge conflict..."</span> \
+  > proposed-resolution.py
+
+<span class="cm"># 2. Review the diff between Claude's output and the current file</span>
+diff conflicted-file.py proposed-resolution.py
+
+<span class="cm"># 3. If satisfied, copy manually (don't pipe directly to the file)</span>
+cp proposed-resolution.py conflicted-file.py
+
+<span class="cm"># 4. Verify no conflict markers remain</span>
+grep -n <span class="st">"&lt;&lt;&lt;&lt;&lt;&lt;&lt;\|=======\|&gt;&gt;&gt;&gt;&gt;&gt;&gt;"</span> conflicted-file.py
+
+<span class="cm"># 5. Run tests before staging</span>
+python -m pytest tests/unit/test_payments.py -x
+
+<span class="cm"># 6. Stage and commit only after tests pass</span>
+git add conflicted-file.py
+git commit -m <span class="st">"resolve: merge conflict in charge_customer — combine validation + idempotency"</span></code></pre>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ════════════════════════════════════════════
+           SECTION 6 — Git Workflow Automation
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="git-workflows">
+        <div class="section-label">
+          <span class="section-num">06</span>
+          <h2 class="section-title">Git Workflow Automation</h2>
+        </div>
+
+        <p>
+          The git workflow is filled with low-value cognitive tasks: writing a clear commit message, remembering the branch naming convention, figuring out what you stashed three days ago, generating release notes from 87 commits. These are not decisions — they are transcription work. Claude eliminates the transcription so your mental budget stays on the decisions.
+        </p>
+
+        <h3 class="subsection-title">Commit Message Generation</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Generate a conventional commit message from the staged diff</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Generate and immediately use in git commit</span>
+git diff --staged \
+  | claude --print <span class="st">"Write a conventional commit message for this diff.
+
+Rules:
+- Format: type(scope): short description
+- Types: feat | fix | refactor | perf | test | docs | chore | ci
+- Scope: the module or component affected (e.g. payments, auth, api)
+- Short description: imperative mood, lowercase, no period, max 72 chars
+- If there are breaking changes, add 'BREAKING CHANGE: explanation' in the footer
+
+Output the commit message only — no explanation, no markdown fences."</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">Branch Naming</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Suggest a git branch name from a ticket description</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Feed it your JIRA ticket title or a plain description</span>
+claude --print <span class="st">"Suggest 3 git branch name options for this feature.
+Rules: kebab-case, prefix with feat/ fix/ refactor/ chore/, max 6 words after prefix.
+Feature: 'Add OAuth2 login with Google, including PKCE flow and token refresh handling'"</span>
+
+<span class="cm"># Claude output (example):
+# feat/google-oauth2-pkce-login
+# feat/add-google-oauth-with-refresh
+# feat/oauth2-google-identity-provider</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">Stash Management</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Explain what is in each stash entry</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># List all stashes with their diffs and ask Claude to describe each</span>
+<span class="kw">function</span> <span class="fn">stash-explain</span>() {
+  <span class="va">count</span>=$(git stash list | wc -l | tr -d <span class="st">' '</span>)
+  <span class="kw">if</span> [ <span class="st">"$count"</span> -eq 0 ]; <span class="kw">then</span>
+    echo <span class="st">"No stash entries."</span>; <span class="kw">return</span>
+  <span class="kw">fi</span>
+
+  echo <span class="st">"=== Stash Summary ==="</span>
+  <span class="kw">for</span> i in $(seq 0 $((<span class="va">$count</span> - 1))); <span class="kw">do</span>
+    <span class="va">ref</span>=<span class="st">"stash@{$i}"</span>
+    <span class="va">label</span>=$(git stash list | sed -n "$((i+1))p")
+    echo <span class="st">"--- $ref: $label"</span>
+    git stash show -p <span class="st">"$ref"</span> 2>/dev/null \
+      | claude --print <span class="st">"In one sentence: what does this stash contain?
+What problem was the developer working on?"</span>
+    echo
+  <span class="kw">done</span>
+}
+
+<span class="cm"># Usage: stash-explain</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">Bisect Assistance</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Claude-guided git bisect session</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="cm"># Start a bisect session
+# Claude helps you know what to test at each step</span>
+git bisect start
+git bisect bad HEAD
+git bisect good v1.2.0
+
+<span class="cm"># At each bisect step, ask Claude what to verify</span>
+<span class="kw">function</span> <span class="fn">bisect-hint</span>() {
+  <span class="va">current</span>=$(git log -1 --oneline)
+  <span class="va">diff</span>=$(git diff HEAD~1..HEAD -- . <span class="st">':(exclude)*.lock'</span> | head -200)
+  echo <span class="st">"$diff"</span> \
+    | claude --print <span class="st">"We are in a git bisect session hunting a regression.
+Current commit: $current
+
+Given this diff, what should I test to check if this commit introduced the bug?
+Give me 2-3 specific, concrete test steps — terminal commands or user actions."</span>
+}
+
+<span class="cm"># Then mark good or bad based on your test result
+# git bisect good   OR   git bisect bad</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">Release Notes Generation</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>Generate GitHub release notes from a tag range</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code><span class="va">FROM_TAG</span>=v1.2.0
+<span class="va">TO_TAG</span>=v1.3.0  <span class="cm"># or HEAD for a draft release</span>
+
+git log --format=<span class="st">"%h %s"</span> <span class="st">"$FROM_TAG..$TO_TAG"</span> \
+  | claude --print <span class="st">"Write GitHub release notes for version $TO_TAG.
+
+Audience: developers and technical users of this library/service.
+
+Format:
+## What's New in $TO_TAG
+(2-3 sentence highlight of the most significant changes)
+
+## Features
+- (user-facing additions)
+
+## Bug Fixes
+- (resolved issues)
+
+## Performance
+- (speed/memory improvements if any)
+
+## Migration Guide
+(if any breaking changes — concrete steps to upgrade; omit section if none)
+
+Rules:
+- Write for the reader, not the developer
+- Skip internal/CI/chore commits unless they affect users
+- Link format: use #123 for issue references visible in commit messages"</span></code></pre>
+        </div>
+
+        <h3 class="subsection-title">The Complete .gitconfig Aliases Section</h3>
+        <p>
+          Drop this into your <code>~/.gitconfig</code> to make Claude a first-class citizen of your git workflow. Each alias is a one-liner that composes git commands with Claude:
+        </p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-lang"><span class="dot dot-bash"></span>~/.gitconfig — Claude-powered aliases</span>
+            <button class="copy-btn">Copy</button>
+          </div>
+          <pre><code>[alias]
+  <span class="cm"># cc: conventional commit — generate message from staged diff</span>
+  cc = <span class="st">"!git diff --staged | claude --print \"Write a conventional commit message (type(scope): description). Output the message only.\""</span>
+
+  <span class="cm"># pr-desc: draft PR description from current branch vs main</span>
+  pr-desc = <span class="st">"!git diff main...HEAD | claude --print \"Write a PR description with ## Summary, ## Key Changes, ## Testing Notes, ## Breaking Changes sections.\""</span>
+
+  <span class="cm"># changelog: CHANGELOG section from a tag range</span>
+  <span class="cm"># Usage: git changelog v1.2.0 HEAD</span>
+  changelog = <span class="st">"!f() { git log --oneline \"$1..$2\" | claude --print \"Generate a CHANGELOG.md section from these commits. Group by: Added, Fixed, Changed. User-facing language.\"; }; f"</span>
+
+  <span class="cm"># explain-diff: explain what the last commit actually did</span>
+  explain-diff = <span class="st">"!git diff HEAD~1..HEAD | claude --print \"Explain what this commit does in 3 bullet points. Senior engineer reading speed.\""</span>
+
+  <span class="cm"># branch-name: suggest branch names for a given task</span>
+  <span class="cm"># Usage: git branch-name "add pagination to the users list API"</span>
+  branch-name = <span class="st">"!f() { claude --print \"Suggest 3 git branch names (kebab-case, feat/fix/refactor prefix) for: $*. Output one per line.\"; }; f"</span>
+
+  <span class="cm"># review: semantic review of staged changes</span>
+  review = <span class="st">"!git diff --staged | claude --print \"Review for security issues, missing error handling, and code quality. LGTM if clean, list issues otherwise.\""</span>
+
+  <span class="cm"># release-notes: generate release notes between two tags</span>
+  <span class="cm"># Usage: git release-notes v1.2.0 v1.3.0</span>
+  release-notes = <span class="st">"!f() { git log --format=\"%h %s\" \"$1..$2\" | claude --print \"Write GitHub release notes for $2. Audience: developers. Sections: What's New, Features, Bug Fixes, Migration Guide.\"; }; f"</span></code></pre>
+        </div>
+
+        <div class="callout callout-tip">
+          <span class="callout-icon">✅</span>
+          <div class="callout-body">
+            <div class="callout-title">The Golden Rule of Claude Workflow Automation</div>
+            Claude automates the cognitive overhead — the formatting, categorisation, and transcription work that consumes your attention without requiring your judgment. You retain final say on everything. Never configure automation that commits, pushes, or deploys based on Claude's output without a human review step. The value is in the draft, not in the bypass. Your instincts about what a commit message should say, whether a PR description is accurate, and whether a conflict resolution is correct are the signal — Claude is the first draft.
+          </div>
+        </div>
+
+        <h3 class="subsection-title">What to Automate vs. What Not to Automate</h3>
+
+        <table class="alias-table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Automate with Claude?</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Commit message <em>draft</em></td>
+              <td><strong>Yes — generate, review, then commit</strong></td>
+              <td>Claude sees the full diff; you validate the intent is correctly described</td>
+            </tr>
+            <tr>
+              <td>Auto-commit Claude's message</td>
+              <td><strong>No</strong></td>
+              <td>You own the commit history; a wrong message is your name on it</td>
+            </tr>
+            <tr>
+              <td>PR description draft</td>
+              <td><strong>Yes — generate, edit, then submit</strong></td>
+              <td>Saves 10–20 minutes; reviewers get more context</td>
+            </tr>
+            <tr>
+              <td>Auto-merging conflict resolutions</td>
+              <td><strong>Never</strong></td>
+              <td>Semantic conflicts require human judgment; wrong resolution silently corrupts logic</td>
+            </tr>
+            <tr>
+              <td>Changelog entries</td>
+              <td><strong>Yes — generate, edit, then commit</strong></td>
+              <td>80% of changelog work is structural; Claude handles structure, you handle accuracy</td>
+            </tr>
+            <tr>
+              <td>Pre-commit linting (BLOCKER block)</td>
+              <td><strong>Yes — with human override escape hatch</strong></td>
+              <td>High-confidence signals (hardcoded secrets, SQL injection) are worth blocking on</td>
+            </tr>
+            <tr>
+              <td>Auto-deploying based on Claude analysis</td>
+              <td><strong>Never</strong></td>
+              <td>Claude can be wrong; deployments need deterministic, human-reviewed signals</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="summary-box">
+          <h4>Day 2 · Module 4 — Key Takeaways</h4>
+          <ul>
+            <li><strong>Shell pipelines:</strong> <code>claude --print</code> makes Claude a Unix citizen — compose it with grep, jq, awk, and fswatch for automated analysis at any point in your workflow</li>
+            <li><strong>Log analysis:</strong> Claude augments APM tools by explaining patterns and intent, not by replacing real-time monitoring — always pre-filter and pre-scope log excerpts before passing them in</li>
+            <li><strong>PR descriptions:</strong> <code>git diff main...HEAD | claude --print</code> generates a first draft at the moment the diff is freshest — wire it into a <code>pre-push</code> hook as opt-in via <code>CLAUDE_PR_HELPER=1</code></li>
+            <li><strong>Linting:</strong> Claude fills the semantic gap between static analysis and human review — run Layer 1 (ruff/mypy) first, then Claude, to make pre-commit hooks fast on clean code</li>
+            <li><strong>Merge conflicts:</strong> Ask Claude to explain the intent of each side before proposing a resolution — always review the resolved diff and run tests before committing; never auto-merge security, auth, or migration conflicts</li>
+            <li><strong>Git workflow:</strong> Six <code>.gitconfig</code> aliases cover the most common manual steps — commit messages, PR descriptions, changelogs, branch naming, stash explanation, and release notes</li>
+            <li><strong>The golden rule:</strong> Automate the cognitive overhead, not the decisions — Claude produces the draft; you maintain final authority over every commit, merge, and release</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Page Navigation -->
+      <div class="page-nav">
+        <a href="day2-module3-prompt-engineering.html">
+          <span class="nav-dir">← Previous</span>
+          <span class="nav-title">Day 2 · Module 3: Prompt Engineering for Code</span>
+        </a>
+        <a href="day2-labs.html" class="nav-next">
+          <span class="nav-dir">Next →</span>
+          <span class="nav-title">Day 2 · Labs</span>
+        </a>
+      </div>
+
+    </div><!-- end content-wrap -->
+
+    <!-- Right TOC -->
+    <aside class="toc">
+      <div class="toc-inner">
+        <div class="toc-label">On This Page</div>
+        <a href="#shell-pipelines">Shell Pipelines</a>
+        <a href="#log-analysis">Log Analysis</a>
+        <a href="#pr-summaries">PR Summaries</a>
+        <a href="#linting-automation">Linting Automation</a>
+        <a href="#merge-conflicts">Merge Conflicts</a>
+        <a href="#git-workflows">Git Workflows</a>
+      </div>
+    </aside>
+
+  </main>
+</div>
+
+<script src="assets/js/brand-theme.js"></script>
+<script src="assets/js/main.js"></script>
+</body>
+</html>
