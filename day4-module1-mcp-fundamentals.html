@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCP Architecture &amp; Fundamentals — Claude Architect</title>
+  <meta name="description" content="Day 4 Module 1: Master the Model Context Protocol — client-server architecture, transport mechanisms, core primitives (Tools, Resources, Prompts, Sampling), and enterprise-grade MCP patterns." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+    .arch-diagram { background:var(--code-bg);border:1px solid var(--code-border);border-radius:var(--radius);padding:1.5rem;font-family:var(--mono);font-size:0.78rem;color:#c9d1d9;line-height:1.9;overflow-x:auto;margin:1.25rem 0; }
+    .arch-diagram .box { color:#79c0ff; }
+    .arch-diagram .hi  { color:#ffa657; }
+    .arch-diagram .label { color:#a5d6ff; }
+    .arch-diagram .dim { color:#484f58; }
+    .arch-diagram .good { color:#7ee787; }
+    .arch-diagram .bad  { color:#ff7b72; }
+
+    .primitive-table { width:100%;border-collapse:collapse;font-size:0.85rem;margin:1.25rem 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden; }
+    .primitive-table th { background:var(--surface);color:var(--text-heading);font-weight:700;font-size:0.74rem;text-transform:uppercase;letter-spacing:0.07em;text-align:left;padding:0.65rem 0.9rem;border-bottom:1px solid var(--border); }
+    .primitive-table td { padding:0.6rem 0.9rem;border-bottom:1px solid var(--hairline);vertical-align:top;line-height:1.55; }
+    .primitive-table tr:last-child td { border-bottom:none; }
+    .primitive-table tr:hover td { background:var(--surface); }
+    .primitive-table .mono { font-family:var(--mono);font-size:0.8rem; }
+
+    .transport-grid { display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin:1.25rem 0; }
+    .transport-card { border:1px solid var(--border);border-radius:var(--radius);overflow:hidden; }
+    .transport-card-header { padding:0.75rem 1rem;font-weight:700;font-size:0.88rem;border-bottom:1px solid var(--border); }
+    .transport-card-header.stdio { background:#f0fdf4;color:#15803d; }
+    .transport-card-header.sse { background:#eff6ff;color:#1d4ed8; }
+    .transport-card-header.ws { background:#fdf4ff;color:#7e22ce; }
+    .transport-card-body { padding:0.85rem 1rem;font-size:0.8rem;color:var(--text);line-height:1.6; }
+
+    @media(max-width:768px){ .transport-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar"><span></span><span></span><span></span></button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+      <line x1="12" y1="12" x2="12" y2="3"/><line x1="12" y1="12" x2="20.5" y2="9.2"/>
+      <line x1="12" y1="12" x2="17.3" y2="19.3"/><line x1="12" y1="12" x2="6.7" y2="19.3"/>
+      <line x1="12" y1="12" x2="3.5" y2="9.2"/>
+      <line x1="12" y1="3" x2="20.5" y2="9.2"/><line x1="20.5" y1="9.2" x2="17.3" y2="19.3"/>
+      <line x1="17.3" y1="19.3" x2="6.7" y2="19.3"/><line x1="6.7" y1="19.3" x2="3.5" y2="9.2"/>
+      <line x1="3.5" y1="9.2" x2="12" y2="3"/>
+      <circle cx="12" cy="3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="20.5" cy="9.2" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="17.3" cy="19.3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="6.7" cy="19.3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="3.5" cy="9.2" r="1.1" fill="currentColor" stroke="none"/>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 4 · Module 1</span>
+  <div class="topbar-right">
+    <div class="topbar-socials">
+      <a href="https://x.com/techwith_ram" class="topbar-social" target="_blank" rel="noopener" aria-label="X / Twitter">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25z"/></svg>
+      </a>
+      <a href="https://www.instagram.com/techwith.ram/" class="topbar-social" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      </a>
+      <a href="https://github.com/Ramakm" class="topbar-social" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      </a>
+    </div>
+    <span class="topbar-badge">Day 4 of 4</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day3-module1-context-engineering.html">Context Engineering &amp; CLAUDE.md</a>
+        <a href="day3-module2-cicd-github.html">CI/CD &amp; GitHub Integration</a>
+        <a href="day3-module3-multi-agent.html">Multi-Agent Architecture</a>
+        <a href="day3-module4-platform.html">Enterprise AI Platform Architecture</a>
+        <a href="day3-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle><span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day4-module1-mcp-fundamentals.html" class="active">MCP Architecture &amp; Fundamentals</a>
+        <a href="day4-module2-mcp-integrations.html">Enterprise MCP Integrations</a>
+        <a href="day4-module3-custom-mcp.html">Custom MCP Server Development</a>
+        <a href="day4-module4-security-governance.html">Security, Governance &amp; Compliance</a>
+        <a href="day4-labs.html">Labs</a>
+        <a href="day4-capstone.html">Capstone Project</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label" style="margin-top:1rem;">On This Page</div>
+    <div class="nav-sub" style="display:block;">
+      <a href="#mcp-overview">What is MCP and Why It Matters</a>
+      <a href="#core-primitives">The Three Core Primitives</a>
+      <a href="#mcp-transport">Transport Mechanisms Deep Dive</a>
+      <a href="#mcp-discovery">Tool Discovery &amp; Capability Lifecycle</a>
+      <a href="#mcp-in-claude-code">Using MCP with Claude Code</a>
+    </div>
+  </nav>
+  <main class="main">
+    <div class="content-wrap">
+
+      <nav class="breadcrumb">
+        <a href="index.html">Home</a><span class="sep">/</span>
+        <span>Day 4</span><span class="sep">/</span>
+        <span>MCP Architecture &amp; Fundamentals</span>
+      </nav>
+
+      <div class="page-header">
+        <div class="module-tag">✦ Day 4 · Module 1</div>
+        <h1 class="page-title">MCP Architecture &amp; Fundamentals</h1>
+        <p class="page-objective">
+          <strong>Outcome:</strong> Master the Model Context Protocol — understand the client-server architecture, transport mechanisms, core primitives (Tools, Resources, Prompts, Sampling), and how MCP extends Claude with dynamic, enterprise-grade capabilities without bespoke glue code.
+        </p>
+        <div class="module-meta">
+          <span class="meta-item"><span class="dot"></span> MCP Architecture</span>
+          <span class="meta-item"><span class="dot"></span> Tools · Resources · Prompts</span>
+          <span class="meta-item"><span class="dot"></span> Transport Layers</span>
+          <span class="meta-item"><span class="dot"></span> Enterprise Integration</span>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — What is MCP and Why It Matters
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="mcp-overview">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <h2 class="section-title">What is MCP and Why It Matters</h2>
+        </div>
+
+        <p>The Model Context Protocol (MCP) is an open standard introduced by Anthropic that defines how AI models communicate with external tools and data sources. Before MCP, every team building an AI-powered product had to solve the same problem independently: how do you give Claude access to your GitHub repositories, your database, your internal APIs, your Slack workspace? Each integration required bespoke glue code — custom prompting, custom parsing of results, custom error handling, and custom security logic.</p>
+
+        <p>MCP solves the <strong>N&times;M integration problem</strong>. Without MCP, if you have N AI applications and M tools, you need N&times;M custom integrations. With MCP, each AI application implements the MCP client protocol once, and each tool implements the MCP server protocol once. The result is N+M implementations that interoperate freely. This is the same insight that made the Language Server Protocol transformative for editors — one protocol, unlimited extensibility.</p>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <div class="callout-title">The Analogy: USB for AI Tools</div>
+            Before USB, every peripheral needed its own port and driver. After USB, you plug anything into anything. MCP does the same for AI capabilities: Claude is the USB host, MCP servers are the peripherals, and the protocol defines the standard connector shape. You write the server once; it works with any MCP-compatible client.
+          </div>
+        </div>
+
+        <h3>Client-Server Architecture</h3>
+        <p>MCP uses a strict client-server model. The <strong>MCP client</strong> is the AI application — in our case, Claude Code or any application built on the Anthropic API. The <strong>MCP server</strong> is the process that exposes your tools and data. Claude never calls your GitHub API directly; instead, it sends a structured tool call to your GitHub MCP server, which handles authentication, makes the API call, and returns structured results.</p>
+
+        <div class="arch-diagram">
+<span class="dim">┌─────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>                    <span class="label">MCP ARCHITECTURE OVERVIEW</span>                               <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────────────────────────────────┘</span>
+
+  <span class="box">┌─────────────────────────────────┐</span>
+  <span class="box">│        CLAUDE (MCP Client)      │</span>
+  <span class="box">│  claude-sonnet-4-5 / Claude Code│</span>
+  <span class="box">└─────────────────────────────────┘</span>
+             <span class="hi">│   MCP Protocol (JSON-RPC 2.0)</span>
+     ┌────────┼────────┬────────────────┐
+     <span class="dim">│</span>        <span class="dim">│</span>        <span class="dim">│</span>                <span class="dim">│</span>
+     ▼        ▼        ▼                ▼
+  <span class="box">┌────────┐</span> <span class="box">┌──────┐</span> <span class="box">┌────────────┐</span> <span class="box">┌──────────┐</span>
+  <span class="box">│ GitHub │</span> <span class="box">│  DB  │</span> <span class="box">│   Slack    │</span> <span class="box">│  Custom  │</span>
+  <span class="box">│  MCP   │</span> <span class="box">│  MCP │</span> <span class="box">│    MCP     │</span> <span class="box">│   MCP    │</span>
+  <span class="box">│ Server │</span> <span class="box">│Server│</span> <span class="box">│   Server   │</span> <span class="box">│  Server  │</span>
+  <span class="box">└────────┘</span> <span class="box">└──────┘</span> <span class="box">└────────────┘</span> <span class="box">└──────────┘</span>
+     <span class="dim">│</span>        <span class="dim">│</span>        <span class="dim">│</span>                <span class="dim">│</span>
+     ▼        ▼        ▼                ▼
+  <span class="good">GitHub</span>  <span class="good">Postgres</span> <span class="good">Slack API</span>    <span class="good">Internal</span>
+  <span class="good">API</span>     <span class="good">Database</span>              <span class="good">APIs</span>
+
+  <span class="dim">Each MCP server owns its auth, retry logic, and error handling.</span>
+  <span class="dim">Claude only speaks MCP — never raw GitHub/DB/Slack APIs.</span>
+        </div>
+
+        <h3>The Integration Problem: Before and After MCP</h3>
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-icon">✗</div>
+            <div class="info-card-label">Without MCP</div>
+            <div class="info-card-value">Bespoke prompt engineering per tool. Custom result parsing for each API. Duplicated auth logic. Security review needed for every new integration. No standardised error format. Each team reinvents the wheel.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">✓</div>
+            <div class="info-card-label">With MCP</div>
+            <div class="info-card-value">Standardised JSON-RPC 2.0 protocol. Claude discovers tools automatically via capability negotiation. One server implementation works across all MCP clients. Reusable community-built servers. Auditable tool calls with structured inputs and outputs.</div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <div class="callout-title">MCP Is Not a Magic Security Boundary</div>
+            MCP standardises the communication protocol, not the permission model. A poorly configured MCP server with write access to production databases is just as dangerous as any other over-permissioned service. Day 4 Module 4 covers the security governance layer you must build on top of MCP.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — The Three Core Primitives
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="core-primitives">
+        <div class="section-label">
+          <span class="section-num">02</span>
+          <h2 class="section-title">The Three Core Primitives (+ Sampling)</h2>
+        </div>
+
+        <p>MCP defines four fundamental primitives — the building blocks from which all MCP capabilities are constructed. Understanding which primitive to use and who controls it is the foundation of good MCP server design.</p>
+
+        <table class="primitive-table">
+          <thead>
+            <tr>
+              <th>Primitive</th>
+              <th>Controller</th>
+              <th>When It Runs</th>
+              <th>Example Use Cases</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Tools</strong></td>
+              <td>Model-controlled</td>
+              <td>When Claude decides to call a function</td>
+              <td><span class="mono">search_database</span>, <span class="mono">create_issue</span>, <span class="mono">send_slack_message</span>, <span class="mono">run_sql_query</span></td>
+            </tr>
+            <tr>
+              <td><strong>Resources</strong></td>
+              <td>Application-controlled</td>
+              <td>When the application explicitly reads a resource</td>
+              <td>File contents, database rows, API responses, documentation pages</td>
+            </tr>
+            <tr>
+              <td><strong>Prompts</strong></td>
+              <td>User-controlled</td>
+              <td>When the user selects a prompt template</td>
+              <td>Code review template, sprint planning prompt, security audit checklist</td>
+            </tr>
+            <tr>
+              <td><strong>Sampling</strong></td>
+              <td>Server-controlled</td>
+              <td>When an MCP server requests a Claude completion</td>
+              <td>Agentic loops within servers, dynamic tool orchestration, server-initiated reasoning</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Tools: The Most Used Primitive</h3>
+        <p>Tools are functions that Claude can invoke during a conversation. When Claude encounters a task that requires external data or action — searching a database, creating a GitHub issue, posting a message — it selects the appropriate tool, constructs arguments that match the tool's JSON Schema, and sends a <code>tools/call</code> request to the MCP server. The server executes the action and returns a structured result.</p>
+
+        <p>The key insight: <strong>Claude decides when to call a tool based solely on the tool's name and description</strong>. The model never sees your implementation. This means the quality of your tool descriptions is the most important factor in whether Claude uses your tools correctly.</p>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm"># Minimal MCP server with one Tool (using the mcp[cli] Python SDK)</span>
+<span class="kw">from</span> mcp.server <span class="kw">import</span> Server
+<span class="kw">from</span> mcp.server.models <span class="kw">import</span> InitializationOptions
+<span class="kw">from</span> mcp.types <span class="kw">import</span> Tool, TextContent
+<span class="kw">import</span> mcp.server.stdio
+
+<span class="cm"># Create the MCP server instance</span>
+server = Server(<span class="st">"knowledge-base"</span>)
+
+<span class="cm"># Register a tool using the decorator</span>
+<span class="kw">@server</span>.list_tools()
+<span class="kw">async def</span> <span class="fn">handle_list_tools</span>() -> list[Tool]:
+    <span class="kw">return</span> [
+        Tool(
+            name=<span class="st">"search_kb"</span>,
+            description=<span class="st">"""Search the internal knowledge base for articles matching a query.
+            Use this tool when the user asks about internal processes, policies, architecture
+            decisions, runbooks, or any company-specific knowledge. Returns a list of matching
+            articles with titles, summaries, and URLs. The query supports natural language."""</span>,
+            inputSchema={
+                <span class="st">"type"</span>: <span class="st">"object"</span>,
+                <span class="st">"properties"</span>: {
+                    <span class="st">"query"</span>: {
+                        <span class="st">"type"</span>: <span class="st">"string"</span>,
+                        <span class="st">"description"</span>: <span class="st">"Natural language search query"</span>
+                    },
+                    <span class="st">"max_results"</span>: {
+                        <span class="st">"type"</span>: <span class="st">"integer"</span>,
+                        <span class="st">"description"</span>: <span class="st">"Maximum number of results to return (default: 5)"</span>,
+                        <span class="st">"default"</span>: <span class="hi">5</span>
+                    }
+                },
+                <span class="st">"required"</span>: [<span class="st">"query"</span>]
+            }
+        )
+    ]
+
+<span class="cm"># Handle tool calls</span>
+<span class="kw">@server</span>.call_tool()
+<span class="kw">async def</span> <span class="fn">handle_call_tool</span>(name: str, arguments: dict) -> list[TextContent]:
+    <span class="kw">if</span> name == <span class="st">"search_kb"</span>:
+        results = <span class="kw">await</span> search_knowledge_base(
+            query=arguments[<span class="st">"query"</span>],
+            max_results=arguments.get(<span class="st">"max_results"</span>, <span class="hi">5</span>)
+        )
+        <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=format_results(results))]
+    <span class="kw">raise</span> ValueError(<span class="st">f"Unknown tool: {name}"</span>)
+
+<span class="cm"># Run the server over stdio</span>
+<span class="kw">async def</span> <span class="fn">main</span>():
+    <span class="kw">async with</span> mcp.server.stdio.stdio_server() <span class="kw">as</span> (read_stream, write_stream):
+        <span class="kw">await</span> server.run(
+            read_stream, write_stream,
+            InitializationOptions(
+                server_name=<span class="st">"knowledge-base"</span>,
+                server_version=<span class="st">"1.0.0"</span>
+            )
+        )</code></pre>
+        </div>
+
+        <h3>Resources: Structured Data Access</h3>
+        <p>Resources expose data that Claude can read — similar to how a file system exposes files. Each resource has a URI (like <code>kb://articles/runbooks/deployment</code>), a MIME type, and content. Unlike tools, resources are read-only and application-controlled, meaning the application decides which resources to expose rather than Claude deciding to call them.</p>
+
+        <h3>Sampling: Enabling Agentic MCP Servers</h3>
+        <p>Sampling is the most powerful and least understood primitive. It allows MCP servers to <em>request Claude completions</em> — enabling servers to implement their own agentic loops, multi-step reasoning, or dynamic orchestration. This is how complex MCP servers can go beyond simple function calls and implement genuinely intelligent behaviours.</p>
+
+        <div class="callout callout-success">
+          <span class="callout-icon">✓</span>
+          <div class="callout-body">
+            <div class="callout-title">Design Principle: Start with Tools, Add Resources Later</div>
+            For most enterprise MCP servers, Tools are the right starting point. They give Claude callable capabilities immediately. Add Resources when you need Claude to browse large collections of documents. Add Sampling only when your server needs to implement its own reasoning loops — it significantly increases implementation complexity.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — Transport Mechanisms
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="mcp-transport">
+        <div class="section-label">
+          <span class="section-num">03</span>
+          <h2 class="section-title">Transport Mechanisms Deep Dive</h2>
+        </div>
+
+        <p>MCP is transport-agnostic at the protocol level. The same JSON-RPC 2.0 messages can flow over different transport mechanisms depending on your deployment model. Understanding when to use each transport is critical for enterprise architecture decisions.</p>
+
+        <div class="transport-grid">
+          <div class="transport-card">
+            <div class="transport-card-header stdio">stdio (Local Process)</div>
+            <div class="transport-card-body">
+              <strong>Mechanism:</strong> JSON-RPC over stdin/stdout. The MCP server runs as a child process of Claude Code.<br><br>
+              <strong>Best for:</strong> Developer tools, personal productivity, local tooling, Claude Code integrations.<br><br>
+              <strong>Pros:</strong> Zero network overhead. Trivial setup. Natural process isolation. Inherits user's shell env.<br><br>
+              <strong>Cons:</strong> Can't be shared across team. Server dies when Claude Code session ends.
+            </div>
+          </div>
+          <div class="transport-card">
+            <div class="transport-card-header sse">HTTP + SSE (Remote Server)</div>
+            <div class="transport-card-body">
+              <strong>Mechanism:</strong> Client sends requests via HTTP POST; server sends events via Server-Sent Events.<br><br>
+              <strong>Best for:</strong> Enterprise shared MCP servers, team-wide deployments, production services.<br><br>
+              <strong>Pros:</strong> Shareable across org. Deployable to cloud. Standard auth headers (Bearer tokens).<br><br>
+              <strong>Cons:</strong> Network latency. Requires auth management. SSE has browser connection limits.
+            </div>
+          </div>
+          <div class="transport-card">
+            <div class="transport-card-header ws">WebSocket (Bidirectional)</div>
+            <div class="transport-card-body">
+              <strong>Mechanism:</strong> Full-duplex WebSocket connection. Both sides can send at any time.<br><br>
+              <strong>Best for:</strong> High-frequency tool calls, real-time data streams, interactive agent sessions.<br><br>
+              <strong>Pros:</strong> Low latency. Bidirectional push. Ideal for sampling-heavy servers.<br><br>
+              <strong>Cons:</strong> More complex to manage. Requires WebSocket-aware load balancers and proxies.
+            </div>
+          </div>
+        </div>
+
+        <div class="arch-diagram">
+<span class="dim">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>              <span class="label">TRANSPORT MECHANISM COMPARISON</span>                     <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────────────────────┘</span>
+
+  <span class="good">stdio (Local Process Transport)</span>
+  <span class="dim">──────────────────────────────</span>
+  Claude Code  ──stdin──▶  MCP Server Process
+  Claude Code  ◀─stdout──  MCP Server Process
+  <span class="dim">Lifecycle: server starts with Claude Code, dies with it</span>
+  <span class="dim">Auth: inherits from parent process environment variables</span>
+  <span class="dim">Latency: ~0ms (IPC)</span>
+
+  <span class="hi">HTTP + SSE (Remote Transport)</span>
+  <span class="dim">────────────────────────────</span>
+  Claude Code  ──POST /message──▶  MCP HTTP Server  ──▶  Your Backend
+  Claude Code  ◀──SSE /events───  MCP HTTP Server  ◀──  Your Backend
+  <span class="dim">Lifecycle: server runs independently, persists across sessions</span>
+  <span class="dim">Auth: Authorization: Bearer &lt;token&gt; header on every POST</span>
+  <span class="dim">Latency: network RTT (10–100ms typical)</span>
+
+  <span class="box">Decision Matrix:</span>
+  <span class="dim">Local dev tools        →  stdio</span>
+  <span class="dim">Shared org-wide server →  HTTP+SSE</span>
+  <span class="dim">Real-time agent loops  →  WebSocket</span>
+        </div>
+
+        <h3>Configuring stdio Transport in Claude Code</h3>
+        <p>For stdio MCP servers, Claude Code manages the server process lifecycle automatically. You declare the server in <code>.claude/settings.json</code> and Claude Code spawns, monitors, and communicates with the process transparently.</p>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">// .claude/settings.json — stdio MCP server configuration</span>
+{
+  <span class="st">"mcpServers"</span>: {
+    <span class="st">"knowledge-base"</span>: {
+      <span class="st">"command"</span>: <span class="st">"python3"</span>,
+      <span class="st">"args"</span>: [<span class="st">"/path/to/kb_server.py"</span>],
+      <span class="st">"env"</span>: {
+        <span class="st">"KB_API_KEY"</span>: <span class="st">"${KB_API_KEY}"</span>,
+        <span class="st">"KB_BASE_URL"</span>: <span class="st">"https://kb.internal.acme.com"</span>
+      }
+    },
+    <span class="st">"github"</span>: {
+      <span class="st">"command"</span>: <span class="st">"npx"</span>,
+      <span class="st">"args"</span>: [<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-github"</span>],
+      <span class="st">"env"</span>: {
+        <span class="st">"GITHUB_PERSONAL_ACCESS_TOKEN"</span>: <span class="st">"${GITHUB_PAT}"</span>
+      }
+    },
+    <span class="st">"postgres"</span>: {
+      <span class="st">"command"</span>: <span class="st">"npx"</span>,
+      <span class="st">"args"</span>: [
+        <span class="st">"-y"</span>,
+        <span class="st">"@modelcontextprotocol/server-postgres"</span>,
+        <span class="st">"postgresql://readonly_user:${DB_PASS}@db.internal:5432/production"</span>
+      ]
+    }
+  }
+}</code></pre>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <div class="callout-title">Never Hardcode Secrets in MCP Config</div>
+            The <code>settings.json</code> file may be committed to version control. Always reference environment variables using <code>${VAR_NAME}</code> syntax. Claude Code expands these from the shell environment at startup time. Store actual secrets in your system keychain or a secrets manager, not in the config file.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — Tool Discovery and Capability Lifecycle
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="mcp-discovery">
+        <div class="section-label">
+          <span class="section-num">04</span>
+          <h2 class="section-title">Tool Discovery and the Capability Lifecycle</h2>
+        </div>
+
+        <p>When Claude Code starts a session with MCP servers configured, it executes a capability negotiation handshake with each server. This handshake follows a strict sequence that determines what Claude can see and use for the rest of the session.</p>
+
+        <div class="arch-diagram">
+<span class="dim">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>              <span class="label">MCP CAPABILITY NEGOTIATION LIFECYCLE</span>              <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────────────────────┘</span>
+
+  Claude Code                           MCP Server
+     <span class="dim">│</span>                                       <span class="dim">│</span>
+     <span class="dim">│──── initialize { clientInfo } ────────▶│</span>
+     <span class="dim">│                                       │</span>
+     <span class="dim">│◀─── initializeResult { capabilities }──│</span>
+     <span class="dim">│     { tools: {}, resources: {},       │</span>
+     <span class="dim">│       prompts: {}, sampling: {} }     │</span>
+     <span class="dim">│                                       │</span>
+     <span class="dim">│──── initialized (notification) ───────▶│</span>
+     <span class="dim">│                                       │</span>
+     <span class="dim">│──── tools/list ───────────────────────▶│</span>
+     <span class="dim">│◀─── [Tool, Tool, Tool, ...] ───────────│</span>
+     <span class="dim">│     (name, description, inputSchema)  │</span>
+     <span class="dim">│                                       │</span>
+  <span class="good">Claude now knows every available tool and its schema</span>
+     <span class="dim">│</span>
+  <span class="dim">--- User asks a question ---</span>
+     <span class="dim">│</span>
+     <span class="dim">│──── tools/call { name, arguments } ───▶│</span>
+     <span class="dim">│◀─── CallToolResult { content: [...] } ─│</span>
+     <span class="dim">│</span>
+  <span class="good">Claude incorporates result into response</span>
+        </div>
+
+        <h3>Tool Schema Anatomy</h3>
+        <p>Every tool Claude discovers has three required fields. Getting these right is the most important part of MCP server design because Claude makes all tool selection decisions based on them.</p>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm"># Good tool definition — Claude will use this correctly</span>
+Tool(
+    name=<span class="st">"get_customer_order_history"</span>,  <span class="cm"># verb_noun, specific</span>
+    description=<span class="st">"""Retrieve the complete order history for a customer account.
+    Use this tool when the user asks about past orders, purchase history,
+    what a customer has bought, or needs to look up a specific order.
+    Returns orders sorted by date descending, with order ID, items,
+    total amount, status (pending/shipped/delivered/refunded), and
+    tracking number if available. Requires either customer_id or email."""</span>,
+    inputSchema={
+        <span class="st">"type"</span>: <span class="st">"object"</span>,
+        <span class="st">"properties"</span>: {
+            <span class="st">"customer_id"</span>: {
+                <span class="st">"type"</span>: <span class="st">"string"</span>,
+                <span class="st">"description"</span>: <span class="st">"Internal customer UUID (preferred over email)"</span>
+            },
+            <span class="st">"email"</span>: {
+                <span class="st">"type"</span>: <span class="st">"string"</span>,
+                <span class="st">"description"</span>: <span class="st">"Customer email address (used if customer_id is unknown)"</span>
+            },
+            <span class="st">"limit"</span>: {
+                <span class="st">"type"</span>: <span class="st">"integer"</span>,
+                <span class="st">"description"</span>: <span class="st">"Max orders to return (default: 20, max: 100)"</span>,
+                <span class="st">"default"</span>: <span class="hi">20</span>,
+                <span class="st">"maximum"</span>: <span class="hi">100</span>
+            }
+        },
+        <span class="st">"required"</span>: []  <span class="cm"># Neither required alone — validation happens in handler</span>
+    }
+)
+
+<span class="cm"># Bad tool definition — Claude will struggle to use this correctly</span>
+Tool(
+    name=<span class="st">"get_data"</span>,            <span class="cm"># too generic — what data?</span>
+    description=<span class="st">"Gets data."</span>,   <span class="cm"># useless — Claude can't infer when to call it</span>
+    inputSchema={
+        <span class="st">"type"</span>: <span class="st">"object"</span>,
+        <span class="st">"properties"</span>: {
+            <span class="st">"id"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>}  <span class="cm"># id of what? no description</span>
+        }
+    }
+)</code></pre>
+        </div>
+
+        <div class="callout callout-danger">
+          <span class="callout-icon">✗</span>
+          <div class="callout-body">
+            <div class="callout-title">The #1 MCP Server Bug: Vague Descriptions</div>
+            If Claude calls the wrong tool, or fails to call the right tool when it should, the problem is almost always the tool description. Claude reads descriptions and reasons about which tool fits the user's request. Write descriptions as if you're explaining the tool to a new engineer on their first day. Be explicit about: when to use it, what it returns, and which parameters are optional.
+          </div>
+        </div>
+
+        <h3>Resource and Prompt Discovery</h3>
+        <p>Beyond tools, Claude Code can also list and access resources and prompts from MCP servers. Resources are discovered via <code>resources/list</code> and accessed via <code>resources/read</code> with a URI. Prompts are discovered via <code>prompts/list</code> and expanded via <code>prompts/get</code>. Both follow the same discover-then-use pattern as tools.</p>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 5 — Using MCP with Claude Code
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="mcp-in-claude-code">
+        <div class="section-label">
+          <span class="section-num">05</span>
+          <h2 class="section-title">Using MCP with Claude Code</h2>
+        </div>
+
+        <p>Claude Code is designed as a first-class MCP client. It manages server lifecycles, surfaces available tools to the model in every conversation, and handles the tool call/result cycle transparently. The <code>/mcp</code> command lets you inspect, manage, and debug your MCP server connections at any time.</p>
+
+        <h3>Official Anthropic MCP Servers</h3>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-icon">📁</div>
+            <div class="info-card-label">filesystem</div>
+            <div class="info-card-value">Read/write local filesystem with configurable allowed paths. The foundation for all file-manipulation workflows.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🐙</div>
+            <div class="info-card-label">github</div>
+            <div class="info-card-value">Full GitHub API access: repos, issues, PRs, commits, branches, files. Requires GitHub PAT.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🗃️</div>
+            <div class="info-card-label">postgres</div>
+            <div class="info-card-value">Read-only PostgreSQL access: list tables, describe schema, execute SELECT queries. Connection string in config.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">💬</div>
+            <div class="info-card-label">slack</div>
+            <div class="info-card-value">Slack workspace access: list channels, post messages, read threads. Requires Slack OAuth Bot Token.</div>
+          </div>
+        </div>
+
+        <h3>Complete Multi-Server Configuration</h3>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">// .claude/settings.json — enterprise multi-server MCP configuration</span>
+{
+  <span class="st">"mcpServers"</span>: {
+    <span class="cm">// Filesystem — scoped to project directory only</span>
+    <span class="st">"filesystem"</span>: {
+      <span class="st">"command"</span>: <span class="st">"npx"</span>,
+      <span class="st">"args"</span>: [
+        <span class="st">"-y"</span>,
+        <span class="st">"@modelcontextprotocol/server-filesystem"</span>,
+        <span class="st">"/Users/dev/projects/acme-platform"</span>  <span class="cm">// restrict to project root</span>
+      ]
+    },
+
+    <span class="cm">// GitHub — org-scoped PAT with read:org + repo permissions</span>
+    <span class="st">"github"</span>: {
+      <span class="st">"command"</span>: <span class="st">"npx"</span>,
+      <span class="st">"args"</span>: [<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-github"</span>],
+      <span class="st">"env"</span>: {
+        <span class="st">"GITHUB_PERSONAL_ACCESS_TOKEN"</span>: <span class="st">"${GITHUB_PAT}"</span>
+      }
+    },
+
+    <span class="cm">// PostgreSQL — read-only analytics replica, not primary</span>
+    <span class="st">"database"</span>: {
+      <span class="st">"command"</span>: <span class="st">"npx"</span>,
+      <span class="st">"args"</span>: [
+        <span class="st">"-y"</span>,
+        <span class="st">"@modelcontextprotocol/server-postgres"</span>,
+        <span class="st">"postgresql://claude_readonly:${DB_PASS}@analytics-replica.internal:5432/app_db"</span>
+      ]
+    },
+
+    <span class="cm">// Custom internal knowledge base — Python stdio server</span>
+    <span class="st">"knowledge-base"</span>: {
+      <span class="st">"command"</span>: <span class="st">"python3"</span>,
+      <span class="st">"args"</span>: [<span class="st">"/opt/mcp-servers/kb_server.py"</span>],
+      <span class="st">"env"</span>: {
+        <span class="st">"KB_API_TOKEN"</span>: <span class="st">"${KB_API_TOKEN}"</span>,
+        <span class="st">"KB_ENDPOINT"</span>: <span class="st">"https://kb.acme.internal/api/v1"</span>
+      }
+    }
+  },
+
+  <span class="cm">// Permission controls — restrict what Claude can do with these tools</span>
+  <span class="st">"permissions"</span>: {
+    <span class="st">"allow"</span>: [
+      <span class="st">"mcp__filesystem__read_file"</span>,
+      <span class="st">"mcp__filesystem__list_directory"</span>,
+      <span class="st">"mcp__github__search_repositories"</span>,
+      <span class="st">"mcp__github__get_pull_request"</span>,
+      <span class="st">"mcp__database__query"</span>,
+      <span class="st">"mcp__knowledge-base__search_kb"</span>,
+      <span class="st">"mcp__knowledge-base__get_article"</span>
+    ],
+    <span class="st">"deny"</span>: [
+      <span class="st">"mcp__filesystem__write_file"</span>,  <span class="cm">// require explicit approval</span>
+      <span class="st">"mcp__github__push_files"</span>        <span class="cm">// require explicit approval</span>
+    ]
+  }
+}</code></pre>
+        </div>
+
+        <h3>Inspecting MCP Servers in a Session</h3>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm"># In a Claude Code session, inspect available MCP tools</span>
+/mcp
+
+<span class="cm"># Output shows connected servers and available tools:</span>
+<span class="cm"># ✓ filesystem (4 tools): read_file, write_file, list_directory, create_directory</span>
+<span class="cm"># ✓ github (12 tools): search_repositories, get_file_contents, create_issue...</span>
+<span class="cm"># ✓ database (3 tools): list_tables, describe_table, query</span>
+<span class="cm"># ✓ knowledge-base (3 tools): search_kb, get_article, list_categories</span>
+
+<span class="cm"># Trust levels: per-server trust allows tools without per-call approval</span>
+<span class="cm"># claude --mcp-server /path/to/server.py --trust-server-name=knowledge-base</span>
+
+<span class="cm"># Debug MCP server logs</span>
+<span class="cm"># Claude Code writes MCP server stderr to ~/.claude/mcp-logs/&lt;server-name&gt;.log</span></code></pre>
+        </div>
+
+        <div class="callout callout-success">
+          <span class="callout-icon">✓</span>
+          <div class="callout-body">
+            <div class="callout-title">Day 4 Module 1 Complete</div>
+            You now understand MCP's architecture, why it solves the N&times;M integration problem, the four core primitives and when to use each, both stdio and HTTP+SSE transport mechanisms, the capability negotiation lifecycle, and how to configure Claude Code with multiple MCP servers. Module 2 covers enterprise-grade integrations with GitHub, Slack, databases, and Jira in production depth.
+          </div>
+        </div>
+
+      </section>
+
+      <div class="nav-bottom">
+        <a href="day3-labs.html" class="nav-prev">← Day 3 Labs</a>
+        <a href="day4-module2-mcp-integrations.html" class="nav-next">Day 4 · Module 2: Enterprise MCP Integrations →</a>
+      </div>
+
+    </div><!-- end content-wrap -->
+  </main>
+</div><!-- end layout -->
+<script src="assets/js/main.js"></script>
+</body>
+</html>

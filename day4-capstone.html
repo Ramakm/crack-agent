@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Capstone Project — Claude Architect</title>
+  <meta name="description" content="Day 4 Capstone: Design and present a complete Enterprise AI Coding Assistant Platform for a 200-person engineering org, covering MCP, multi-agent workflows, security, compliance, and cost controls." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+    .arch-diagram { background:var(--code-bg);border:1px solid var(--code-border);border-radius:var(--radius);padding:1.5rem;font-family:var(--mono);font-size:0.78rem;color:#c9d1d9;line-height:1.9;overflow-x:auto;margin:1.25rem 0; }
+    .arch-diagram .box { color:#79c0ff; }
+    .arch-diagram .hi  { color:#ffa657; }
+    .arch-diagram .label { color:#a5d6ff; }
+    .arch-diagram .dim { color:#484f58; }
+    .arch-diagram .good { color:#7ee787; }
+    .arch-diagram .bad  { color:#ff7b72; }
+
+    .rubric-table { width:100%;border-collapse:collapse;font-size:0.84rem;margin:1.25rem 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden; }
+    .rubric-table th { background:var(--surface);color:var(--text-heading);font-weight:700;font-size:0.74rem;text-transform:uppercase;letter-spacing:0.07em;text-align:left;padding:0.65rem 0.9rem;border-bottom:1px solid var(--border); }
+    .rubric-table td { padding:0.6rem 0.9rem;border-bottom:1px solid var(--hairline);vertical-align:top;line-height:1.55; }
+    .rubric-table tr:last-child td { border-bottom:none; }
+    .rubric-table tr:hover td { background:var(--surface); }
+    .score-5 { display:inline-block;font-size:0.7rem;font-weight:800;padding:0.12rem 0.45rem;border-radius:4px;background:#f0fdf4;color:#15803d; }
+    .score-3 { display:inline-block;font-size:0.7rem;font-weight:800;padding:0.12rem 0.45rem;border-radius:4px;background:#fff7ed;color:#c2410c; }
+    .score-1 { display:inline-block;font-size:0.7rem;font-weight:800;padding:0.12rem 0.45rem;border-radius:4px;background:#fef2f2;color:#dc2626; }
+
+    .template-section { border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1rem;overflow:hidden; }
+    .template-section-header { padding:0.85rem 1.1rem;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.75rem; }
+    .template-section-num { min-width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;font-size:0.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+    .template-section-title { font-weight:700;font-size:0.95rem;color:var(--text-heading); }
+    .template-section-body { padding:1rem 1.1rem;font-size:0.87rem;color:var(--text);line-height:1.65; }
+    .template-section-body ol, .template-section-body ul { padding-left:1.25rem;margin:0.5rem 0; }
+    .template-section-body li { margin-bottom:0.4rem; }
+    .guiding-q { font-style:italic;color:var(--muted);font-size:0.83rem; }
+
+    .ref-card-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden; }
+    .ref-card { padding:1rem;border-right:1px solid var(--border); }
+    .ref-card:last-child { border-right:none; }
+    .ref-card-day { font-size:0.68rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem; }
+    .ref-card ul { margin:0;padding-left:1.1rem; }
+    .ref-card li { font-size:0.8rem;color:var(--text);margin-bottom:0.35rem;line-height:1.45; }
+
+    @media(max-width:900px){
+      .ref-card-grid { grid-template-columns:1fr 1fr; }
+      .ref-card { border-right:none;border-bottom:1px solid var(--border); }
+      .ref-card:last-child { border-bottom:none; }
+    }
+    @media(max-width:600px){ .ref-card-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar"><span></span><span></span><span></span></button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+      <line x1="12" y1="12" x2="12" y2="3"/><line x1="12" y1="12" x2="20.5" y2="9.2"/>
+      <line x1="12" y1="12" x2="17.3" y2="19.3"/><line x1="12" y1="12" x2="6.7" y2="19.3"/>
+      <line x1="12" y1="12" x2="3.5" y2="9.2"/>
+      <line x1="12" y1="3" x2="20.5" y2="9.2"/><line x1="20.5" y1="9.2" x2="17.3" y2="19.3"/>
+      <line x1="17.3" y1="19.3" x2="6.7" y2="19.3"/><line x1="6.7" y1="19.3" x2="3.5" y2="9.2"/>
+      <line x1="3.5" y1="9.2" x2="12" y2="3"/>
+      <circle cx="12" cy="3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="20.5" cy="9.2" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="17.3" cy="19.3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="6.7" cy="19.3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="3.5" cy="9.2" r="1.1" fill="currentColor" stroke="none"/>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 4 · Capstone</span>
+  <div class="topbar-right">
+    <div class="topbar-socials">
+      <a href="https://x.com/techwith_ram" class="topbar-social" target="_blank" rel="noopener" aria-label="X / Twitter">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25z"/></svg>
+      </a>
+      <a href="https://www.instagram.com/techwith.ram/" class="topbar-social" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      </a>
+      <a href="https://github.com/Ramakm" class="topbar-social" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      </a>
+    </div>
+    <span class="topbar-badge">Day 4 of 4</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day3-module1-context-engineering.html">Context Engineering &amp; CLAUDE.md</a>
+        <a href="day3-module2-cicd-github.html">CI/CD &amp; GitHub Integration</a>
+        <a href="day3-module3-multi-agent.html">Multi-Agent Architecture</a>
+        <a href="day3-module4-platform.html">Enterprise AI Platform Architecture</a>
+        <a href="day3-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle><span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day4-module1-mcp-fundamentals.html">MCP Architecture &amp; Fundamentals</a>
+        <a href="day4-module2-mcp-integrations.html">Enterprise MCP Integrations</a>
+        <a href="day4-module3-custom-mcp.html">Custom MCP Server Development</a>
+        <a href="day4-module4-security-governance.html">Security, Governance &amp; Compliance</a>
+        <a href="day4-labs.html">Labs</a>
+        <a href="day4-capstone.html" class="active">Capstone Project</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label" style="margin-top:1rem;">On This Page</div>
+    <div class="nav-sub" style="display:block;">
+      <a href="#capstone-brief">Project Brief</a>
+      <a href="#architecture-template">Architecture Template</a>
+      <a href="#evaluation-rubric">Evaluation Rubric</a>
+      <a href="#example-architectures">Example Architectures</a>
+      <a href="#reference-card">Quick Reference Card</a>
+    </div>
+  </nav>
+  <main class="main">
+    <div class="content-wrap">
+
+      <nav class="breadcrumb">
+        <a href="index.html">Home</a><span class="sep">/</span>
+        <span>Day 4</span><span class="sep">/</span>
+        <span>Capstone Project</span>
+      </nav>
+
+      <div class="page-header">
+        <div class="module-tag">✦ Day 4 · Capstone</div>
+        <h1 class="page-title">Capstone Project</h1>
+        <p class="page-objective">
+          <strong>Enterprise AI Coding Assistant Platform:</strong> Design and present a complete, production-ready AI coding assistant deployment for a 200-person engineering organisation — covering Claude model selection, MCP integrations, multi-agent workflows, CI/CD integration, security controls, compliance posture, and cost model.
+        </p>
+        <div class="module-meta">
+          <span class="meta-item"><span class="dot"></span> 3 Hours Design</span>
+          <span class="meta-item"><span class="dot"></span> 10-Minute Presentation</span>
+          <span class="meta-item"><span class="dot"></span> Architecture + Governance + Cost</span>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — Project Brief
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="capstone-brief">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <h2 class="section-title">Project Brief</h2>
+        </div>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <div class="callout-title">The Challenge</div>
+            You are the AI Platform Lead at a 200-person engineering company. The CTO has approved a budget to deploy an Enterprise AI Coding Assistant Platform. You have 3 hours to design the platform and 10 minutes to present it to the Engineering Leadership Team (CTO, VP Engineering, CISO, and Head of Platform).
+          </div>
+        </div>
+
+        <h3>Company Context</h3>
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-icon">👥</div>
+            <div class="info-card-label">Team Size</div>
+            <div class="info-card-value">200 engineers: 120 backend (Python/Go), 50 frontend (React/TypeScript), 20 data/ML, 10 platform/SRE</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🏗️</div>
+            <div class="info-card-label">Stack</div>
+            <div class="info-card-value">Microservices on AWS EKS, PostgreSQL RDS, Redis, GitHub for SCM, Jira for PM, Slack for comms</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">📋</div>
+            <div class="info-card-label">Compliance</div>
+            <div class="info-card-value">SOC2 Type II certified, GDPR applicable (EU customers), handling PII, considering HIPAA in 2026</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">💰</div>
+            <div class="info-card-label">Budget</div>
+            <div class="info-card-value">$15,000/month maximum for AI API costs. One-time infrastructure setup budget: $50,000.</div>
+          </div>
+        </div>
+
+        <h3>What Your Design Must Address</h3>
+        <ol>
+          <li><strong>Tool access model</strong> — which Claude deployment for which engineer roles; MCP server inventory and permissions</li>
+          <li><strong>Governance model</strong> — usage policies, approval workflows for high-risk operations, audit logging</li>
+          <li><strong>Multi-agent workflows</strong> — at least 2 specific agentic workflows that deliver measurable engineering productivity</li>
+          <li><strong>CI/CD integration</strong> — how Claude participates in the SDLC (PR review, test generation, deployment gates)</li>
+          <li><strong>Cost controls</strong> — monthly cost projection, per-tier allocation, budget alert configuration</li>
+          <li><strong>Security &amp; compliance</strong> — how you satisfy SOC2 and GDPR; your prompt injection mitigations</li>
+        </ol>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-icon">📐</div>
+            <div class="info-card-label">Deliverable 1</div>
+            <div class="info-card-value">Architecture diagram (ASCII or drawn) showing Claude deployments, MCP servers, data flows, and human touchpoints</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">📄</div>
+            <div class="info-card-label">Deliverable 2</div>
+            <div class="info-card-value">Governance policy document — one page covering permitted uses, prohibited uses, approval workflows, and incident response</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">💵</div>
+            <div class="info-card-label">Deliverable 3</div>
+            <div class="info-card-value">Monthly cost estimate with per-feature breakdown, model tier rationale, and budget alert threshold</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🛠️</div>
+            <div class="info-card-label">Deliverable 4</div>
+            <div class="info-card-value">Demo or detailed spec of one MCP server or multi-agent workflow — enough for a senior engineer to implement it in one sprint</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — Architecture Template
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="architecture-template">
+        <div class="section-label">
+          <span class="section-num">02</span>
+          <h2 class="section-title">Architecture Document Template</h2>
+        </div>
+
+        <p>Complete each section of this template. The guiding questions are prompts to ensure your design is specific enough to be actionable — not a collection of vague aspirations.</p>
+
+        <div class="template-section">
+          <div class="template-section-header">
+            <div class="template-section-num">1</div>
+            <div class="template-section-title">Executive Summary</div>
+          </div>
+          <div class="template-section-body">
+            <p>2-3 sentences: what the platform does, how many engineers it serves, and the primary productivity outcome you are optimising for.</p>
+            <p class="guiding-q">Guiding questions: What is the single most valuable workflow this platform enables? How will you measure success in the first 90 days?</p>
+          </div>
+        </div>
+
+        <div class="template-section">
+          <div class="template-section-header">
+            <div class="template-section-num">2</div>
+            <div class="template-section-title">System Architecture</div>
+          </div>
+          <div class="template-section-body">
+            <p>Architecture diagram + written description covering: Claude deployment model, MCP server topology, network zones, and human touchpoints. Reference the architecture patterns from Day 3 Module 4 and Day 4 Modules 1-3.</p>
+            <p class="guiding-q">Guiding questions: Where does Claude run — on developer laptops (Claude Code) or as a shared service? How do your MCP servers communicate with internal systems without public internet exposure?</p>
+          </div>
+        </div>
+
+        <div class="template-section">
+          <div class="template-section-header">
+            <div class="template-section-num">3</div>
+            <div class="template-section-title">Claude Model Selection Rationale</div>
+          </div>
+          <div class="template-section-body">
+            <p>Table mapping each use case to the appropriate Claude model tier. Justify every Sonnet or Opus choice — if you could use Haiku for the task, use Haiku.</p>
+            <p class="guiding-q">Guiding questions: Which tasks are high-volume, simple classification or extraction (Haiku)? Which require sustained reasoning (Sonnet)? Is there anything requiring deep synthesis that truly needs Opus?</p>
+          </div>
+        </div>
+
+        <div class="template-section">
+          <div class="template-section-header">
+            <div class="template-section-num">4</div>
+            <div class="template-section-title">MCP Server Inventory</div>
+          </div>
+          <div class="template-section-body">
+            <p>Table of every MCP server: name, type (official / custom), tools exposed, auth method, transport, and which engineer roles have access. Include the permission scoping for each server.</p>
+            <p class="guiding-q">Guiding questions: Which servers need read-write access vs read-only? Which servers should require human approval for every write operation? Are any of these servers shared across the org vs per-team?</p>
+          </div>
+        </div>
+
+        <div class="template-section">
+          <div class="template-section-header">
+            <div class="template-section-num">5</div>
+            <div class="template-section-title">Multi-Agent Workflow Design</div>
+          </div>
+          <div class="template-section-body">
+            <p>Describe at least 2 multi-agent workflows in detail: orchestrator, worker agents, model tiers, failure modes, and the human touchpoints where approval is required.</p>
+            <p class="guiding-q">Guiding questions: What is the trigger for each workflow? What are the inputs and outputs? At which step can an agent produce an incorrect result that would cause the largest downstream impact?</p>
+          </div>
+        </div>
+
+        <div class="template-section">
+          <div class="template-section-header">
+            <div class="template-section-num">6</div>
+            <div class="template-section-title">CI/CD Integration Points</div>
+          </div>
+          <div class="template-section-body">
+            <p>Map Claude participation into the SDLC: which GitHub Actions workflows use Claude, what triggers them, what they produce, and how results gate the pipeline.</p>
+            <p class="guiding-q">Guiding questions: Is AI-generated PR review blocking or advisory? Who can override an AI-flagged concern? How do you prevent the CI pipeline from being a prompt injection attack vector?</p>
+          </div>
+        </div>
+
+        <div class="template-section">
+          <div class="template-section-header">
+            <div class="template-section-num">7</div>
+            <div class="template-section-title">Security Controls</div>
+          </div>
+          <div class="template-section-body">
+            <p>Address each of the 15 security checklist items from Module 4. Mark which apply to your deployment and how you address them.</p>
+            <p class="guiding-q">Guiding questions: What is your indirect prompt injection mitigation strategy? How do you handle secrets rotation for 200 engineers? What is the incident response playbook if an injection attack succeeds?</p>
+          </div>
+        </div>
+
+        <div class="template-section">
+          <div class="template-section-header">
+            <div class="template-section-num">8</div>
+            <div class="template-section-title">Compliance Posture</div>
+          </div>
+          <div class="template-section-body">
+            <p>Map your deployment controls to GDPR, SOC2, and (if applicable) HIPAA requirements. List any gaps and your mitigation plan.</p>
+            <p class="guiding-q">Guiding questions: Is Anthropic signed as a Data Processor under your GDPR DPA? How do you handle a GDPR erasure request for data that was in a Claude context window? What SOC2 evidence will you provide auditors?</p>
+          </div>
+        </div>
+
+        <div class="template-section">
+          <div class="template-section-header">
+            <div class="template-section-num">9</div>
+            <div class="template-section-title">Cost Model</div>
+          </div>
+          <div class="template-section-body">
+            <p>Monthly cost estimate with per-feature breakdown. Show input vs output token split. Show how the total fits within the $15,000/month budget. Define the budget alert threshold.</p>
+            <p class="guiding-q">Guiding questions: What is the most expensive feature per token? Which features benefit from prompt caching? What happens to cost if adoption doubles in month 3?</p>
+          </div>
+        </div>
+
+        <div class="template-section">
+          <div class="template-section-header">
+            <div class="template-section-num">10</div>
+            <div class="template-section-title">Rollout Plan</div>
+          </div>
+          <div class="template-section-body">
+            <p>Phased deployment: pilot (weeks 1-4), limited rollout (weeks 5-12), full deployment (months 4-6). Define success metrics for each phase and the go/no-go criteria for advancing.</p>
+            <p class="guiding-q">Guiding questions: Which team pilots first and why? What is your rollback plan if the pilot reveals security issues? How do you handle the "it changed my code without asking" complaint from engineers?</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — Evaluation Rubric
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="evaluation-rubric">
+        <div class="section-label">
+          <span class="section-num">03</span>
+          <h2 class="section-title">Evaluation Rubric</h2>
+        </div>
+
+        <p>Presentations are evaluated on six dimensions, each scored 1–5. Maximum score: 30 points. A score of 24+ indicates production-ready thinking.</p>
+
+        <table class="rubric-table">
+          <thead>
+            <tr><th>Dimension</th><th><span class="score-5">5 — Excellent</span></th><th><span class="score-3">3 — Adequate</span></th><th><span class="score-1">1 — Insufficient</span></th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Architectural Completeness</strong></td>
+              <td>All 10 template sections completed with specifics. Architecture diagram covers all data flows. No hand-waving on hard decisions.</td>
+              <td>Most sections complete. Some vague areas. Architecture diagram missing some flows.</td>
+              <td>Major sections missing or consist of generic statements without specifics.</td>
+            </tr>
+            <tr>
+              <td><strong>Security &amp; Governance</strong></td>
+              <td>All 15 security checklist items addressed. Indirect injection defence explicit. Incident response plan documented. Audit logging specified.</td>
+              <td>Most security items addressed. Some gaps. Audit logging mentioned but not detailed.</td>
+              <td>Security treated as an afterthought. No injection defence. No audit plan.</td>
+            </tr>
+            <tr>
+              <td><strong>MCP Integration Depth</strong></td>
+              <td>MCP server inventory complete with tools, auth method, permissions per role. Custom server clearly specified with tool schemas. Transport choices justified.</td>
+              <td>MCP servers listed but permissions vague. Auth method mentioned without detail.</td>
+              <td>MCP mentioned as a category without specific server inventory or tool design.</td>
+            </tr>
+            <tr>
+              <td><strong>Multi-Agent Design Quality</strong></td>
+              <td>2+ workflows specified with orchestrator, workers, model tiers, failure modes, and human touchpoints. Failure mitigations are specific and testable.</td>
+              <td>1-2 workflows described at high level. Model tiers assigned but not justified. Failure modes named without mitigation.</td>
+              <td>No agentic workflows. Or workflows described without agent structure.</td>
+            </tr>
+            <tr>
+              <td><strong>Cost Awareness</strong></td>
+              <td>Full monthly cost model with per-feature breakdown. Input/output token split. Fits budget. Alert threshold defined. Scaling scenario analysed.</td>
+              <td>Total estimate provided. Some feature breakdown. No input/output split. Alert threshold missing.</td>
+              <td>No cost model. Or single number with no breakdown or justification.</td>
+            </tr>
+            <tr>
+              <td><strong>Presentation Clarity</strong></td>
+              <td>Technical audience can follow without asking for clarification. Trade-offs articulated. Hard choices explained. CISO questions anticipated and pre-answered.</td>
+              <td>Generally clear. Some undefined terms. One or two choices unexplained.</td>
+              <td>Jargon without definition. Assumptions not stated. Audience would have many unanswered questions.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — Example Architectures
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="example-architectures">
+        <div class="section-label">
+          <span class="section-num">04</span>
+          <h2 class="section-title">Example Enterprise Architectures</h2>
+        </div>
+
+        <p>Three worked examples showing how different constraints produce different architecture decisions. These are not templates to copy — they are reasoning demonstrations.</p>
+
+        <h3>Example A: Financial Services Firm (SOC2 + GDPR Heavy)</h3>
+
+        <div class="arch-diagram">
+<span class="label">CONSTRAINTS:</span> SOC2 Type II, GDPR, Bloomberg terminal data (non-public market info),
+              human approval required on ALL write operations
+
+<span class="box">ARCHITECTURE CHOICES:</span>
+
+  <span class="good">Model tier:</span>  Claude Code for devs (Sonnet default), Haiku for log analysis,
+  <span class="dim">            Opus reserved for risk assessment reports only</span>
+
+  <span class="good">MCP Inventory:</span>
+  <span class="dim">  internal-kb  (custom, read-only, VPN-only, per-user OAuth tokens)</span>
+  <span class="dim">  github       (official, PAT scoped to internal repos, read+write with HITL)</span>
+  <span class="dim">  postgres     (official, analytics replica, read-only, claude_readonly user)</span>
+  <span class="dim">  NO Slack MCP — compliance prohibits AI access to internal comms</span>
+  <span class="dim">  NO browser MCP — Bloomberg data rules prohibit screen scraping</span>
+
+  <span class="good">Security posture:</span>
+  <span class="dim">  All MCP servers behind corporate VPN — not reachable from internet</span>
+  <span class="dim">  Every tool call requires human approval prompt in Claude Code UI</span>
+  <span class="dim">  Audit logs → Splunk SIEM → 7-year retention (financial regulation)</span>
+  <span class="dim">  GDPR DPA signed with Anthropic; data residency: EU region only</span>
+
+  <span class="good">Cost model:</span> ~$8,200/month total, well within $15k budget
+  <span class="dim">  Conservative: human-in-the-loop dramatically reduces accidental tool calls</span>
+        </div>
+
+        <h3>Example B: HIPAA Healthcare Startup</h3>
+
+        <div class="arch-diagram">
+<span class="label">CONSTRAINTS:</span> HIPAA BAA required, PHI de-identification mandatory before LLM,
+              small engineering team (40 engineers), speed over process
+
+<span class="box">ARCHITECTURE CHOICES:</span>
+
+  <span class="good">PHI pipeline:</span>
+  <span class="dim">  Patient data NEVER enters Claude context directly</span>
+  <span class="dim">  De-identification service runs before any KB or DB tool result reaches Claude</span>
+  <span class="dim">  ICD codes, age groups, procedure classes — OK in context</span>
+  <span class="dim">  Name, DOB, MRN, address, phone — ALWAYS redacted to pseudonym hash</span>
+
+  <span class="good">MCP Inventory:</span>
+  <span class="dim">  internal-kb  (clinical documentation, custom, de-id pipeline in front)</span>
+  <span class="dim">  github       (official, for code only — no PHI in codebases)</span>
+  <span class="dim">  postgres     (dev/staging only — production DB never connected)</span>
+
+  <span class="good">Compliance:</span>
+  <span class="dim">  BAA signed with Anthropic before first deployment</span>
+  <span class="dim">  All API calls go to Anthropic US region (HIPAA covered)</span>
+  <span class="dim">  Audit logs → CloudWatch → exported to HIPAA-compliant S3 (encrypted, 6-year)</span>
+  <span class="dim">  Quarterly security review mandated in BAA exhibit</span>
+
+  <span class="good">Cost model:</span> ~$4,100/month (small team, conservative use)
+  <span class="dim">  De-identification service adds ~$300/month infrastructure cost</span>
+        </div>
+
+        <h3>Example C: SaaS Developer Productivity Focus</h3>
+
+        <div class="arch-diagram">
+<span class="label">CONSTRAINTS:</span> Developer productivity is the primary metric, SOC2 only,
+              no regulated data, 200 engineers, aggressive adoption targets
+
+<span class="box">ARCHITECTURE CHOICES:</span>
+
+  <span class="good">Multi-agent workflows (2 core):</span>
+
+  <span class="hi">Workflow 1: Automated Code Review Pipeline</span>
+  <span class="dim">  Trigger: PR opened (GitHub Actions)</span>
+  <span class="dim">  Agent 1 (Haiku): classify PR size and domain (5 categories)</span>
+  <span class="dim">  Agent 2 (Sonnet): security review focused on OWASP top 10</span>
+  <span class="dim">  Agent 3 (Sonnet): logic review focused on CLAUDE.md conventions</span>
+  <span class="dim">  Orchestrator (Sonnet): merge reviews, post structured comment</span>
+  <span class="dim">  Human gate: engineer reads comment, acts on REQUEST_CHANGES</span>
+
+  <span class="hi">Workflow 2: Sprint Intelligence Report</span>
+  <span class="dim">  Trigger: Friday 17:00 cron job</span>
+  <span class="dim">  Agent 1 (Haiku): read Jira sprint board → extract ticket status</span>
+  <span class="dim">  Agent 2 (Haiku): read GitHub → PR merge rate, review cycle time</span>
+  <span class="dim">  Agent 3 (Sonnet): synthesise → identify blockers and at-risk items</span>
+  <span class="dim">  Output: Slack DM to team leads with summary + recommended actions</span>
+
+  <span class="good">MCP Inventory:</span>
+  <span class="dim">  github, jira, slack (post-only, #ai-summaries channel)</span>
+  <span class="dim">  postgres (analytics replica, read-only)</span>
+  <span class="dim">  internal-kb (custom Python server, Cloud Run, HTTP+SSE)</span>
+
+  <span class="good">Cost model:</span> ~$12,400/month — high volume, rich tooling
+  <span class="dim">  PR review bot: 300 PRs/day × Sonnet = dominant cost driver</span>
+  <span class="dim">  Budget alert at $14,000 (120% of $11,670 estimate with buffer)</span>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 5 — Quick Reference Card
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="reference-card">
+        <div class="section-label">
+          <span class="section-num">05</span>
+          <h2 class="section-title">Quick Reference Card</h2>
+        </div>
+
+        <p>A four-day curriculum in one card. Commit these to memory before your capstone presentation.</p>
+
+        <div class="ref-card-grid">
+          <div class="ref-card">
+            <div class="ref-card-day">Day 1 — Foundations</div>
+            <ul>
+              <li>Haiku = classification/extraction. Sonnet = reasoning. Opus = deep synthesis.</li>
+              <li>Enterprise Claude is a data processor — your data is not used for training by default.</li>
+              <li>System prompt = the first and most important security boundary.</li>
+              <li>Rate limits and token quotas are your first cost control levers.</li>
+              <li>Claude for Work seats do not replace API access for agentic workflows.</li>
+            </ul>
+          </div>
+          <div class="ref-card">
+            <div class="ref-card-day">Day 2 — Claude Code &amp; Dev</div>
+            <ul>
+              <li>CLAUDE.md is machine-readable context, not human documentation.</li>
+              <li>Banned patterns section prevents AI from repeating team's most common mistakes.</li>
+              <li>PR diff-based review: always exclude lockfiles and generated code.</li>
+              <li>Output tokens cost 3-5x more than input tokens — minimise response length where possible.</li>
+              <li>Claude Code permission controls: allowedTools, deniedTools, requireApproval.</li>
+            </ul>
+          </div>
+          <div class="ref-card">
+            <div class="ref-card-day">Day 3 — Context &amp; Multi-Agent</div>
+            <ul>
+              <li>Three context layers: persistent (CLAUDE.md), session, injected (RAG/MCP).</li>
+              <li>Multi-agent pattern: orchestrator dispatches workers in parallel, runs sequential synthesis.</li>
+              <li>Per-worker timeout (30s) + partial result return prevents cascade failures.</li>
+              <li>Never let one failing worker stall the pipeline — return what you have.</li>
+              <li>Token cost model: always separate input vs output token counts per feature.</li>
+            </ul>
+          </div>
+          <div class="ref-card">
+            <div class="ref-card-day">Day 4 — MCP &amp; Security</div>
+            <ul>
+              <li>MCP solves N×M integration: one protocol, unlimited server/client interop.</li>
+              <li>stdio for local dev, HTTP+SSE for enterprise shared servers.</li>
+              <li>Tool descriptions are Claude's only signal for which tool to call — write them well.</li>
+              <li>Indirect prompt injection (via tool results) is the primary enterprise AI threat.</li>
+              <li>Never bulk-dump data into context. Send minimum fields needed for the task.</li>
+              <li>Audit every tool call: who, what tool, what args, when, success/failure.</li>
+              <li>GDPR DPA + HIPAA BAA must be signed with Anthropic before handling regulated data.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="callout callout-success" style="margin-top:2rem;">
+          <span class="callout-icon">✓</span>
+          <div class="callout-body">
+            <div class="callout-title">You Have Completed the Claude Architect Enterprise Program</div>
+            This capstone is your opportunity to synthesise everything from four days of intensive content into a single, coherent, defensible system design. The mark of a Claude Architect is not knowing every API endpoint — it is the ability to make principled trade-offs across performance, cost, security, and compliance in a real-world context. Go build something remarkable.
+          </div>
+        </div>
+
+      </section>
+
+      <div class="nav-bottom">
+        <a href="day4-labs.html" class="nav-prev">← Day 4 Labs</a>
+        <a href="index.html" class="nav-next">Back to Course Home →</a>
+      </div>
+
+    </div><!-- end content-wrap -->
+  </main>
+</div><!-- end layout -->
+<script src="assets/js/main.js"></script>
+</body>
+</html>

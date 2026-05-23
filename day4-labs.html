@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Day 4 Labs — Claude Architect</title>
+  <meta name="description" content="Day 4 hands-on labs: Build your first MCP tool, configure GitHub MCP workflows, complete an enterprise security audit, and build a custom knowledge base MCP server with tests." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+    .lab-header { background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem 1.75rem;margin-bottom:2rem;display:flex;align-items:flex-start;gap:1.25rem; }
+    .lab-number { background:var(--accent);color:#fff;font-size:0.7rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;border-radius:var(--radius);padding:0.35rem 0.8rem;white-space:nowrap;margin-top:0.15rem;flex-shrink:0; }
+    .lab-meta { flex:1; }
+    .lab-title { font-size:1.2rem;font-weight:800;color:var(--text-heading);letter-spacing:-0.02em;margin-bottom:0.35rem; }
+    .lab-desc { font-size:0.88rem;color:var(--text);line-height:1.6;margin-bottom:0.75rem; }
+    .lab-pills { display:flex;flex-wrap:wrap;gap:0.4rem; }
+    .lab-pill { font-size:0.72rem;font-weight:600;padding:0.18rem 0.6rem;border-radius:999px;border:1px solid var(--border);color:var(--muted); }
+    .lab-pill.time { background:var(--accent-tint);color:var(--accent);border-color:var(--accent-soft); }
+    .lab-pill.level { background:#f0fdf4;color:#15803d;border-color:#bbf7d0; }
+    .lab-pill.level.advanced { background:#fff7ed;color:#c2410c;border-color:#fed7aa; }
+    .lab-pill.module { background:#f0f9ff;color:#0369a1;border-color:#bae6fd; }
+    .section-divider { border:none;border-top:2px solid var(--border);margin:3rem 0; }
+    .deliverable-box { border:2px dashed var(--accent);border-radius:var(--radius);padding:1.2rem 1.5rem;margin:1.5rem 0;background:var(--accent-tint); }
+    .deliverable-box-title { font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem; }
+    .deliverable-box ul { margin:0;padding-left:1.25rem; }
+    .deliverable-box li { font-size:0.87rem;color:var(--text);margin-bottom:0.35rem; }
+    .checklist { list-style:none;margin:0.75rem 0; }
+    .checklist li { display:flex;align-items:flex-start;gap:0.65rem;font-size:0.88rem;color:var(--text);padding:0.45rem 0;border-bottom:1px solid var(--border); }
+    .checklist li:last-child { border-bottom:none; }
+    .check-icon { width:18px;height:18px;border-radius:4px;border:2px solid var(--accent);flex-shrink:0;margin-top:1px; }
+    .arch-diagram { background:var(--code-bg);border:1px solid var(--code-border);border-radius:var(--radius);padding:1.5rem;font-family:var(--mono);font-size:0.78rem;color:#c9d1d9;line-height:1.9;overflow-x:auto;margin:1.25rem 0; }
+    .arch-diagram .box { color:#79c0ff; }
+    .arch-diagram .hi { color:#ffa657; }
+    .arch-diagram .label { color:#a5d6ff; }
+    .arch-diagram .good { color:#7ee787; }
+    .arch-diagram .bad { color:#ff7b72; }
+
+    .security-checklist { list-style:none;margin:0.75rem 0;padding:0; }
+    .security-checklist li { display:flex;align-items:flex-start;gap:0.75rem;padding:0.65rem 0;border-bottom:1px solid var(--hairline); }
+    .security-checklist li:last-child { border-bottom:none; }
+    .sec-check { width:22px;height:22px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;margin-top:1px;background:var(--bg); }
+    .sec-label { font-size:0.87rem;color:var(--text);flex:1;line-height:1.55; }
+    .sec-label strong { color:var(--text-heading); }
+    .sec-gap { display:inline-block;font-size:0.68rem;font-weight:700;padding:0.1rem 0.45rem;border-radius:4px;background:#fef2f2;color:#dc2626;margin-left:0.4rem; }
+    .sec-ok { display:inline-block;font-size:0.68rem;font-weight:700;padding:0.1rem 0.45rem;border-radius:4px;background:#f0fdf4;color:#15803d;margin-left:0.4rem; }
+
+    .completion-header { text-align:center;padding:2.5rem 2rem;background:linear-gradient(135deg,var(--accent-tint) 0%,#ede9fe 100%);border:1px solid var(--accent-soft);border-radius:var(--radius-lg);margin-bottom:2rem; }
+    .completion-badge { display:inline-flex;align-items:center;gap:0.5rem;background:var(--accent);color:#fff;font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;padding:0.4rem 1rem;border-radius:999px;margin-bottom:1.25rem; }
+    .completion-title { font-size:1.7rem;font-weight:800;color:var(--text-heading);letter-spacing:-0.03em;margin-bottom:0.5rem; }
+    .completion-sub { font-size:0.92rem;color:var(--text);line-height:1.65;max-width:600px;margin:0 auto; }
+    .module-summary-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;margin:2rem 0; }
+    .module-summary-card { border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;background:var(--surface); }
+    .module-summary-card .mod-label { font-size:0.68rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:0.35rem; }
+    .module-summary-card .mod-name { font-size:0.92rem;font-weight:700;color:var(--text-heading);margin-bottom:0.5rem; }
+    .module-summary-card ul { margin:0;padding-left:1.15rem; }
+    .module-summary-card li { font-size:0.82rem;color:var(--text);margin-bottom:0.25rem;line-height:1.5; }
+
+    @media(max-width:768px){
+      .lab-header { flex-direction:column;gap:0.75rem; }
+      .lab-number { align-self:flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar"><span></span><span></span><span></span></button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+      <line x1="12" y1="12" x2="12" y2="3"/><line x1="12" y1="12" x2="20.5" y2="9.2"/>
+      <line x1="12" y1="12" x2="17.3" y2="19.3"/><line x1="12" y1="12" x2="6.7" y2="19.3"/>
+      <line x1="12" y1="12" x2="3.5" y2="9.2"/>
+      <line x1="12" y1="3" x2="20.5" y2="9.2"/><line x1="20.5" y1="9.2" x2="17.3" y2="19.3"/>
+      <line x1="17.3" y1="19.3" x2="6.7" y2="19.3"/><line x1="6.7" y1="19.3" x2="3.5" y2="9.2"/>
+      <line x1="3.5" y1="9.2" x2="12" y2="3"/>
+      <circle cx="12" cy="3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="20.5" cy="9.2" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="17.3" cy="19.3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="6.7" cy="19.3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="3.5" cy="9.2" r="1.1" fill="currentColor" stroke="none"/>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 4 · Labs</span>
+  <div class="topbar-right">
+    <div class="topbar-socials">
+      <a href="https://x.com/techwith_ram" class="topbar-social" target="_blank" rel="noopener" aria-label="X / Twitter">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25z"/></svg>
+      </a>
+      <a href="https://www.instagram.com/techwith.ram/" class="topbar-social" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      </a>
+      <a href="https://github.com/Ramakm" class="topbar-social" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      </a>
+    </div>
+    <span class="topbar-badge">Day 4 of 4</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day3-module1-context-engineering.html">Context Engineering &amp; CLAUDE.md</a>
+        <a href="day3-module2-cicd-github.html">CI/CD &amp; GitHub Integration</a>
+        <a href="day3-module3-multi-agent.html">Multi-Agent Architecture</a>
+        <a href="day3-module4-platform.html">Enterprise AI Platform Architecture</a>
+        <a href="day3-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle><span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day4-module1-mcp-fundamentals.html">MCP Architecture &amp; Fundamentals</a>
+        <a href="day4-module2-mcp-integrations.html">Enterprise MCP Integrations</a>
+        <a href="day4-module3-custom-mcp.html">Custom MCP Server Development</a>
+        <a href="day4-module4-security-governance.html">Security, Governance &amp; Compliance</a>
+        <a href="day4-labs.html" class="active">Labs</a>
+        <a href="day4-capstone.html">Capstone Project</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="content-wrap">
+
+      <div class="page-header">
+        <div class="breadcrumb">
+          <a href="index.html">Home</a>
+          <span>›</span>
+          <span>Day 4</span>
+          <span>›</span>
+          <span>Labs</span>
+        </div>
+        <h1 class="page-title">Day 4 Labs</h1>
+        <p class="page-subtitle">Four applied labs that turn Day 4 theory into working systems: build and connect your first MCP server, automate GitHub workflows, audit your deployment's security posture, and ship a production-quality custom MCP server with a passing test suite.</p>
+        <div class="page-meta">
+          <span>4 Labs</span>
+          <span>·</span>
+          <span>~165 minutes total</span>
+          <span>·</span>
+          <span>MCP · GitHub · Security Audit · Custom Server</span>
+        </div>
+      </div>
+
+      <section id="lab-overview">
+        <div class="info-grid" style="margin-bottom:2.5rem;">
+          <div class="info-card">
+            <div class="info-card-icon">🔌</div>
+            <div class="info-card-label">Lab 1</div>
+            <div class="info-card-value">Build Your First MCP Tool</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;">30 min · Intermediate</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🐙</div>
+            <div class="info-card-label">Lab 2</div>
+            <div class="info-card-value">GitHub MCP Workflow Automation</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;">45 min · Intermediate</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🔒</div>
+            <div class="info-card-label">Lab 3</div>
+            <div class="info-card-value">Enterprise Security Audit</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;">30 min · Advanced</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">🏗️</div>
+            <div class="info-card-label">Lab 4</div>
+            <div class="info-card-value">Custom KB MCP Server</div>
+            <div style="font-size:0.78rem;color:var(--muted);margin-top:0.3rem;">60 min · Advanced</div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <strong>Prerequisites:</strong> Claude Code installed and authenticated with an Anthropic API key. Python 3.11+ with <code>pip install "mcp[cli]" httpx pytest pytest-asyncio jsonschema</code>. A GitHub account with a repository you own. Completion of Day 4 modules is assumed.
+          </div>
+        </div>
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ─── LAB 1 ──────────────────────────────────────────────────── -->
+      <section id="lab-1">
+
+        <div class="lab-header">
+          <span class="lab-number">Lab 01</span>
+          <div class="lab-meta">
+            <div class="lab-title">Build Your First MCP Tool</div>
+            <div class="lab-desc">
+              Install the MCP SDK, create a local stdio MCP server with two tools — a mock weather tool and an ROI calculator — configure it in Claude Code, and confirm that Claude uses both tools in a real conversation.
+            </div>
+            <div class="lab-pills">
+              <span class="lab-pill time">⏱ 30 minutes</span>
+              <span class="lab-pill level">Intermediate</span>
+              <span class="lab-pill module">Module 1 + 3</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="lab-1-step1">Step 1 — Install the SDK and Create the Server File</h2>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm"># Create a project directory</span>
+mkdir my-first-mcp && cd my-first-mcp
+python3 -m venv .venv && source .venv/bin/activate
+pip install <span class="st">"mcp[cli]"</span></code></pre>
+        </div>
+
+        <h2 id="lab-1-step2">Step 2 — Write the MCP Server</h2>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">"""
+server.py — First MCP server with two tools.
+Run with: mcp dev server.py
+"""</span>
+<span class="kw">import</span> asyncio, json, math
+<span class="kw">from</span> mcp.server <span class="kw">import</span> Server
+<span class="kw">from</span> mcp.server.models <span class="kw">import</span> InitializationOptions
+<span class="kw">from</span> mcp.types <span class="kw">import</span> Tool, TextContent
+<span class="kw">import</span> mcp.server.stdio
+
+server = Server(<span class="st">"my-first-mcp"</span>)
+
+<span class="kw">@server</span>.list_tools()
+<span class="kw">async def</span> <span class="fn">list_tools</span>() -> list[Tool]:
+    <span class="kw">return</span> [
+        Tool(
+            name=<span class="st">"get_weather"</span>,
+            description=<span class="st">"""Get the current weather for a city.
+            Use when the user asks about weather conditions, temperature,
+            or forecast for a specific location.
+            Returns temperature in Celsius and a weather condition description.
+            This is a simulated tool for demonstration purposes."""</span>,
+            inputSchema={
+                <span class="st">"type"</span>: <span class="st">"object"</span>,
+                <span class="st">"properties"</span>: {
+                    <span class="st">"city"</span>: {
+                        <span class="st">"type"</span>: <span class="st">"string"</span>,
+                        <span class="st">"description"</span>: <span class="st">"City name (e.g. 'London', 'Tokyo', 'New York')"</span>
+                    }
+                },
+                <span class="st">"required"</span>: [<span class="st">"city"</span>]
+            }
+        ),
+        Tool(
+            name=<span class="st">"calculate_roi"</span>,
+            description=<span class="st">"""Calculate Return on Investment (ROI) for a project or initiative.
+            Use when the user wants to compute ROI, evaluate whether a project is
+            financially worthwhile, or compare investment options.
+            Returns ROI percentage, net profit, and payback period in months."""</span>,
+            inputSchema={
+                <span class="st">"type"</span>: <span class="st">"object"</span>,
+                <span class="st">"properties"</span>: {
+                    <span class="st">"initial_investment"</span>: {
+                        <span class="st">"type"</span>: <span class="st">"number"</span>,
+                        <span class="st">"description"</span>: <span class="st">"Total upfront investment in USD"</span>
+                    },
+                    <span class="st">"annual_benefit"</span>: {
+                        <span class="st">"type"</span>: <span class="st">"number"</span>,
+                        <span class="st">"description"</span>: <span class="st">"Expected annual benefit or revenue in USD"</span>
+                    },
+                    <span class="st">"years"</span>: {
+                        <span class="st">"type"</span>: <span class="st">"integer"</span>,
+                        <span class="st">"description"</span>: <span class="st">"Evaluation period in years (default: 3)"</span>,
+                        <span class="st">"default"</span>: <span class="hi">3</span>
+                    }
+                },
+                <span class="st">"required"</span>: [<span class="st">"initial_investment"</span>, <span class="st">"annual_benefit"</span>]
+            }
+        )
+    ]
+
+<span class="kw">@server</span>.call_tool()
+<span class="kw">async def</span> <span class="fn">call_tool</span>(name: str, arguments: dict) -> list[TextContent]:
+    <span class="kw">if</span> name == <span class="st">"get_weather"</span>:
+        <span class="cm"># Mock weather data — in production, call a real weather API</span>
+        city = arguments[<span class="st">"city"</span>]
+        mock_data = {
+            <span class="st">"city"</span>: city,
+            <span class="st">"temperature_celsius"</span>: <span class="hi">22</span>,
+            <span class="st">"condition"</span>: <span class="st">"Partly cloudy"</span>,
+            <span class="st">"humidity_pct"</span>: <span class="hi">65</span>,
+            <span class="st">"wind_kph"</span>: <span class="hi">18</span>,
+            <span class="st">"note"</span>: <span class="st">"Simulated data — Lab 1 demonstration"</span>
+        }
+        <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps(mock_data, indent=<span class="hi">2</span>))]
+
+    <span class="kw">elif</span> name == <span class="st">"calculate_roi"</span>:
+        inv = arguments[<span class="st">"initial_investment"</span>]
+        benefit = arguments[<span class="st">"annual_benefit"</span>]
+        years = arguments.get(<span class="st">"years"</span>, <span class="hi">3</span>)
+        total_benefit = benefit * years
+        net_profit = total_benefit - inv
+        roi_pct = (net_profit / inv) * <span class="hi">100</span>
+        payback_months = (inv / benefit) * <span class="hi">12</span> <span class="kw">if</span> benefit > <span class="hi">0</span> <span class="kw">else</span> <span class="kw">None</span>
+        result = {
+            <span class="st">"initial_investment_usd"</span>: inv,
+            <span class="st">"annual_benefit_usd"</span>: benefit,
+            <span class="st">"evaluation_years"</span>: years,
+            <span class="st">"total_benefit_usd"</span>: <span class="kw">round</span>(total_benefit, <span class="hi">2</span>),
+            <span class="st">"net_profit_usd"</span>: <span class="kw">round</span>(net_profit, <span class="hi">2</span>),
+            <span class="st">"roi_percent"</span>: <span class="kw">round</span>(roi_pct, <span class="hi">1</span>),
+            <span class="st">"payback_months"</span>: <span class="kw">round</span>(payback_months, <span class="hi">1</span>) <span class="kw">if</span> payback_months <span class="kw">else</span> <span class="kw">None</span>
+        }
+        <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps(result, indent=<span class="hi">2</span>))]
+
+    <span class="kw">raise</span> ValueError(<span class="st">f"Unknown tool: {name}"</span>)
+
+<span class="kw">async def</span> <span class="fn">main</span>():
+    <span class="kw">async with</span> mcp.server.stdio.stdio_server() <span class="kw">as</span> (r, w):
+        <span class="kw">await</span> server.run(r, w, InitializationOptions(
+            server_name=<span class="st">"my-first-mcp"</span>, server_version=<span class="st">"1.0.0"</span>,
+            capabilities=server.get_capabilities(<span class="kw">None</span>, {})
+        ))
+
+<span class="kw">if</span> __name__ == <span class="st">"__main__"</span>: asyncio.run(main())</code></pre>
+        </div>
+
+        <h2 id="lab-1-step3">Step 3 — Configure in Claude Code</h2>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">// Add to .claude/settings.json in your project directory</span>
+{
+  <span class="st">"mcpServers"</span>: {
+    <span class="st">"my-first-mcp"</span>: {
+      <span class="st">"command"</span>: <span class="st">"/path/to/my-first-mcp/.venv/bin/python3"</span>,
+      <span class="st">"args"</span>: [<span class="st">"/path/to/my-first-mcp/server.py"</span>]
+    }
+  }
+}</code></pre>
+        </div>
+
+        <h2 id="lab-1-step4">Step 4 — Test in Claude Code</h2>
+        <p>Open Claude Code in your project directory. Run <code>/mcp</code> to confirm the server appears. Then try these prompts to verify both tools work:</p>
+        <ul class="checklist">
+          <li><span class="check-icon"></span><strong>"What's the weather in Tokyo?"</strong> — Claude should call <code>get_weather</code> and return the mock result.</li>
+          <li><span class="check-icon"></span><strong>"Should we invest $50,000 in this new tool if it saves $25,000 per year?"</strong> — Claude should call <code>calculate_roi</code> with the numbers from the question.</li>
+          <li><span class="check-icon"></span><strong>"Compare the ROI for two options: Option A costs $100k with $60k annual benefit, Option B costs $200k with $150k annual benefit."</strong> — Claude should call <code>calculate_roi</code> twice and compare.</li>
+        </ul>
+
+        <div class="deliverable-box">
+          <div class="deliverable-box-title">Deliverables</div>
+          <ul>
+            <li>Working <code>server.py</code> with <code>get_weather</code> and <code>calculate_roi</code> tools</li>
+            <li>Screenshot or text output of Claude using both tools in a session (shown via <code>/mcp</code> and a real tool call)</li>
+          </ul>
+        </div>
+
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ─── LAB 2 ──────────────────────────────────────────────────── -->
+      <section id="lab-2">
+
+        <div class="lab-header">
+          <span class="lab-number">Lab 02</span>
+          <div class="lab-meta">
+            <div class="lab-title">GitHub MCP Workflow Automation</div>
+            <div class="lab-desc">
+              Configure the official GitHub MCP server with a PAT scoped to your own repositories. Use Claude to list your open pull requests, summarise the most recently changed one, and draft a professional review comment.
+            </div>
+            <div class="lab-pills">
+              <span class="lab-pill time">⏱ 45 minutes</span>
+              <span class="lab-pill level">Intermediate</span>
+              <span class="lab-pill module">Module 2</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="lab-2-step1">Step 1 — Create a Fine-Grained GitHub PAT</h2>
+        <p>Go to <strong>GitHub → Settings → Developer Settings → Personal Access Tokens → Fine-grained tokens</strong>. Create a token with:</p>
+        <ul>
+          <li>Resource owner: your account</li>
+          <li>Repository access: Only select repositories (choose 1-2 repos you own)</li>
+          <li>Permissions: <code>Contents: Read</code>, <code>Pull requests: Read and write</code>, <code>Issues: Read and write</code></li>
+          <li>Expiration: 30 days (this is a lab token)</li>
+        </ul>
+        <p>Store the token: <code>export GITHUB_PAT="github_pat_..."</code> in your shell profile.</p>
+
+        <h2 id="lab-2-step2">Step 2 — Configure GitHub MCP</h2>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">// .claude/settings.json</span>
+{
+  <span class="st">"mcpServers"</span>: {
+    <span class="st">"github"</span>: {
+      <span class="st">"command"</span>: <span class="st">"npx"</span>,
+      <span class="st">"args"</span>: [<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-github"</span>],
+      <span class="st">"env"</span>: {
+        <span class="st">"GITHUB_PERSONAL_ACCESS_TOKEN"</span>: <span class="st">"${GITHUB_PAT}"</span>
+      }
+    }
+  }
+}</code></pre>
+        </div>
+
+        <h2 id="lab-2-step3">Step 3 — Run the Automation Workflow</h2>
+        <p>Open Claude Code and run <code>/mcp</code> to confirm GitHub appears. Then use these prompts in sequence:</p>
+
+        <div class="arch-diagram">
+<span class="label">PROMPT 1:</span> <span class="hi">"List all open pull requests in [your-username]/[your-repo]"</span>
+<span class="dim">Expected: Claude calls list_pull_requests, shows PR numbers, titles, authors</span>
+
+<span class="label">PROMPT 2:</span> <span class="hi">"Get the details of the most recently updated PR"</span>
+<span class="dim">Expected: Claude calls get_pull_request with the PR number, shows diff stats,
+          review status, CI status, and merge readiness</span>
+
+<span class="label">PROMPT 3:</span> <span class="hi">"Draft a constructive review comment for this PR. Focus on:
+             1. What the PR does well  2. Any risks or concerns  3. Suggestions"</span>
+<span class="dim">Expected: Claude generates a professional review comment without calling any tool
+          (it already has the PR context from Prompt 2)</span>
+
+<span class="label">PROMPT 4 (optional):</span> <span class="hi">"Post that review comment to the PR"</span>
+<span class="dim">Expected: Claude calls add_pull_request_review_comment — confirm before executing</span>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <strong>Review before posting:</strong> Prompt 4 will actually post a comment to your GitHub PR. Read Claude's draft carefully before confirming. If you're not comfortable posting to a real repo, skip Prompt 4 and treat the draft as the deliverable.
+          </div>
+        </div>
+
+        <div class="deliverable-box">
+          <div class="deliverable-box-title">Deliverables</div>
+          <ul>
+            <li>Working GitHub MCP configuration in <code>.claude/settings.json</code></li>
+            <li>Screenshot or text output showing Claude's PR summary and the drafted review comment</li>
+            <li>One-sentence reflection: what workflow in your current GitHub process could this automate?</li>
+          </ul>
+        </div>
+
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ─── LAB 3 ──────────────────────────────────────────────────── -->
+      <section id="lab-3">
+
+        <div class="lab-header">
+          <span class="lab-number">Lab 03</span>
+          <div class="lab-meta">
+            <div class="lab-title">Enterprise Security Audit Checklist</div>
+            <div class="lab-desc">
+              Walk through the 15-point production security checklist from Module 4. Assess your (or a hypothetical) Claude deployment against each control. Identify and document your top 3 gaps with remediation plans.
+            </div>
+            <div class="lab-pills">
+              <span class="lab-pill time">⏱ 30 minutes</span>
+              <span class="lab-pill level advanced">Advanced</span>
+              <span class="lab-pill module">Module 4</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="lab-3-scenario">Scenario</h2>
+        <p>You have just deployed a Claude Code integration for your 15-person engineering team. Claude has access to two MCP servers: the official GitHub server and a custom Python server that can query your PostgreSQL production database. You need to audit this deployment before the company's security team reviews it next week.</p>
+
+        <div class="callout callout-danger">
+          <span class="callout-icon">✗</span>
+          <div class="callout-body">
+            <strong>Assume the worst:</strong> When auditing an AI deployment, assume every gap is actively exploitable. An attacker who can inject a database record with malicious instructions, and your Claude deployment reads that record and has write access to GitHub — that's a full takeover chain. Be ruthless in identifying weaknesses.
+          </div>
+        </div>
+
+        <h2 id="lab-3-checklist">Security Audit Worksheet</h2>
+        <p>For each control below, mark it as OK, GAP, or N/A. For each GAP, write the remediation in the space provided.</p>
+
+        <ul class="security-checklist">
+          <li><div class="sec-check"></div><div class="sec-label"><strong>1. System prompt hardening</strong> — Does your system prompt explicitly state that tool results are untrusted data? <span class="sec-gap">GAP EXAMPLE</span></div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>2. Principle of least privilege</strong> — Are only the minimum necessary MCP tools allowed? Is the GitHub PAT scoped to specific repos only?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>3. Human-in-the-loop for write ops</strong> — Does any write operation (GitHub push, DB write) require explicit human approval?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>4. Output validation</strong> — Is there programmatic validation of Claude's tool call arguments before execution?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>5. Input sanitisation</strong> — Are database records that enter tool results sanitised before being returned to Claude?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>6. Audit logging</strong> — Is every tool call logged with user_id, timestamp, tool_name? Stored for at least 90 days?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>7. Secrets management</strong> — Are all API keys in a secrets manager or shell environment — NOT in committed files?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>8. Read-only database</strong> — Does the database MCP connect as a read-only user to a replica? <span class="sec-gap">GAP EXAMPLE: production primary used</span></div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>9. Data minimisation</strong> — Do database queries select only needed fields? No <code>SELECT *</code> patterns?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>10. Cost controls</strong> — Are per-session token limits and per-user daily spend limits configured?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>11. Rate limiting</strong> — Are MCP server endpoints rate-limited per user?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>12. Compliance documentation</strong> — Are your compliance obligations (GDPR, SOC2) documented and mapped to controls?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>13. Network controls</strong> — Are MCP servers accessible only via VPN or from specific IP ranges?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>14. Incident response plan</strong> — Is there a documented plan for what happens if a prompt injection attack succeeds?</div></li>
+          <li><div class="sec-check"></div><div class="sec-label"><strong>15. Regular security review</strong> — Is there a scheduled quarterly review of permissions and logged anomalies?</div></li>
+        </ul>
+
+        <h2 id="lab-3-gap">Gap Analysis Template</h2>
+        <p>For your top 3 gaps, complete this template:</p>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">markdown</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">## Security Gap Analysis — [Your Deployment Name]</span>
+<span class="cm">## Date: [Today's Date] | Auditor: [Your Name]</span>
+
+<span class="cm">### Gap 1: [Control Name]</span>
+<span class="cm">**Current State:** [What is happening now]</span>
+<span class="cm">**Risk:** [What could go wrong if exploited]</span>
+<span class="cm">**Likelihood:** Low / Medium / High</span>
+<span class="cm">**Impact:** Low / Medium / High / Critical</span>
+<span class="cm">**Remediation:** [Specific steps to fix — name the config change or code change]</span>
+<span class="cm">**Owner:** [Who is responsible for fixing this]</span>
+<span class="cm">**Target Date:** [Deadline for remediation]</span>
+
+<span class="cm">### Gap 2: [Control Name]</span>
+<span class="cm">[Repeat above structure]</span>
+
+<span class="cm">### Gap 3: [Control Name]</span>
+<span class="cm">[Repeat above structure]</span>
+
+<span class="cm">## Summary</span>
+<span class="cm">Controls Passing: X / 15</span>
+<span class="cm">Controls Failing: Y / 15</span>
+<span class="cm">Controls N/A:    Z / 15</span>
+<span class="cm">Overall Risk Rating: Low / Medium / High / Critical</span>
+<span class="cm">Recommendation: [Ready for production / Needs remediation first]</span></code></pre>
+        </div>
+
+        <div class="deliverable-box">
+          <div class="deliverable-box-title">Deliverables</div>
+          <ul>
+            <li>Completed security audit checklist with OK/GAP/N/A for all 15 controls</li>
+            <li>Gap analysis document for top 3 identified gaps with remediation plans and owners</li>
+            <li>Overall risk rating and production-readiness recommendation</li>
+          </ul>
+        </div>
+
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ─── LAB 4 ──────────────────────────────────────────────────── -->
+      <section id="lab-4">
+
+        <div class="lab-header">
+          <span class="lab-number">Lab 04</span>
+          <div class="lab-meta">
+            <div class="lab-title">Custom Internal Knowledge Base MCP Server</div>
+            <div class="lab-desc">
+              Build the 3-tool knowledge base MCP server from Module 3, backed by a JSON file. Add basic bearer token auth via environment variable. Write 3 pytest tests and confirm they all pass.
+            </div>
+            <div class="lab-pills">
+              <span class="lab-pill time">⏱ 60 minutes</span>
+              <span class="lab-pill level advanced">Advanced</span>
+              <span class="lab-pill module">Module 3</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="lab-4-step1">Step 1 — Create the JSON Knowledge Base</h2>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">// kb_data.json — Simple JSON "database" for the lab</span>
+{
+  <span class="st">"articles"</span>: [
+    {
+      <span class="st">"id"</span>: <span class="st">"kb-001"</span>,
+      <span class="st">"title"</span>: <span class="st">"Production Deployment Runbook"</span>,
+      <span class="st">"category"</span>: <span class="st">"runbooks"</span>,
+      <span class="st">"body"</span>: <span class="st">"1. Verify all tests pass. 2. Get approval from team lead. 3. Deploy to staging. 4. Run smoke tests. 5. Deploy to production. 6. Monitor for 15 minutes."</span>,
+      <span class="st">"author"</span>: <span class="st">"platform-team"</span>,
+      <span class="st">"tags"</span>: [<span class="st">"deployment"</span>, <span class="st">"production"</span>, <span class="st">"runbook"</span>]
+    },
+    {
+      <span class="st">"id"</span>: <span class="st">"kb-002"</span>,
+      <span class="st">"title"</span>: <span class="st">"Incident Response Process"</span>,
+      <span class="st">"category"</span>: <span class="st">"processes"</span>,
+      <span class="st">"body"</span>: <span class="st">"Severity 1: Page on-call immediately. Severity 2: Slack #incidents. All incidents require a post-mortem within 48 hours."</span>,
+      <span class="st">"author"</span>: <span class="st">"sre-team"</span>,
+      <span class="st">"tags"</span>: [<span class="st">"incident"</span>, <span class="st">"oncall"</span>, <span class="st">"sre"</span>]
+    },
+    {
+      <span class="st">"id"</span>: <span class="st">"kb-003"</span>,
+      <span class="st">"title"</span>: <span class="st">"Architecture Decision Record: PostgreSQL as Primary Database"</span>,
+      <span class="st">"category"</span>: <span class="st">"architecture"</span>,
+      <span class="st">"body"</span>: <span class="st">"Selected PostgreSQL over MySQL due to JSONB support, better extension ecosystem, and stronger ACID guarantees. Decided 2024-03-15."</span>,
+      <span class="st">"author"</span>: <span class="st">"architecture-council"</span>,
+      <span class="st">"tags"</span>: [<span class="st">"database"</span>, <span class="st">"postgresql"</span>, <span class="st">"adr"</span>]
+    }
+  ],
+  <span class="st">"categories"</span>: [
+    {<span class="st">"slug"</span>: <span class="st">"runbooks"</span>, <span class="st">"name"</span>: <span class="st">"Runbooks"</span>, <span class="st">"article_count"</span>: <span class="hi">1</span>},
+    {<span class="st">"slug"</span>: <span class="st">"processes"</span>, <span class="st">"name"</span>: <span class="st">"Processes"</span>, <span class="st">"article_count"</span>: <span class="hi">1</span>},
+    {<span class="st">"slug"</span>: <span class="st">"architecture"</span>, <span class="st">"name"</span>: <span class="st">"Architecture"</span>, <span class="st">"article_count"</span>: <span class="hi">1</span>}
+  ]
+}</code></pre>
+        </div>
+
+        <h2 id="lab-4-step2">Step 2 — Build the MCP Server with Auth</h2>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">"""
+kb_server_lab.py — Lab 4: KB MCP server backed by JSON file with auth.
+"""</span>
+<span class="kw">import</span> asyncio, json, os
+<span class="kw">from</span> mcp.server <span class="kw">import</span> Server
+<span class="kw">from</span> mcp.server.models <span class="kw">import</span> InitializationOptions
+<span class="kw">from</span> mcp.types <span class="kw">import</span> Tool, TextContent
+<span class="kw">import</span> mcp.server.stdio
+
+server = Server(<span class="st">"acme-kb-lab"</span>)
+
+<span class="cm"># Load KB data at startup</span>
+KB_DATA_PATH = os.environ.get(<span class="st">"KB_DATA_PATH"</span>, <span class="st">"kb_data.json"</span>)
+KB_AUTH_TOKEN = os.environ.get(<span class="st">"KB_AUTH_TOKEN"</span>, <span class="st">""</span>)
+
+<span class="kw">with</span> open(KB_DATA_PATH) <span class="kw">as</span> f:
+    KB_DATA = json.load(f)
+
+<span class="kw">def</span> <span class="fn">search_articles</span>(query: str, category: str | <span class="kw">None</span>, limit: int) -> list[dict]:
+    <span class="st">"""Simple keyword search over article titles, bodies, and tags."""</span>
+    query_lower = query.lower()
+    results = []
+    <span class="kw">for</span> article <span class="kw">in</span> KB_DATA[<span class="st">"articles"</span>]:
+        <span class="kw">if</span> category <span class="kw">and</span> article[<span class="st">"category"</span>] != category:
+            <span class="kw">continue</span>
+        searchable = <span class="st">" "</span>.join([
+            article[<span class="st">"title"</span>], article[<span class="st">"body"</span>], <span class="st">" "</span>.join(article[<span class="st">"tags"</span>])
+        ]).lower()
+        <span class="kw">if</span> query_lower <span class="kw">in</span> searchable:
+            results.append({
+                <span class="st">"id"</span>: article[<span class="st">"id"</span>],
+                <span class="st">"title"</span>: article[<span class="st">"title"</span>],
+                <span class="st">"category"</span>: article[<span class="st">"category"</span>],
+                <span class="st">"snippet"</span>: article[<span class="st">"body"</span>][:<span class="hi">150</span>] + <span class="st">"..."</span>
+            })
+    <span class="kw">return</span> results[:limit]
+
+
+<span class="kw">@server</span>.list_tools()
+<span class="kw">async def</span> <span class="fn">list_tools</span>() -> list[Tool]:
+    <span class="kw">return</span> [
+        Tool(name=<span class="st">"search_kb"</span>, description=<span class="st">"Search the knowledge base by keyword query."</span>,
+             inputSchema={<span class="st">"type"</span>: <span class="st">"object"</span>, <span class="st">"properties"</span>: {
+                 <span class="st">"query"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>},
+                 <span class="st">"category"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>},
+                 <span class="st">"max_results"</span>: {<span class="st">"type"</span>: <span class="st">"integer"</span>, <span class="st">"default"</span>: <span class="hi">5</span>}
+             }, <span class="st">"required"</span>: [<span class="st">"query"</span>]}),
+        Tool(name=<span class="st">"get_article"</span>, description=<span class="st">"Get full article by ID from search_kb results."</span>,
+             inputSchema={<span class="st">"type"</span>: <span class="st">"object"</span>, <span class="st">"properties"</span>: {
+                 <span class="st">"article_id"</span>: {<span class="st">"type"</span>: <span class="st">"string"</span>}
+             }, <span class="st">"required"</span>: [<span class="st">"article_id"</span>]}),
+        Tool(name=<span class="st">"list_categories"</span>, description=<span class="st">"List all KB categories with article counts."</span>,
+             inputSchema={<span class="st">"type"</span>: <span class="st">"object"</span>, <span class="st">"properties"</span>: {}})
+    ]
+
+
+<span class="kw">@server</span>.call_tool()
+<span class="kw">async def</span> <span class="fn">call_tool</span>(name: str, arguments: dict) -> list[TextContent]:
+    <span class="kw">if</span> name == <span class="st">"search_kb"</span>:
+        results = search_articles(
+            arguments[<span class="st">"query"</span>],
+            arguments.get(<span class="st">"category"</span>),
+            arguments.get(<span class="st">"max_results"</span>, <span class="hi">5</span>)
+        )
+        <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps({<span class="st">"results"</span>: results}))]
+    <span class="kw">elif</span> name == <span class="st">"get_article"</span>:
+        art_id = arguments[<span class="st">"article_id"</span>]
+        <span class="kw">if not</span> art_id.replace(<span class="st">"-"</span>, <span class="st">""</span>).isalnum():
+            <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps({<span class="st">"error"</span>: <span class="st">"Invalid article_id"</span>}))]
+        article = next((a <span class="kw">for</span> a <span class="kw">in</span> KB_DATA[<span class="st">"articles"</span>] <span class="kw">if</span> a[<span class="st">"id"</span>] == art_id), <span class="kw">None</span>)
+        <span class="kw">if not</span> article:
+            <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps({<span class="st">"error"</span>: <span class="st">f"Article {art_id!r} not found"</span>}))]
+        <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps(article))]
+    <span class="kw">elif</span> name == <span class="st">"list_categories"</span>:
+        <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps(KB_DATA[<span class="st">"categories"</span>]))]
+    <span class="kw">raise</span> ValueError(<span class="st">f"Unknown tool: {name}"</span>)
+
+<span class="kw">async def</span> <span class="fn">main</span>():
+    <span class="kw">async with</span> mcp.server.stdio.stdio_server() <span class="kw">as</span> (r, w):
+        <span class="kw">await</span> server.run(r, w, InitializationOptions(
+            server_name=<span class="st">"acme-kb-lab"</span>, server_version=<span class="st">"1.0.0"</span>,
+            capabilities=server.get_capabilities(<span class="kw">None</span>, {})
+        ))
+
+<span class="kw">if</span> __name__ == <span class="st">"__main__"</span>: asyncio.run(main())</code></pre>
+        </div>
+
+        <h2 id="lab-4-step3">Step 3 — Write 3 pytest Tests</h2>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">"""
+tests/test_kb_server.py — Lab 4 test suite. Run: pytest tests/ -v
+"""</span>
+<span class="kw">import</span> json, pytest, asyncio
+<span class="kw">from</span> mcp.types <span class="kw">import</span> TextContent
+
+<span class="cm"># Patch env before importing server</span>
+<span class="kw">import</span> os
+os.environ[<span class="st">"KB_DATA_PATH"</span>] = <span class="st">"kb_data.json"</span>
+<span class="kw">from</span> kb_server_lab <span class="kw">import</span> call_tool, search_articles
+
+
+<span class="kw">@pytest</span>.mark.asyncio
+<span class="kw">async def</span> <span class="fn">test_search_kb_finds_matching_article</span>():
+    <span class="st">"""search_kb returns results when query matches article content."""</span>
+    result = <span class="kw">await</span> call_tool(<span class="st">"search_kb"</span>, {<span class="st">"query"</span>: <span class="st">"deployment"</span>})
+    data = json.loads(result[<span class="hi">0</span>].text)
+    <span class="kw">assert</span> len(data[<span class="st">"results"</span>]) >= <span class="hi">1</span>
+    titles = [r[<span class="st">"title"</span>] <span class="kw">for</span> r <span class="kw">in</span> data[<span class="st">"results"</span>]]
+    <span class="kw">assert</span> <span class="kw">any</span>(<span class="st">"Deployment"</span> <span class="kw">in</span> t <span class="kw">for</span> t <span class="kw">in</span> titles)
+
+
+<span class="kw">@pytest</span>.mark.asyncio
+<span class="kw">async def</span> <span class="fn">test_get_article_returns_full_body</span>():
+    <span class="st">"""get_article returns complete article including body and tags."""</span>
+    result = <span class="kw">await</span> call_tool(<span class="st">"get_article"</span>, {<span class="st">"article_id"</span>: <span class="st">"kb-001"</span>})
+    article = json.loads(result[<span class="hi">0</span>].text)
+    <span class="kw">assert</span> article[<span class="st">"id"</span>] == <span class="st">"kb-001"</span>
+    <span class="kw">assert</span> <span class="st">"body"</span> <span class="kw">in</span> article
+    <span class="kw">assert</span> <span class="st">"tags"</span> <span class="kw">in</span> article
+    <span class="kw">assert</span> len(article[<span class="st">"body"</span>]) > <span class="hi">0</span>
+
+
+<span class="kw">@pytest</span>.mark.asyncio
+<span class="kw">async def</span> <span class="fn">test_get_article_rejects_invalid_id</span>():
+    <span class="st">"""get_article returns error JSON (not exception) for invalid article_id."""</span>
+    result = <span class="kw">await</span> call_tool(<span class="st">"get_article"</span>, {<span class="st">"article_id"</span>: <span class="st">"../../../etc/passwd"</span>})
+    data = json.loads(result[<span class="hi">0</span>].text)
+    <span class="kw">assert</span> <span class="st">"error"</span> <span class="kw">in</span> data
+    <span class="cm"># Must not expose the malicious path in the error message</span>
+    <span class="kw">assert</span> <span class="st">"passwd"</span> <span class="kw">not</span> <span class="kw">in</span> data.get(<span class="st">"error"</span>, <span class="st">""</span>)</code></pre>
+        </div>
+
+        <h2 id="lab-4-step4">Step 4 — Run Tests and Confirm They Pass</h2>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+          <pre><code>pip install pytest pytest-asyncio
+pytest tests/test_kb_server.py -v
+
+<span class="cm"># Expected output:</span>
+<span class="cm"># tests/test_kb_server.py::test_search_kb_finds_matching_article PASSED</span>
+<span class="cm"># tests/test_kb_server.py::test_get_article_returns_full_body PASSED</span>
+<span class="cm"># tests/test_kb_server.py::test_get_article_rejects_invalid_id PASSED</span>
+<span class="cm"># ========================= 3 passed in 0.12s =========================</span></code></pre>
+        </div>
+
+        <div class="deliverable-box">
+          <div class="deliverable-box-title">Deliverables</div>
+          <ul>
+            <li>Complete <code>kb_server_lab.py</code> with all 3 tools and input validation</li>
+            <li><code>kb_data.json</code> with at least 3 articles and category data</li>
+            <li><code>tests/test_kb_server.py</code> with 3 tests — all passing (paste the pytest output)</li>
+            <li>Server registered in <code>.claude/settings.json</code> and confirmed working via <code>/mcp</code></li>
+          </ul>
+        </div>
+
+      </section>
+
+      <hr class="section-divider" />
+
+      <!-- ─── PROGRAM COMPLETE ──────────────────────────────────────── -->
+      <section id="program-complete">
+
+        <div class="completion-header">
+          <div class="completion-badge">Program Complete</div>
+          <div class="completion-title">Claude Architect — Enterprise Program</div>
+          <div class="completion-sub">
+            You have completed all four days of the Claude Architect Enterprise Program. Over 16 modules and 16 labs, you built a complete mental model and practical toolkit for deploying Claude at enterprise scale — from ecosystem fundamentals to production security governance. These capabilities distinguish a Claude practitioner from a Claude architect.
+          </div>
+        </div>
+
+        <h2 id="program-summary">4-Day Program Summary</h2>
+
+        <div class="module-summary-grid">
+          <div class="module-summary-card">
+            <div class="mod-label">Day 1</div>
+            <div class="mod-name">Ecosystem &amp; Foundations</div>
+            <ul>
+              <li>Claude model tier selection (Haiku/Sonnet/Opus)</li>
+              <li>Enterprise use cases and Claude for Work patterns</li>
+              <li>Responsible AI governance and usage policies</li>
+              <li>API authentication and rate limiting fundamentals</li>
+            </ul>
+          </div>
+          <div class="module-summary-card">
+            <div class="mod-label">Day 2</div>
+            <div class="mod-name">Claude Code &amp; Dev Workflows</div>
+            <ul>
+              <li>Claude Code practitioner-level operation</li>
+              <li>AI-assisted development and code review patterns</li>
+              <li>Prompt engineering for code generation</li>
+              <li>Developer productivity automation at team scale</li>
+            </ul>
+          </div>
+          <div class="module-summary-card">
+            <div class="mod-label">Day 3</div>
+            <div class="mod-name">Context, CI/CD &amp; Multi-Agent</div>
+            <ul>
+              <li>CLAUDE.md, AGENTS.md, SKILL.md context design</li>
+              <li>GitHub Actions CI/CD integration</li>
+              <li>Multi-agent orchestrator-worker architectures</li>
+              <li>Token cost modelling and budget controls</li>
+            </ul>
+          </div>
+          <div class="module-summary-card">
+            <div class="mod-label">Day 4</div>
+            <div class="mod-name">MCP, Security &amp; Capstone</div>
+            <ul>
+              <li>MCP architecture and all four core primitives</li>
+              <li>Enterprise integrations: GitHub, Slack, DB, Jira</li>
+              <li>Custom MCP server development and testing</li>
+              <li>Security, governance, GDPR/HIPAA/SOC2 alignment</li>
+            </ul>
+          </div>
+        </div>
+
+        <h2 style="margin-top:2rem;">Your Next Step: The Capstone Project</h2>
+        <p>Put all four days together in a single enterprise architecture. Design an end-to-end AI Coding Assistant Platform for a 200-person engineering org — complete with Claude model selection rationale, MCP server inventory, multi-agent workflow design, security controls, compliance posture, cost model, and a 10-minute presentation.</p>
+
+        <div class="nav-bottom" style="margin-top:2rem;">
+          <a href="day4-module4-security-governance.html" class="nav-prev">← Day 4 · Module 4: Security &amp; Governance</a>
+          <a href="day4-capstone.html" class="nav-next">Capstone Project →</a>
+        </div>
+
+      </section>
+
+    </div><!-- /.content-wrap -->
+  </main>
+</div>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>

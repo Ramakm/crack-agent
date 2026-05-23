@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Custom MCP Server Development — Claude Architect</title>
+  <meta name="description" content="Day 4 Module 3: Build, test, and deploy a production-quality custom MCP server in Python — wrapping internal APIs, handling auth, implementing tool schemas, and choosing deployment models." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+    .arch-diagram { background:var(--code-bg);border:1px solid var(--code-border);border-radius:var(--radius);padding:1.5rem;font-family:var(--mono);font-size:0.78rem;color:#c9d1d9;line-height:1.9;overflow-x:auto;margin:1.25rem 0; }
+    .arch-diagram .box { color:#79c0ff; }
+    .arch-diagram .hi  { color:#ffa657; }
+    .arch-diagram .label { color:#a5d6ff; }
+    .arch-diagram .dim { color:#484f58; }
+    .arch-diagram .good { color:#7ee787; }
+    .arch-diagram .bad  { color:#ff7b72; }
+
+    .deploy-table { width:100%;border-collapse:collapse;font-size:0.84rem;margin:1.25rem 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden; }
+    .deploy-table th { background:var(--surface);color:var(--text-heading);font-weight:700;font-size:0.74rem;text-transform:uppercase;letter-spacing:0.07em;text-align:left;padding:0.65rem 0.9rem;border-bottom:1px solid var(--border); }
+    .deploy-table td { padding:0.6rem 0.9rem;border-bottom:1px solid var(--hairline);vertical-align:top;line-height:1.55; }
+    .deploy-table tr:last-child td { border-bottom:none; }
+    .deploy-table tr:hover td { background:var(--surface); }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar"><span></span><span></span><span></span></button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+      <line x1="12" y1="12" x2="12" y2="3"/><line x1="12" y1="12" x2="20.5" y2="9.2"/>
+      <line x1="12" y1="12" x2="17.3" y2="19.3"/><line x1="12" y1="12" x2="6.7" y2="19.3"/>
+      <line x1="12" y1="12" x2="3.5" y2="9.2"/>
+      <line x1="12" y1="3" x2="20.5" y2="9.2"/><line x1="20.5" y1="9.2" x2="17.3" y2="19.3"/>
+      <line x1="17.3" y1="19.3" x2="6.7" y2="19.3"/><line x1="6.7" y1="19.3" x2="3.5" y2="9.2"/>
+      <line x1="3.5" y1="9.2" x2="12" y2="3"/>
+      <circle cx="12" cy="3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="20.5" cy="9.2" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="17.3" cy="19.3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="6.7" cy="19.3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="3.5" cy="9.2" r="1.1" fill="currentColor" stroke="none"/>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 4 · Module 3</span>
+  <div class="topbar-right">
+    <div class="topbar-socials">
+      <a href="https://x.com/techwith_ram" class="topbar-social" target="_blank" rel="noopener" aria-label="X / Twitter">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25z"/></svg>
+      </a>
+      <a href="https://www.instagram.com/techwith.ram/" class="topbar-social" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      </a>
+      <a href="https://github.com/Ramakm" class="topbar-social" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      </a>
+    </div>
+    <span class="topbar-badge">Day 4 of 4</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day3-module1-context-engineering.html">Context Engineering &amp; CLAUDE.md</a>
+        <a href="day3-module2-cicd-github.html">CI/CD &amp; GitHub Integration</a>
+        <a href="day3-module3-multi-agent.html">Multi-Agent Architecture</a>
+        <a href="day3-module4-platform.html">Enterprise AI Platform Architecture</a>
+        <a href="day3-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle><span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day4-module1-mcp-fundamentals.html">MCP Architecture &amp; Fundamentals</a>
+        <a href="day4-module2-mcp-integrations.html">Enterprise MCP Integrations</a>
+        <a href="day4-module3-custom-mcp.html" class="active">Custom MCP Server Development</a>
+        <a href="day4-module4-security-governance.html">Security, Governance &amp; Compliance</a>
+        <a href="day4-labs.html">Labs</a>
+        <a href="day4-capstone.html">Capstone Project</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label" style="margin-top:1rem;">On This Page</div>
+    <div class="nav-sub" style="display:block;">
+      <a href="#mcp-sdk-setup">Setting Up the Python MCP SDK</a>
+      <a href="#building-tools">Designing MCP Tools</a>
+      <a href="#auth-patterns">Authentication Patterns</a>
+      <a href="#deployment-models">Deployment Models</a>
+      <a href="#testing-mcp">Testing MCP Servers</a>
+    </div>
+  </nav>
+  <main class="main">
+    <div class="content-wrap">
+
+      <nav class="breadcrumb">
+        <a href="index.html">Home</a><span class="sep">/</span>
+        <span>Day 4</span><span class="sep">/</span>
+        <span>Custom MCP Server Development</span>
+      </nav>
+
+      <div class="page-header">
+        <div class="module-tag">✦ Day 4 · Module 3</div>
+        <h1 class="page-title">Custom MCP Server Development</h1>
+        <p class="page-objective">
+          <strong>Outcome:</strong> Build, test, and deploy a production-quality custom MCP server in Python — wrapping internal APIs, handling authentication, implementing tool schemas, and choosing the right deployment model for your organization's infrastructure.
+        </p>
+        <div class="module-meta">
+          <span class="meta-item"><span class="dot"></span> Python MCP SDK</span>
+          <span class="meta-item"><span class="dot"></span> Tool Schemas</span>
+          <span class="meta-item"><span class="dot"></span> Authentication</span>
+          <span class="meta-item"><span class="dot"></span> Docker Deployment</span>
+          <span class="meta-item"><span class="dot"></span> Testing</span>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — SDK Setup
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="mcp-sdk-setup">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <h2 class="section-title">Setting Up the Python MCP SDK</h2>
+        </div>
+
+        <p>The <code>mcp[cli]</code> Python package provides everything you need to build a production MCP server. The SDK handles the JSON-RPC 2.0 transport, capability negotiation, and message routing — you write only the business logic for your tools, resources, and prompts.</p>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm"># Install the MCP SDK with CLI tools</span>
+pip install <span class="st">"mcp[cli]"</span>
+
+<span class="cm"># Project structure for a production MCP server</span>
+kb-mcp-server/
+  server.py           <span class="cm"># Main server entrypoint</span>
+  tools/
+    search.py         <span class="cm"># search_kb tool implementation</span>
+    articles.py       <span class="cm"># get_article, list_categories</span>
+  resources/
+    schema.py         <span class="cm"># Resource definitions</span>
+  auth/
+    middleware.py     <span class="cm"># Token validation</span>
+  tests/
+    test_tools.py     <span class="cm"># Unit tests for tool handlers</span>
+    conftest.py       <span class="cm"># Test fixtures</span>
+  requirements.txt
+  Dockerfile
+  .env.example</code></pre>
+        </div>
+
+        <h3>Minimal Working Server — Hello World</h3>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">"""
+server.py — Minimal MCP server with one tool.
+Test with: mcp dev server.py
+"""</span>
+<span class="kw">import</span> asyncio
+<span class="kw">import</span> json
+<span class="kw">from</span> mcp.server <span class="kw">import</span> Server
+<span class="kw">from</span> mcp.server.models <span class="kw">import</span> InitializationOptions
+<span class="kw">from</span> mcp.types <span class="kw">import</span> Tool, TextContent, CallToolResult
+<span class="kw">import</span> mcp.server.stdio
+
+<span class="cm"># Instantiate the server with a name — shown in /mcp output</span>
+server = Server(<span class="st">"acme-knowledge-base"</span>)
+
+
+<span class="kw">@server</span>.list_tools()
+<span class="kw">async def</span> <span class="fn">handle_list_tools</span>() -> list[Tool]:
+    <span class="st">"""Return all tools this server exposes."""</span>
+    <span class="kw">return</span> [
+        Tool(
+            name=<span class="st">"get_server_info"</span>,
+            description=<span class="st">"""Returns metadata about this MCP server:
+            version, available tool count, and uptime.
+            Use when the user asks about which MCP servers are connected
+            or what version of the knowledge base server is running."""</span>,
+            inputSchema={<span class="st">"type"</span>: <span class="st">"object"</span>, <span class="st">"properties"</span>: {}}
+        )
+    ]
+
+
+<span class="kw">@server</span>.call_tool()
+<span class="kw">async def</span> <span class="fn">handle_call_tool</span>(name: str, arguments: dict) -> list[TextContent]:
+    <span class="st">"""Dispatch tool calls to handlers."""</span>
+    <span class="kw">if</span> name == <span class="st">"get_server_info"</span>:
+        info = {
+            <span class="st">"server"</span>: <span class="st">"acme-knowledge-base"</span>,
+            <span class="st">"version"</span>: <span class="st">"1.0.0"</span>,
+            <span class="st">"tools_available"</span>: <span class="hi">1</span>,
+            <span class="st">"status"</span>: <span class="st">"healthy"</span>
+        }
+        <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps(info, indent=<span class="hi">2</span>))]
+    <span class="kw">raise</span> ValueError(<span class="st">f"Unknown tool: {name}"</span>)
+
+
+<span class="kw">async def</span> <span class="fn">main</span>():
+    <span class="kw">async with</span> mcp.server.stdio.stdio_server() <span class="kw">as</span> (read_stream, write_stream):
+        <span class="kw">await</span> server.run(
+            read_stream,
+            write_stream,
+            InitializationOptions(
+                server_name=<span class="st">"acme-knowledge-base"</span>,
+                server_version=<span class="st">"1.0.0"</span>,
+                capabilities=server.get_capabilities(
+                    notification_options=<span class="kw">None</span>,
+                    experimental_capabilities={}
+                )
+            )
+        )
+
+<span class="kw">if</span> __name__ == <span class="st">"__main__"</span>:
+    asyncio.run(main())</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm"># Test your server interactively using the MCP CLI dev mode</span>
+mcp dev server.py
+
+<span class="cm"># In Claude Code, add your local server:</span>
+<span class="cm"># .claude/settings.json → mcpServers.knowledge-base → command: python3, args: [server.py]</span>
+
+<span class="cm"># Verify the server appears in Claude Code</span>
+/mcp
+<span class="cm"># Should show: ✓ acme-knowledge-base (1 tool): get_server_info</span></code></pre>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — Building Tools
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="building-tools">
+        <div class="section-label">
+          <span class="section-num">02</span>
+          <h2 class="section-title">Designing and Implementing MCP Tools</h2>
+        </div>
+
+        <p>The art of MCP tool design is writing schemas and descriptions that give Claude exactly enough information to use the tool correctly in every situation, without ambiguity, and without leaking implementation details it doesn't need.</p>
+
+        <h3>Tool Naming Conventions</h3>
+        <p>Use <strong>verb_noun</strong> naming: <code>get_customer</code>, <code>search_documents</code>, <code>create_ticket</code>, <code>list_categories</code>. Names must be unique within a server. Avoid generic names like <code>get_data</code> or <code>process</code> — Claude uses the name as the first signal for which tool to call.</p>
+
+        <h3>Complete Example: Internal Knowledge Base Server (3 Tools)</h3>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">"""
+kb_server.py — Internal Knowledge Base MCP Server
+Tools: search_kb, get_article, list_categories
+Backend: Elasticsearch or simple JSON for demo
+"""</span>
+<span class="kw">import</span> asyncio, json, os, httpx
+<span class="kw">from</span> mcp.server <span class="kw">import</span> Server
+<span class="kw">from</span> mcp.server.models <span class="kw">import</span> InitializationOptions
+<span class="kw">from</span> mcp.types <span class="kw">import</span> Tool, TextContent
+<span class="kw">import</span> mcp.server.stdio
+
+server = Server(<span class="st">"acme-knowledge-base"</span>)
+
+KB_API_BASE = os.environ[<span class="st">"KB_API_BASE"</span>]    <span class="cm"># e.g. https://kb.acme.internal/api</span>
+KB_API_TOKEN = os.environ[<span class="st">"KB_API_TOKEN"</span>]  <span class="cm"># service account token</span>
+
+<span class="kw">async def</span> <span class="fn">kb_get</span>(path: str, params: dict = {}) -> dict:
+    <span class="st">"""Thin async wrapper around the KB REST API."""</span>
+    <span class="kw">async with</span> httpx.AsyncClient(timeout=<span class="hi">15.0</span>) <span class="kw">as</span> client:
+        r = <span class="kw">await</span> client.get(
+            <span class="st">f"{KB_API_BASE}{path}"</span>,
+            params=params,
+            headers={<span class="st">"Authorization"</span>: <span class="st">f"Bearer {KB_API_TOKEN}"</span>}
+        )
+        r.raise_for_status()
+        <span class="kw">return</span> r.json()
+
+
+<span class="kw">@server</span>.list_tools()
+<span class="kw">async def</span> <span class="fn">list_tools</span>() -> list[Tool]:
+    <span class="kw">return</span> [
+        Tool(
+            name=<span class="st">"search_kb"</span>,
+            description=<span class="st">"""Search the Acme internal knowledge base for articles, runbooks,
+            architecture decisions, and process documentation.
+            Use when the user asks about: internal processes, team conventions,
+            deployment procedures, incident runbooks, architecture decisions (ADRs),
+            or any company-specific knowledge not available in code.
+            Returns articles ranked by relevance with title, snippet, category, and URL.
+            Supports natural language queries — do not use boolean operators."""</span>,
+            inputSchema={
+                <span class="st">"type"</span>: <span class="st">"object"</span>,
+                <span class="st">"properties"</span>: {
+                    <span class="st">"query"</span>: {
+                        <span class="st">"type"</span>: <span class="st">"string"</span>,
+                        <span class="st">"description"</span>: <span class="st">"Natural language search query (required)"</span>
+                    },
+                    <span class="st">"category"</span>: {
+                        <span class="st">"type"</span>: <span class="st">"string"</span>,
+                        <span class="st">"description"</span>: <span class="st">"Filter by category slug (optional). Get slugs from list_categories."</span>,
+                        <span class="st">"enum"</span>: [<span class="st">"runbooks"</span>, <span class="st">"architecture"</span>, <span class="st">"processes"</span>, <span class="st">"security"</span>, <span class="st">"onboarding"</span>]
+                    },
+                    <span class="st">"max_results"</span>: {
+                        <span class="st">"type"</span>: <span class="st">"integer"</span>,
+                        <span class="st">"description"</span>: <span class="st">"Number of results to return (default 5, max 20)"</span>,
+                        <span class="st">"default"</span>: <span class="hi">5</span>, <span class="st">"maximum"</span>: <span class="hi">20</span>
+                    }
+                },
+                <span class="st">"required"</span>: [<span class="st">"query"</span>]
+            }
+        ),
+        Tool(
+            name=<span class="st">"get_article"</span>,
+            description=<span class="st">"""Retrieve the full text of a specific knowledge base article by its ID.
+            Use this after search_kb to get the complete content of a search result.
+            Returns the full article: title, body, author, last_updated, tags, and related_articles.
+            The article_id comes from the id field in search_kb results."""</span>,
+            inputSchema={
+                <span class="st">"type"</span>: <span class="st">"object"</span>,
+                <span class="st">"properties"</span>: {
+                    <span class="st">"article_id"</span>: {
+                        <span class="st">"type"</span>: <span class="st">"string"</span>,
+                        <span class="st">"description"</span>: <span class="st">"Article ID from search_kb results (e.g. 'kb-001', 'arch-042')"</span>
+                    }
+                },
+                <span class="st">"required"</span>: [<span class="st">"article_id"</span>]
+            }
+        ),
+        Tool(
+            name=<span class="st">"list_categories"</span>,
+            description=<span class="st">"""List all available categories in the knowledge base with article counts.
+            Use when the user wants to browse the knowledge base, understand what topics
+            are covered, or before using search_kb with a category filter.
+            Returns category slug, display name, description, and article count."""</span>,
+            inputSchema={
+                <span class="st">"type"</span>: <span class="st">"object"</span>,
+                <span class="st">"properties"</span>: {}
+            }
+        )
+    ]
+
+
+<span class="kw">@server</span>.call_tool()
+<span class="kw">async def</span> <span class="fn">call_tool</span>(name: str, arguments: dict) -> list[TextContent]:
+    <span class="kw">try</span>:
+        <span class="kw">if</span> name == <span class="st">"search_kb"</span>:
+            data = <span class="kw">await</span> kb_get(<span class="st">"/search"</span>, {
+                <span class="st">"q"</span>: arguments[<span class="st">"query"</span>],
+                <span class="st">"category"</span>: arguments.get(<span class="st">"category"</span>),
+                <span class="st">"limit"</span>: arguments.get(<span class="st">"max_results"</span>, <span class="hi">5</span>)
+            })
+            <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps(data, indent=<span class="hi">2</span>))]
+
+        <span class="kw">elif</span> name == <span class="st">"get_article"</span>:
+            article_id = arguments[<span class="st">"article_id"</span>]
+            <span class="cm"># Input validation — never pass raw user input directly to path</span>
+            <span class="kw">if not</span> article_id.replace(<span class="st">"-"</span>, <span class="st">""</span>).replace(<span class="st">"_"</span>, <span class="st">""</span>).isalnum():
+                <span class="kw">raise</span> ValueError(<span class="st">f"Invalid article_id format: {article_id!r}"</span>)
+            data = <span class="kw">await</span> kb_get(<span class="st">f"/articles/{article_id}"</span>)
+            <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps(data, indent=<span class="hi">2</span>))]
+
+        <span class="kw">elif</span> name == <span class="st">"list_categories"</span>:
+            data = <span class="kw">await</span> kb_get(<span class="st">"/categories"</span>)
+            <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps(data, indent=<span class="hi">2</span>))]
+
+        <span class="kw">else</span>:
+            <span class="kw">raise</span> ValueError(<span class="st">f"Unknown tool: {name}"</span>)
+
+    <span class="kw">except</span> httpx.HTTPStatusError <span class="kw">as</span> e:
+        <span class="cm"># Never expose internal error details — return a safe error message</span>
+        error_msg = <span class="st">f"Knowledge base API error: HTTP {e.response.status_code}"</span>
+        <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps({<span class="st">"error"</span>: error_msg}))]
+    <span class="kw">except</span> httpx.TimeoutException:
+        <span class="kw">return</span> [TextContent(type=<span class="st">"text"</span>, text=json.dumps({<span class="st">"error"</span>: <span class="st">"Knowledge base request timed out"</span>}))]</code></pre>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <div class="callout-title">Always Validate Tool Input Before Using It</div>
+            Claude constructs tool arguments from user input and its own reasoning. Always validate arguments before using them in API calls, database queries, or file paths. At minimum: check types, check string formats with allowlists or regex, and never construct URL paths or SQL using raw argument values without sanitisation.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — Auth Patterns
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="auth-patterns">
+        <div class="section-label">
+          <span class="section-num">03</span>
+          <h2 class="section-title">Authentication Patterns for Custom Servers</h2>
+        </div>
+
+        <p>Authentication in MCP servers follows different patterns depending on whether the server runs over stdio or HTTP. The right pattern also depends on whether you need per-user identity (for audit trails) or a shared service account identity (for simplicity).</p>
+
+        <div class="arch-diagram">
+<span class="dim">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>              <span class="label">MCP AUTHENTICATION PATTERNS</span>                        <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────────────────────┘</span>
+
+  <span class="good">Pattern 1: stdio — Environment Variables (simplest)</span>
+  <span class="dim">──────────────────────────────────────────────────</span>
+  <span class="dim">Claude Code config → env: { API_KEY: "${API_KEY}" }</span>
+  <span class="dim">Server reads from os.environ["API_KEY"] at startup</span>
+  <span class="dim">Secret stored in system keychain or secrets manager</span>
+  <span class="dim">Identity: shared service account for all users on this machine</span>
+
+  <span class="hi">Pattern 2: HTTP+SSE — Bearer Token (enterprise)</span>
+  <span class="dim">───────────────────────────────────────────────</span>
+  <span class="dim">Client sends: Authorization: Bearer &lt;user-token&gt;</span>
+  <span class="dim">Server validates token against IdP (Okta, Azure AD, etc.)</span>
+  <span class="dim">Extracts user_id, roles from claims</span>
+  <span class="dim">Identity: per-user (enables per-user audit trails)</span>
+
+  <span class="box">Pattern 3: HTTP+SSE — OAuth 2.0 (full enterprise SSO)</span>
+  <span class="dim">──────────────────────────────────────────────────────</span>
+  <span class="dim">Claude Code obtains OAuth token from IdP</span>
+  <span class="dim">Sends token in Authorization header to MCP server</span>
+  <span class="dim">Server introspects token at IdP's /token_info endpoint</span>
+  <span class="dim">Full SSO integration — token rotation automatic</span>
+        </div>
+
+        <h3>FastAPI MCP Server with Bearer Token Validation</h3>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">"""
+http_kb_server.py — HTTP+SSE MCP server with Bearer token auth.
+Runs as a shared enterprise service, not a local stdio process.
+"""</span>
+<span class="kw">import</span> os, json, hmac, secrets
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI, Request, HTTPException, Depends
+<span class="kw">from</span> fastapi.responses <span class="kw">import</span> StreamingResponse
+<span class="kw">from</span> fastapi.security <span class="kw">import</span> HTTPBearer, HTTPAuthorizationCredentials
+
+app = FastAPI(title=<span class="st">"Acme Knowledge Base MCP Server"</span>)
+security = HTTPBearer()
+
+<span class="cm"># In production: validate against IdP (Okta, Azure AD, internal auth service)</span>
+<span class="cm"># For demonstration: compare against pre-shared token list</span>
+VALID_TOKENS = os.environ.get(<span class="st">"MCP_VALID_TOKENS"</span>, <span class="st">""</span>).split(<span class="st">","</span>)
+
+<span class="kw">async def</span> <span class="fn">validate_bearer_token</span>(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> str:
+    <span class="st">"""Validate Bearer token and return the user identity."""</span>
+    token = credentials.credentials
+
+    <span class="cm"># Use constant-time comparison to prevent timing attacks</span>
+    valid = <span class="kw">any</span>(
+        hmac.compare_digest(token, valid_token)
+        <span class="kw">for</span> valid_token <span class="kw">in</span> VALID_TOKENS
+        <span class="kw">if</span> valid_token
+    )
+    <span class="kw">if not</span> valid:
+        <span class="kw">raise</span> HTTPException(
+            status_code=<span class="hi">401</span>,
+            detail=<span class="st">"Invalid or expired token"</span>,
+            headers={<span class="st">"WWW-Authenticate"</span>: <span class="st">"Bearer"</span>}
+        )
+    <span class="cm"># In production: decode JWT and return user_id from claims</span>
+    <span class="kw">return</span> <span class="st">f"user-{token[:8]}"</span>
+
+
+<span class="kw">@app</span>.post(<span class="st">"/message"</span>)
+<span class="kw">async def</span> <span class="fn">handle_message</span>(request: Request, user_id: str = Depends(validate_bearer_token)):
+    <span class="st">"""Handle JSON-RPC messages from the MCP client."""</span>
+    body = <span class="kw">await</span> request.json()
+    method = body.get(<span class="st">"method"</span>)
+    params = body.get(<span class="st">"params"</span>, {})
+    request_id = body.get(<span class="st">"id"</span>)
+
+    <span class="cm"># Log every tool call for audit trail</span>
+    <span class="kw">if</span> method == <span class="st">"tools/call"</span>:
+        print(json.dumps({
+            <span class="st">"event"</span>: <span class="st">"tool_call"</span>,
+            <span class="st">"user_id"</span>: user_id,
+            <span class="st">"tool"</span>: params.get(<span class="st">"name"</span>),
+            <span class="st">"arguments"</span>: params.get(<span class="st">"arguments"</span>, {})
+        }))
+
+    result = <span class="kw">await</span> dispatch_mcp_method(method, params, user_id)
+    <span class="kw">return</span> {<span class="st">"jsonrpc"</span>: <span class="st">"2.0"</span>, <span class="st">"id"</span>: request_id, <span class="st">"result"</span>: result}
+
+
+<span class="kw">@app</span>.get(<span class="st">"/health"</span>)
+<span class="kw">async def</span> <span class="fn">health_check</span>():
+    <span class="kw">return</span> {<span class="st">"status"</span>: <span class="st">"healthy"</span>, <span class="st">"server"</span>: <span class="st">"acme-knowledge-base"</span>}</code></pre>
+        </div>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <div class="callout-title">Service Account vs Per-User Identity</div>
+            For most enterprise MCP servers, a service account (shared identity) is sufficient and far simpler to manage. Use per-user identity only when you need fine-grained audit logs that attribute each tool call to a specific person, or when different users should see different data subsets. Per-user identity requires a proper OAuth integration with your IdP.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — Deployment Models
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="deployment-models">
+        <div class="section-label">
+          <span class="section-num">04</span>
+          <h2 class="section-title">Deployment Models</h2>
+        </div>
+
+        <p>Choosing the right deployment model for your MCP server depends on who needs access to it, what security posture you need, and how much operational complexity you can absorb. There are three primary models, each with clear trade-offs.</p>
+
+        <table class="deploy-table">
+          <thead>
+            <tr><th>Model</th><th>Best For</th><th>Complexity</th><th>Security Surface</th><th>Scaling</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>stdio / Local</strong></td>
+              <td>Dev tools, personal productivity, small team (1-5 people)</td>
+              <td>Minimal — just a Python file</td>
+              <td>Process isolation. Auth via env vars. No network exposure.</td>
+              <td>Scales with the developer's machine. No concurrent users.</td>
+            </tr>
+            <tr>
+              <td><strong>Docker Container</strong></td>
+              <td>Reproducible team tooling, CI/CD environments, staging</td>
+              <td>Medium — Dockerfile + compose</td>
+              <td>Container isolation. Secrets as env vars at runtime. No host access.</td>
+              <td>Run multiple containers. No built-in load balancing.</td>
+            </tr>
+            <tr>
+              <td><strong>Cloud-Hosted (Lambda / Cloud Run)</strong></td>
+              <td>Enterprise-wide shared servers, high availability, >50 users</td>
+              <td>High — CI/CD, secrets manager, TLS, monitoring</td>
+              <td>Full network controls. IAM roles. TLS 1.3. WAF. Audit logs.</td>
+              <td>Auto-scales to thousands of concurrent connections.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Dockerfile for a Production Python MCP Server</h3>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">dockerfile</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm"># Multi-stage build — keeps final image small</span>
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+<span class="cm"># Final stage — no build tools in production image</span>
+FROM python:3.12-slim AS runtime
+
+<span class="cm"># Run as non-root user — never run MCP servers as root</span>
+RUN useradd --uid 1001 --no-create-home --shell /sbin/nologin mcp
+USER mcp
+
+WORKDIR /app
+
+<span class="cm"># Copy installed packages from builder</span>
+COPY --from=builder /root/.local /home/mcp/.local
+ENV PATH=/home/mcp/.local/bin:$PATH
+
+<span class="cm"># Copy application code</span>
+COPY --chown=mcp:mcp . .
+
+<span class="cm"># Health check — used by ECS, Kubernetes, Cloud Run</span>
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python3 -c "import httpx; httpx.get('http://localhost:8080/health').raise_for_status()"
+
+EXPOSE 8080
+
+CMD [<span class="st">"python3"</span>, <span class="st">"-m"</span>, <span class="st">"uvicorn"</span>, <span class="st">"http_kb_server:app"</span>, \
+     <span class="st">"--host"</span>, <span class="st">"0.0.0.0"</span>, <span class="st">"--port"</span>, <span class="st">"8080"</span>, <span class="st">"--workers"</span>, <span class="st">"2"</span>]</code></pre>
+        </div>
+
+        <div class="arch-diagram">
+<span class="dim">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="dim">│</span>           <span class="label">CLOUD RUN DEPLOYMENT ARCHITECTURE</span>                    <span class="dim">│</span>
+<span class="dim">└─────────────────────────────────────────────────────────────────┘</span>
+
+  <span class="box">Developer Laptop</span>           <span class="box">GCP Cloud Run</span>
+  <span class="dim">Claude Code</span>                <span class="dim">acme-kb-mcp.run.app</span>
+      <span class="dim">│</span>                             <span class="dim">│</span>
+      <span class="dim">│──HTTPS POST /message──────────▶│</span>   <span class="good">TLS 1.3 enforced</span>
+      <span class="dim">│  Authorization: Bearer token   │</span>
+      <span class="dim">│                               │──▶ Secret Manager → API_TOKEN</span>
+      <span class="dim">│                               │──▶ Your internal KB API</span>
+      <span class="dim">│◀──JSON-RPC response────────────│</span>
+      <span class="dim">│</span>                             <span class="dim">│</span>
+                               <span class="dim">Cloud Run auto-scales 0→N instances</span>
+                               <span class="dim">IAM: only AllowedClaudeServiceAccount can invoke</span>
+                               <span class="dim">VPC connector: access internal APIs without public internet</span>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 5 — Testing MCP Servers
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="testing-mcp">
+        <div class="section-label">
+          <span class="section-num">05</span>
+          <h2 class="section-title">Testing MCP Servers</h2>
+        </div>
+
+        <p>MCP servers are just Python functions under the decorator layer. This makes them straightforward to unit test — no Claude needed, no MCP protocol overhead. Test the tool handler functions directly with mocked dependencies.</p>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">"""
+tests/test_tools.py — Unit tests for KB MCP server tool handlers.
+Run with: pytest tests/ -v
+"""</span>
+<span class="kw">import</span> json
+<span class="kw">import</span> pytest
+<span class="kw">from</span> unittest.mock <span class="kw">import</span> AsyncMock, patch
+<span class="kw">from</span> mcp.types <span class="kw">import</span> TextContent
+
+<span class="cm"># Import the call_tool handler from your server module</span>
+<span class="kw">from</span> kb_server <span class="kw">import</span> call_tool
+
+
+<span class="cm"># ── Test fixtures ──────────────────────────────────────────────────────────────</span>
+
+<span class="kw">@pytest</span>.fixture
+<span class="kw">def</span> <span class="fn">mock_search_response</span>():
+    <span class="kw">return</span> {
+        <span class="st">"results"</span>: [
+            {<span class="st">"id"</span>: <span class="st">"kb-042"</span>, <span class="st">"title"</span>: <span class="st">"Deployment Runbook"</span>,
+             <span class="st">"snippet"</span>: <span class="st">"Steps to deploy to production..."</span>,
+             <span class="st">"category"</span>: <span class="st">"runbooks"</span>, <span class="st">"score"</span>: <span class="hi">0.95</span>}
+        ],
+        <span class="st">"total"</span>: <span class="hi">1</span>
+    }
+
+
+<span class="cm"># ── search_kb tests ────────────────────────────────────────────────────────────</span>
+
+<span class="kw">@pytest</span>.mark.asyncio
+<span class="kw">async def</span> <span class="fn">test_search_kb_happy_path</span>(mock_search_response):
+    <span class="st">"""search_kb returns results for a valid query."""</span>
+    <span class="kw">with</span> patch(<span class="st">"kb_server.kb_get"</span>, new_callable=AsyncMock) <span class="kw">as</span> mock_get:
+        mock_get.return_value = mock_search_response
+
+        result = <span class="kw">await</span> call_tool(<span class="st">"search_kb"</span>, {<span class="st">"query"</span>: <span class="st">"deployment runbook"</span>})
+
+        <span class="kw">assert</span> len(result) == <span class="hi">1</span>
+        <span class="kw">assert</span> isinstance(result[<span class="hi">0</span>], TextContent)
+        data = json.loads(result[<span class="hi">0</span>].text)
+        <span class="kw">assert</span> data[<span class="st">"total"</span>] == <span class="hi">1</span>
+        <span class="kw">assert</span> data[<span class="st">"results"</span>][<span class="hi">0</span>][<span class="st">"id"</span>] == <span class="st">"kb-042"</span>
+
+        <span class="cm"># Verify the correct API endpoint was called</span>
+        mock_get.assert_called_once_with(<span class="st">"/search"</span>, {
+            <span class="st">"q"</span>: <span class="st">"deployment runbook"</span>,
+            <span class="st">"category"</span>: <span class="kw">None</span>,
+            <span class="st">"limit"</span>: <span class="hi">5</span>
+        })
+
+
+<span class="kw">@pytest</span>.mark.asyncio
+<span class="kw">async def</span> <span class="fn">test_search_kb_with_category_filter</span>(mock_search_response):
+    <span class="st">"""search_kb passes category filter correctly."""</span>
+    <span class="kw">with</span> patch(<span class="st">"kb_server.kb_get"</span>, new_callable=AsyncMock) <span class="kw">as</span> mock_get:
+        mock_get.return_value = mock_search_response
+        <span class="kw">await</span> call_tool(<span class="st">"search_kb"</span>, {<span class="st">"query"</span>: <span class="st">"deploy"</span>, <span class="st">"category"</span>: <span class="st">"runbooks"</span>})
+        args = mock_get.call_args[<span class="hi">0</span>]
+        <span class="kw">assert</span> args[<span class="hi">1</span>][<span class="st">"category"</span>] == <span class="st">"runbooks"</span>
+
+
+<span class="cm"># ── get_article tests ──────────────────────────────────────────────────────────</span>
+
+<span class="kw">@pytest</span>.mark.asyncio
+<span class="kw">async def</span> <span class="fn">test_get_article_rejects_path_traversal</span>():
+    <span class="st">"""get_article must reject article_ids with path traversal characters."""</span>
+    result = <span class="kw">await</span> call_tool(<span class="st">"get_article"</span>, {<span class="st">"article_id"</span>: <span class="st">"../../../etc/passwd"</span>})
+    data = json.loads(result[<span class="hi">0</span>].text)
+    <span class="kw">assert</span> <span class="st">"error"</span> <span class="kw">in</span> data
+
+
+<span class="kw">@pytest</span>.mark.asyncio
+<span class="kw">async def</span> <span class="fn">test_unknown_tool_raises_value_error</span>():
+    <span class="st">"""Unknown tool names must raise ValueError, not silently fail."""</span>
+    <span class="kw">with</span> pytest.raises(ValueError, match=<span class="st">"Unknown tool: nonexistent_tool"</span>):
+        <span class="kw">await</span> call_tool(<span class="st">"nonexistent_tool"</span>, {})
+
+
+<span class="cm"># ── Schema validation tests ────────────────────────────────────────────────────</span>
+
+<span class="kw">def</span> <span class="fn">test_all_tool_schemas_are_valid_json_schema</span>():
+    <span class="st">"""All tool inputSchemas must be valid JSON Schema objects."""</span>
+    <span class="kw">import</span> jsonschema
+    <span class="kw">from</span> kb_server <span class="kw">import</span> list_tools
+    <span class="kw">import</span> asyncio
+    tools = asyncio.run(list_tools())
+    <span class="kw">for</span> tool <span class="kw">in</span> tools:
+        <span class="cm"># This raises if the schema is not valid JSON Schema</span>
+        jsonschema.Draft7Validator.check_schema(tool.inputSchema)
+        <span class="kw">assert</span> tool.name, <span class="st">f"Tool missing name: {tool}"</span>
+        <span class="kw">assert</span> len(tool.description) > <span class="hi">50</span>, \
+            <span class="st">f"Tool '{tool.name}' has a description that is too short to be useful"</span></code></pre>
+        </div>
+
+        <div class="callout callout-success">
+          <span class="callout-icon">✓</span>
+          <div class="callout-body">
+            <div class="callout-title">Common MCP Server Bugs to Test For</div>
+            <ul style="margin:0;padding-left:1.25rem;">
+              <li style="margin-bottom:0.3rem;">Wrong JSON Schema types (Python <code>int</code> vs JSON Schema <code>"integer"</code>)</li>
+              <li style="margin-bottom:0.3rem;">Missing <code>required</code> field list in inputSchema</li>
+              <li style="margin-bottom:0.3rem;">Unhandled exceptions that leak internal stack traces</li>
+              <li style="margin-bottom:0.3rem;">Path traversal in any argument used to construct file/URL paths</li>
+              <li style="margin-bottom:0.3rem;">Tool descriptions shorter than ~50 characters (too vague for Claude)</li>
+            </ul>
+          </div>
+        </div>
+
+      </section>
+
+      <div class="nav-bottom">
+        <a href="day4-module2-mcp-integrations.html" class="nav-prev">← Day 4 · Module 2: Enterprise MCP Integrations</a>
+        <a href="day4-module4-security-governance.html" class="nav-next">Day 4 · Module 4: Security, Governance &amp; Compliance →</a>
+      </div>
+
+    </div><!-- end content-wrap -->
+  </main>
+</div><!-- end layout -->
+<script src="assets/js/main.js"></script>
+</body>
+</html>

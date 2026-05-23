@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enterprise MCP Integrations — Claude Architect</title>
+  <meta name="description" content="Day 4 Module 2: Configure and use production MCP integrations with GitHub, Slack, databases, Jira, Google Workspace, and browser automation." />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <style>
+    .overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:89; }
+    .overlay.active { display:block; }
+    .arch-diagram { background:var(--code-bg);border:1px solid var(--code-border);border-radius:var(--radius);padding:1.5rem;font-family:var(--mono);font-size:0.78rem;color:#c9d1d9;line-height:1.9;overflow-x:auto;margin:1.25rem 0; }
+    .arch-diagram .box { color:#79c0ff; }
+    .arch-diagram .hi  { color:#ffa657; }
+    .arch-diagram .label { color:#a5d6ff; }
+    .arch-diagram .dim { color:#484f58; }
+    .arch-diagram .good { color:#7ee787; }
+    .arch-diagram .bad  { color:#ff7b72; }
+
+    .scope-table { width:100%;border-collapse:collapse;font-size:0.84rem;margin:1.25rem 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden; }
+    .scope-table th { background:var(--surface);color:var(--text-heading);font-weight:700;font-size:0.74rem;text-transform:uppercase;letter-spacing:0.07em;text-align:left;padding:0.65rem 0.9rem;border-bottom:1px solid var(--border); }
+    .scope-table td { padding:0.6rem 0.9rem;border-bottom:1px solid var(--hairline);vertical-align:top;line-height:1.55; }
+    .scope-table tr:last-child td { border-bottom:none; }
+    .scope-table tr:hover td { background:var(--surface); }
+    .badge-read { display:inline-block;font-size:0.68rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:4px;background:#f0fdf4;color:#15803d; }
+    .badge-write { display:inline-block;font-size:0.68rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:4px;background:#fff7ed;color:#c2410c; }
+    .badge-admin { display:inline-block;font-size:0.68rem;font-weight:700;padding:0.15rem 0.5rem;border-radius:4px;background:#fef9c3;color:#854d0e; }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Toggle sidebar"><span></span><span></span><span></span></button>
+  <a href="index.html" class="topbar-logo">
+    <svg class="brand-glyph" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+      <line x1="12" y1="12" x2="12" y2="3"/><line x1="12" y1="12" x2="20.5" y2="9.2"/>
+      <line x1="12" y1="12" x2="17.3" y2="19.3"/><line x1="12" y1="12" x2="6.7" y2="19.3"/>
+      <line x1="12" y1="12" x2="3.5" y2="9.2"/>
+      <line x1="12" y1="3" x2="20.5" y2="9.2"/><line x1="20.5" y1="9.2" x2="17.3" y2="19.3"/>
+      <line x1="17.3" y1="19.3" x2="6.7" y2="19.3"/><line x1="6.7" y1="19.3" x2="3.5" y2="9.2"/>
+      <line x1="3.5" y1="9.2" x2="12" y2="3"/>
+      <circle cx="12" cy="3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="20.5" cy="9.2" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="17.3" cy="19.3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="6.7" cy="19.3" r="1.1" fill="currentColor" stroke="none"/>
+      <circle cx="3.5" cy="9.2" r="1.1" fill="currentColor" stroke="none"/>
+    </svg>
+    Claude Architect
+  </a>
+  <span class="topbar-title">Day 4 · Module 2</span>
+  <div class="topbar-right">
+    <div class="topbar-socials">
+      <a href="https://x.com/techwith_ram" class="topbar-social" target="_blank" rel="noopener" aria-label="X / Twitter">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25z"/></svg>
+      </a>
+      <a href="https://www.instagram.com/techwith.ram/" class="topbar-social" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      </a>
+      <a href="https://github.com/Ramakm" class="topbar-social" target="_blank" rel="noopener" aria-label="GitHub">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+      </a>
+    </div>
+    <span class="topbar-badge">Day 4 of 4</span>
+  </div>
+</header>
+
+<div id="overlay" class="overlay"></div>
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Day 1</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">01</span> Ecosystem &amp; Foundations <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day1-module1-claude-ecosystem.html">Claude Ecosystem &amp; Enterprise Foundations</a>
+        <a href="day1-module2-claude-cowork.html">Claude Cowork – Business Automation</a>
+        <a href="day1-module3-enterprise-governance.html">Enterprise Governance &amp; Responsible AI</a>
+        <a href="day1-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 2</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">02</span> Claude Code &amp; Dev Workflows <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day2-module1-claude-code.html">Claude Code – Practitioner Level</a>
+        <a href="day2-module2-dev-workflows.html">AI-Assisted Development Workflows</a>
+        <a href="day2-module3-prompt-engineering.html">Prompt Engineering for Code</a>
+        <a href="day2-module4-productivity.html">Developer Productivity Automation</a>
+        <a href="day2-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 3</div>
+    <div class="nav-module open">
+      <div class="nav-module-header" data-toggle><span class="mod-num">03</span> Context, CI/CD &amp; Multi-Agent <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day3-module1-context-engineering.html">Context Engineering &amp; CLAUDE.md</a>
+        <a href="day3-module2-cicd-github.html">CI/CD &amp; GitHub Integration</a>
+        <a href="day3-module3-multi-agent.html">Multi-Agent Architecture</a>
+        <a href="day3-module4-platform.html">Enterprise AI Platform Architecture</a>
+        <a href="day3-labs.html">Labs</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label">Day 4</div>
+    <div class="nav-module open">
+      <div class="nav-module-header active" data-toggle><span class="mod-num">04</span> MCP, Security &amp; Capstone <span class="chevron">▶</span></div>
+      <div class="nav-sub">
+        <a href="day4-module1-mcp-fundamentals.html">MCP Architecture &amp; Fundamentals</a>
+        <a href="day4-module2-mcp-integrations.html" class="active">Enterprise MCP Integrations</a>
+        <a href="day4-module3-custom-mcp.html">Custom MCP Server Development</a>
+        <a href="day4-module4-security-governance.html">Security, Governance &amp; Compliance</a>
+        <a href="day4-labs.html">Labs</a>
+        <a href="day4-capstone.html">Capstone Project</a>
+      </div>
+    </div>
+    <div class="sidebar-section-label" style="margin-top:1rem;">On This Page</div>
+    <div class="nav-sub" style="display:block;">
+      <a href="#github-mcp">GitHub MCP Integration</a>
+      <a href="#slack-mcp">Slack MCP Integration</a>
+      <a href="#database-mcp">Database MCP Integration</a>
+      <a href="#jira-mcp">Jira &amp; Project Management</a>
+      <a href="#browser-mcp">Browser Automation &amp; Google Workspace</a>
+    </div>
+  </nav>
+  <main class="main">
+    <div class="content-wrap">
+
+      <nav class="breadcrumb">
+        <a href="index.html">Home</a><span class="sep">/</span>
+        <span>Day 4</span><span class="sep">/</span>
+        <span>Enterprise MCP Integrations</span>
+      </nav>
+
+      <div class="page-header">
+        <div class="module-tag">✦ Day 4 · Module 2</div>
+        <h1 class="page-title">Enterprise MCP Integrations</h1>
+        <p class="page-objective">
+          <strong>Outcome:</strong> Configure and use production MCP integrations across GitHub, Slack, databases, Jira, Google Workspace, and browser automation — with real config examples, auth patterns, and enterprise deployment strategies for each integration.
+        </p>
+        <div class="module-meta">
+          <span class="meta-item"><span class="dot"></span> GitHub</span>
+          <span class="meta-item"><span class="dot"></span> Slack</span>
+          <span class="meta-item"><span class="dot"></span> Databases</span>
+          <span class="meta-item"><span class="dot"></span> Jira</span>
+          <span class="meta-item"><span class="dot"></span> Browser Automation</span>
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 1 — GitHub MCP
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="github-mcp">
+        <div class="section-label">
+          <span class="section-num">01</span>
+          <h2 class="section-title">GitHub MCP Integration</h2>
+        </div>
+
+        <p>The GitHub MCP server is the most widely deployed enterprise MCP integration. It gives Claude direct access to your repositories, pull requests, issues, and code — enabling workflows that previously required custom scripts and API integrations.</p>
+
+        <h3>Available Tools</h3>
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-icon">🔍</div>
+            <div class="info-card-label">Discovery</div>
+            <div class="info-card-value"><code>search_repositories</code>, <code>list_commits</code>, <code>list_pull_requests</code>, <code>list_issues</code>, <code>search_code</code></div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">📄</div>
+            <div class="info-card-label">Read</div>
+            <div class="info-card-value"><code>get_file_contents</code>, <code>get_pull_request</code>, <code>get_issue</code>, <code>get_commit</code></div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">✏️</div>
+            <div class="info-card-label">Write</div>
+            <div class="info-card-value"><code>create_issue</code>, <code>create_pull_request</code>, <code>create_branch</code>, <code>push_files</code>, <code>add_issue_comment</code></div>
+          </div>
+        </div>
+
+        <h3>Authentication: PAT vs GitHub App</h3>
+
+        <table class="scope-table">
+          <thead>
+            <tr><th>Auth Method</th><th>Best For</th><th>Scopes Needed</th><th>Enterprise Consideration</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Personal Access Token (PAT)</strong></td>
+              <td>Individual developers, local Claude Code</td>
+              <td><span class="badge-read">repo</span> <span class="badge-read">read:org</span></td>
+              <td>Token tied to individual. If developer leaves, token becomes invalid. Rotate every 90 days.</td>
+            </tr>
+            <tr>
+              <td><strong>GitHub App Token</strong></td>
+              <td>Enterprise shared MCP servers, CI/CD</td>
+              <td>Installation-scoped per repo</td>
+              <td>Org-owned identity. Fine-grained permissions per installation. Automatic expiry (1h). Preferred for production.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">// .claude/settings.json — GitHub MCP configuration</span>
+{
+  <span class="st">"mcpServers"</span>: {
+    <span class="st">"github"</span>: {
+      <span class="st">"command"</span>: <span class="st">"npx"</span>,
+      <span class="st">"args"</span>: [<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-github"</span>],
+      <span class="st">"env"</span>: {
+        <span class="cm">// For individuals: fine-grained PAT scoped to specific repos</span>
+        <span class="st">"GITHUB_PERSONAL_ACCESS_TOKEN"</span>: <span class="st">"${GITHUB_PAT}"</span>
+
+        <span class="cm">// For enterprise GitHub App (generate via App installation):</span>
+        <span class="cm">// "GITHUB_APP_ID": "${GH_APP_ID}",</span>
+        <span class="cm">// "GITHUB_APP_PRIVATE_KEY": "${GH_APP_KEY}",</span>
+        <span class="cm">// "GITHUB_APP_INSTALLATION_ID": "${GH_INSTALL_ID}"</span>
+      }
+    }
+  }
+}</code></pre>
+        </div>
+
+        <h3>Real Workflow: PR Review Pipeline</h3>
+        <p>This example shows Claude using multiple GitHub tools in sequence to complete a real engineering task — reviewing all open PRs and summarizing blockers. Claude orchestrates the tool calls autonomously.</p>
+
+        <div class="arch-diagram">
+<span class="label">USER:</span> <span class="hi">"Review all open PRs in acme-org/api-service and tell me what's blocking each one"</span>
+
+<span class="dim">Step 1 → Claude calls list_pull_requests</span>
+  <span class="good">→ Returns 7 open PRs with numbers, titles, authors, labels</span>
+
+<span class="dim">Step 2 → Claude calls get_pull_request for each PR (in parallel)</span>
+  <span class="good">→ Returns diff stats, review status, merge conflicts, CI checks</span>
+
+<span class="dim">Step 3 → Claude calls list_issues for any referenced issue numbers</span>
+  <span class="good">→ Returns linked issue descriptions for context</span>
+
+<span class="label">CLAUDE OUTPUT:</span>
+  <span class="box">PR #142 "Add rate limiting to /orders endpoint"</span>
+  <span class="bad">Blocked: 2 review changes requested (alice, bob)</span>
+  <span class="bad">         CI failing: unit tests — 3 failures in OrderService.test.ts</span>
+  <span class="bad">         Merge conflict: src/middleware/rateLimiter.ts</span>
+
+  <span class="box">PR #138 "Migrate auth to RS256"</span>
+  <span class="good">Ready: 2 approvals, CI passing, no conflicts</span>
+  <span class="hi">Note: merge window closes Friday (release freeze)</span>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <div class="callout-title">Enterprise GitHub: Scope Your PAT</div>
+            Create fine-grained PATs scoped to specific repositories only, not all repositories. Grant only the permissions your workflow requires: <code>contents:read</code> for read-only workflows, add <code>pull_requests:write</code> only if you need Claude to create or comment on PRs. Rotate tokens every 90 days and store them in your organization's secrets manager.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 2 — Slack MCP
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="slack-mcp">
+        <div class="section-label">
+          <span class="section-num">02</span>
+          <h2 class="section-title">Slack MCP Integration</h2>
+        </div>
+
+        <p>The Slack MCP server connects Claude to your team's communication layer. This enables powerful async workflows — summarising discussions, generating standup digests, searching for decisions buried in thread history, and drafting announcements.</p>
+
+        <h3>Available Tools</h3>
+        <p>The core tools are: <code>list_channels</code>, <code>post_message</code>, <code>reply_to_thread</code>, <code>list_messages</code>, <code>search_messages</code>, <code>get_channel_info</code>, <code>get_user_info</code>.</p>
+
+        <h3>Required OAuth Scopes</h3>
+
+        <table class="scope-table">
+          <thead>
+            <tr><th>Scope</th><th>Type</th><th>Required For</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>channels:read</code></td><td><span class="badge-read">Read</span></td><td>List public channels</td></tr>
+            <tr><td><code>channels:history</code></td><td><span class="badge-read">Read</span></td><td>Read public channel messages</td></tr>
+            <tr><td><code>groups:read</code></td><td><span class="badge-read">Read</span></td><td>List private channels the bot is in</td></tr>
+            <tr><td><code>groups:history</code></td><td><span class="badge-read">Read</span></td><td>Read private channel messages</td></tr>
+            <tr><td><code>search:read</code></td><td><span class="badge-read">Read</span></td><td>Search messages workspace-wide</td></tr>
+            <tr><td><code>chat:write</code></td><td><span class="badge-write">Write</span></td><td>Post messages and reply to threads</td></tr>
+            <tr><td><code>users:read</code></td><td><span class="badge-read">Read</span></td><td>Resolve user IDs to display names</td></tr>
+          </tbody>
+        </table>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">// Slack MCP configuration — Bot Token (xoxb-) for apps, User Token (xoxp-) for personal</span>
+{
+  <span class="st">"mcpServers"</span>: {
+    <span class="st">"slack"</span>: {
+      <span class="st">"command"</span>: <span class="st">"npx"</span>,
+      <span class="st">"args"</span>: [<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-slack"</span>],
+      <span class="st">"env"</span>: {
+        <span class="st">"SLACK_BOT_TOKEN"</span>: <span class="st">"${SLACK_BOT_TOKEN}"</span>,     <span class="cm">// xoxb-... (Bot Token)</span>
+        <span class="st">"SLACK_TEAM_ID"</span>: <span class="st">"${SLACK_TEAM_ID}"</span>         <span class="cm">// T... (Workspace ID)</span>
+      }
+    }
+  }
+}</code></pre>
+        </div>
+
+        <h3>Real Workflow: Daily Engineering Standup Digest</h3>
+
+        <div class="arch-diagram">
+<span class="label">PROMPT:</span> <span class="hi">"Read the last 24 hours of #engineering, #platform, and #backend.
+         Summarise: what was discussed, any blockers raised, any decisions made."</span>
+
+<span class="dim">Claude calls list_messages for each channel (oldest=yesterday_timestamp)</span>
+<span class="dim">Claude reads 3 channels in parallel, each returning message objects</span>
+<span class="dim">Claude synthesises across all channels</span>
+
+<span class="label">OUTPUT:</span>
+  <span class="box">#engineering (47 messages)</span>
+  <span class="dim">Decisions: Merge window for v2.4 closes Friday 18:00 UTC</span>
+  <span class="dim">Blockers:  @alice flagged flaky integration tests in CI — no owner yet</span>
+  <span class="dim">FYI:       @bob demoed new observability dashboard — positive reception</span>
+
+  <span class="box">#platform (12 messages)</span>
+  <span class="dim">Decisions: ECS task definition update for Node 20 approved for Thursday</span>
+  <span class="good">Blockers:  None</span>
+
+  <span class="box">#backend (23 messages)</span>
+  <span class="dim">Blockers:  Postgres replica lag spiking at 09:00 UTC — being investigated</span>
+  <span class="dim">FYI:       Rate limiter middleware PR ready for review (PR #142)</span>
+        </div>
+
+        <div class="callout callout-danger">
+          <span class="callout-icon">✗</span>
+          <div class="callout-body">
+            <div class="callout-title">Never Grant chat:write to Fully Autonomous Agents</div>
+            A Slack Bot Token with <code>chat:write</code> scope can post to any channel it's been invited to. If you allow Claude to post autonomously without human review, a prompt injection attack or model error could post incorrect or sensitive information to public channels. For autonomous Slack-writing agents, require human approval on all outbound messages, or restrict the bot to a dedicated #ai-assistant channel.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 3 — Database MCP
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="database-mcp">
+        <div class="section-label">
+          <span class="section-num">03</span>
+          <h2 class="section-title">Database MCP Integration</h2>
+        </div>
+
+        <p>Database MCP servers give Claude the ability to explore and query your data directly. This is transformative for data analysis, schema understanding, and debugging production issues — but requires careful permission scoping to prevent data exfiltration or accidental writes.</p>
+
+        <h3>Read-Only vs Read-Write Modes</h3>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-icon">✓</div>
+            <div class="info-card-label">Read-Only Mode (Default)</div>
+            <div class="info-card-value">Claude can call <code>list_tables</code>, <code>describe_table</code>, and <code>query</code> (SELECT only). The database user has no INSERT/UPDATE/DELETE/DROP grants. This is the correct default for all production environments.</div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">⚠</div>
+            <div class="info-card-label">Read-Write Mode (Restricted)</div>
+            <div class="info-card-value">Adds <code>execute</code> tool for INSERT/UPDATE/DELETE. Requires human-in-the-loop approval for every write operation. Should never be granted on production primary database — use a staging environment or a dedicated analytics write-back schema.</div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm"># Create a dedicated read-only database user for Claude MCP</span>
+<span class="cm"># Run on PostgreSQL production replica — NEVER on the primary write instance</span>
+
+CREATE USER claude_readonly WITH PASSWORD <span class="st">'${GENERATED_STRONG_PASSWORD}'</span>;
+
+<span class="cm"># Grant SELECT on specific schemas only — not all tables</span>
+GRANT CONNECT ON DATABASE app_db TO claude_readonly;
+GRANT USAGE ON SCHEMA public, analytics TO claude_readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO claude_readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA analytics TO claude_readonly;
+
+<span class="cm"># Explicitly deny access to sensitive tables</span>
+REVOKE SELECT ON TABLE users, payment_methods, api_keys FROM claude_readonly;
+
+<span class="cm"># Set statement timeout to prevent runaway queries</span>
+ALTER USER claude_readonly SET statement_timeout = <span class="st">'30s'</span>;
+ALTER USER claude_readonly SET lock_timeout = <span class="st">'5s'</span>;</code></pre>
+        </div>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">// Database MCP — always point to analytics replica, never primary</span>
+{
+  <span class="st">"mcpServers"</span>: {
+    <span class="st">"database"</span>: {
+      <span class="st">"command"</span>: <span class="st">"npx"</span>,
+      <span class="st">"args"</span>: [
+        <span class="st">"-y"</span>,
+        <span class="st">"@modelcontextprotocol/server-postgres"</span>,
+        <span class="st">"postgresql://claude_readonly:${DB_READ_PASS}@analytics-replica.internal:5432/app_db"</span>
+      ]
+    }
+  }
+}</code></pre>
+        </div>
+
+        <h3>Real Workflow: Schema Understanding and Query Optimization</h3>
+        <p>A common high-value use case: an engineer pastes a slow query and asks Claude to explain the schema and suggest indexes. Claude uses <code>describe_table</code> on all referenced tables, examines the query, and reasons about missing indexes.</p>
+
+        <div class="callout callout-danger">
+          <span class="callout-icon">✗</span>
+          <div class="callout-body">
+            <div class="callout-title">PII Tables Require Audit Logging</div>
+            If your MCP server has query access to tables containing PII (emails, names, addresses, phone numbers), you must enable audit logging that records every query with the session user, timestamp, and query text. Enable PostgreSQL <code>pgaudit</code> or equivalent. Without audit logging, you cannot demonstrate GDPR data access compliance, and you cannot investigate a data breach.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 4 — Jira MCP
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="jira-mcp">
+        <div class="section-label">
+          <span class="section-num">04</span>
+          <h2 class="section-title">Jira &amp; Project Management Integrations</h2>
+        </div>
+
+        <p>The Jira MCP integration brings Claude into your project management workflow — searching backlogs, creating tickets from bug reports, transitioning issue states, and generating sprint reports. The same patterns apply to Linear, Azure DevOps, and GitHub Issues.</p>
+
+        <h3>Available Tools</h3>
+        <p>Core tools: <code>search_issues</code> (JQL), <code>get_issue</code>, <code>create_issue</code>, <code>update_issue</code>, <code>add_comment</code>, <code>transition_issue</code>, <code>list_sprints</code>, <code>get_board</code>.</p>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm">// Jira MCP configuration — Atlassian API token auth</span>
+{
+  <span class="st">"mcpServers"</span>: {
+    <span class="st">"jira"</span>: {
+      <span class="st">"command"</span>: <span class="st">"npx"</span>,
+      <span class="st">"args"</span>: [<span class="st">"-y"</span>, <span class="st">"@modelcontextprotocol/server-jira"</span>],
+      <span class="st">"env"</span>: {
+        <span class="st">"JIRA_URL"</span>: <span class="st">"https://acme.atlassian.net"</span>,
+        <span class="st">"JIRA_EMAIL"</span>: <span class="st">"claude-bot@acme.com"</span>,       <span class="cm">// service account email</span>
+        <span class="st">"JIRA_API_TOKEN"</span>: <span class="st">"${JIRA_API_TOKEN}"</span>,       <span class="cm">// from id.atlassian.com/manage-profile/security/api-tokens</span>
+        <span class="st">"JIRA_PROJECT_KEY"</span>: <span class="st">"PLAT"</span>                  <span class="cm">// limit to specific project</span>
+      }
+    }
+  }
+}</code></pre>
+        </div>
+
+        <h3>JQL Query Patterns for Sprint Planning</h3>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">jql</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm"># Current sprint — all open issues</span>
+project = PLAT AND sprint in openSprints() AND status != Done ORDER BY priority DESC
+
+<span class="cm"># Blocked issues — high priority with no assignee</span>
+project = PLAT AND priority in (High, Critical) AND assignee is EMPTY AND status != Done
+
+<span class="cm"># Ready to test — awaiting QA</span>
+project = PLAT AND status = "In Review" AND sprint in openSprints()
+
+<span class="cm"># Overdue from last sprint — carried over work</span>
+project = PLAT AND sprint in closedSprints() AND status != Done AND sprint not in openSprints()
+
+<span class="cm"># Issues linked to a specific PR (when GitHub integration is enabled)</span>
+project = PLAT AND "GitHub PR" is not EMPTY AND status in ("In Progress", "In Review")</code></pre>
+        </div>
+
+        <h3>Real Workflow: Sprint Planning Assistant</h3>
+
+        <div class="arch-diagram">
+<span class="label">PROMPT:</span> <span class="hi">"We start our new sprint Monday. Review the current backlog in PLAT,
+         check team capacity (8 engineers, 2-week sprint), and flag blockers."</span>
+
+<span class="dim">Claude calls search_issues with JQL: project = PLAT AND status = "To Do"
+                                         AND priority in (High, Critical)</span>
+<span class="good">→ Returns 24 issues with story points and priority</span>
+
+<span class="dim">Claude calls list_sprints to see velocity from last 3 sprints</span>
+<span class="good">→ Team average: 42 story points per sprint</span>
+
+<span class="dim">Claude calls search_issues for unresolved blockers</span>
+<span class="good">→ 3 issues blocked on external dependencies</span>
+
+<span class="label">CLAUDE OUTPUT:</span>
+  <span class="box">Sprint Capacity: ~42 points (based on 3-sprint average)</span>
+  <span class="box">Recommended sprint scope: 14 issues (38 points)</span>
+  <span class="bad">Blockers to resolve before Monday:</span>
+  <span class="bad">  PLAT-892: Waiting on AWS SLA response (3 days blocked)</span>
+  <span class="bad">  PLAT-876: External API contract pending legal review</span>
+        </div>
+
+        <div class="callout callout-info">
+          <span class="callout-icon">ℹ</span>
+          <div class="callout-body">
+            <div class="callout-title">Linear, Azure DevOps, and GitHub Issues</div>
+            Linear's GraphQL API and Azure DevOps REST API follow the same MCP integration pattern. Linear has an official MCP server with native GraphQL support. GitHub Issues can be accessed via the GitHub MCP server — <code>list_issues</code>, <code>create_issue</code>, and <code>add_issue_comment</code> work identically to their Jira counterparts for simpler workflows.
+          </div>
+        </div>
+      </section>
+
+      <!-- ════════════════════════════════════════════
+           SECTION 5 — Browser Automation & Google Workspace
+      ════════════════════════════════════════════ -->
+      <section class="lesson-section" id="browser-mcp">
+        <div class="section-label">
+          <span class="section-num">05</span>
+          <h2 class="section-title">Browser Automation &amp; Google Workspace</h2>
+        </div>
+
+        <p>Browser automation via Playwright MCP and Google Workspace integrations unlock a class of workflows that go beyond API-first tools. Playwright can interact with any web application that doesn't have an API. Google Workspace gives Claude access to the documents, calendars, and emails that drive enterprise operations.</p>
+
+        <h3>Playwright MCP: Browser Automation</h3>
+        <p>Tools: <code>navigate</code>, <code>click</code>, <code>fill</code>, <code>screenshot</code>, <code>extract_text</code>, <code>evaluate_js</code>, <code>wait_for_element</code>.</p>
+
+        <div class="callout callout-warning">
+          <span class="callout-icon">⚠</span>
+          <div class="callout-body">
+            <div class="callout-title">Run Browser MCP in Docker, Not on Developer Laptops</div>
+            Playwright MCP running on a developer laptop has access to the developer's browser cookies, saved passwords, and local sessions. In enterprise deployments, run the Playwright MCP server inside a Docker container with no access to host credentials. Mount only the specific site credentials the automation needs, using environment variables, not the host keychain.
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">dockerfile</span><button class="copy-btn">Copy</button></div>
+          <pre><code><span class="cm"># Dockerfile for isolated Playwright MCP server</span>
+FROM mcr.microsoft.com/playwright/python:v1.44.0-jammy
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+<span class="cm"># Install only the browser you need (reduces image size)</span>
+RUN playwright install chromium --with-deps
+
+COPY playwright_mcp_server.py .
+
+<span class="cm"># No volumes from host — no access to host credentials</span>
+<span class="cm"># Secrets injected at runtime via --env flags</span>
+CMD [<span class="st">"python3"</span>, <span class="st">"playwright_mcp_server.py"</span>]</code></pre>
+        </div>
+
+        <h3>Google Workspace MCP Integrations</h3>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="info-card-icon">📂</div>
+            <div class="info-card-label">Google Drive</div>
+            <div class="info-card-value"><code>list_files</code>, <code>read_file</code>, <code>create_document</code>, <code>search_files</code>, <code>share_file</code></div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">📅</div>
+            <div class="info-card-label">Google Calendar</div>
+            <div class="info-card-value"><code>list_events</code>, <code>create_event</code>, <code>find_availability</code>, <code>update_event</code>, <code>delete_event</code></div>
+          </div>
+          <div class="info-card">
+            <div class="info-card-icon">✉️</div>
+            <div class="info-card-label">Gmail</div>
+            <div class="info-card-value"><code>search_emails</code>, <code>read_email</code>, <code>send_email</code> (CAUTION), <code>create_draft</code>, <code>label_email</code></div>
+          </div>
+        </div>
+
+        <h3>Composing Multi-Tool Enterprise Workflows</h3>
+
+        <div class="arch-diagram">
+<span class="label">WORKFLOW:</span> <span class="hi">"Find all customer contracts in Drive expiring in 30 days,
+             extract renewal dates, create Jira tickets for each"</span>
+
+  <span class="box">Step 1</span> — Google Drive MCP
+  <span class="dim">search_files(query="customer contract", folder="Legal/Active Contracts")</span>
+  <span class="good">→ 47 PDF and Google Doc files returned</span>
+
+  <span class="box">Step 2</span> — Google Drive MCP (for each file)
+  <span class="dim">read_file(file_id=...) for each contract</span>
+  <span class="good">→ Claude extracts renewal_date, customer_name, contract_value</span>
+
+  <span class="box">Step 3</span> — Claude filters
+  <span class="dim">Keeps only contracts where renewal_date is within 30 days</span>
+  <span class="good">→ 6 contracts identified</span>
+
+  <span class="box">Step 4</span> — Jira MCP (for each at-risk contract)
+  <span class="dim">create_issue(project="CS", summary="Contract renewal: {customer}",
+               description="Renewal date: {date}, Value: ${value}",
+               priority="High", labels=["renewal", "30-day"])</span>
+  <span class="good">→ 6 Jira tickets created with correct metadata</span>
+
+  <span class="box">Step 5</span> — Slack MCP
+  <span class="dim">post_message(channel="#customer-success",
+              text="6 contracts expiring in 30 days — Jira tickets created")</span>
+        </div>
+
+        <div class="callout callout-success">
+          <span class="callout-icon">✓</span>
+          <div class="callout-body">
+            <div class="callout-title">Module 2 Complete: Integration Patterns</div>
+            You now have production patterns for all major enterprise MCP integrations. The key principles: always use service accounts or app tokens in production, never personal credentials. Point database MCP at read-only replicas. Require human approval for any write operation with external side effects. Never run browser MCP on a host with live user sessions. Module 3 covers building your own custom MCP servers for internal systems.
+          </div>
+        </div>
+      </section>
+
+      <div class="nav-bottom">
+        <a href="day4-module1-mcp-fundamentals.html" class="nav-prev">← Day 4 · Module 1: MCP Architecture &amp; Fundamentals</a>
+        <a href="day4-module3-custom-mcp.html" class="nav-next">Day 4 · Module 3: Custom MCP Server Development →</a>
+      </div>
+
+    </div><!-- end content-wrap -->
+  </main>
+</div><!-- end layout -->
+<script src="assets/js/main.js"></script>
+</body>
+</html>
